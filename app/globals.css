@@ -54,14 +54,20 @@
   --color-clay-100: #fbe3e1;
   --color-clay-50:  #fdf2f1;
 
-  /* Categorical series for charts. Distinct in hue AND lightness, so the
-     series stay separable in greyscale and for colour-vision deficiency. */
-  --color-series-1: #4f3dd4;
-  --color-series-2: #d99b33;
-  --color-series-3: #268a69;
-  --color-series-4: #bf3b3c;
-  --color-series-5: #6b7589;
-  --color-series-6: #8b80f0;
+  /* Categorical series for charts.
+     Validated with the six-check palette gate (lightness band, chroma floor,
+     CVD separation, normal-vision floor, contrast) against both the light
+     #ffffff and dark #121829 chart surfaces. The slot ORDER is the
+     colour-vision safety mechanism, not decoration — do not reorder, and do
+     not cycle past slot 6. A seventh series folds into "Other" or facets.
+     Slots 3-6 sit below 3:1 on the light surface, so every chart that uses
+     them ships direct labels and a data table. */
+  --color-series-1: #5b3fd6;
+  --color-series-2: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-series-4: #eda100;
+  --color-series-5: #e87ba4;
+  --color-series-6: #008300;
 
   /* Type ----------------------------------------------------------------- */
   --font-display: var(--font-display-family), Georgia, "Times New Roman", serif;
@@ -156,6 +162,14 @@
     --grid-line: #273049;
     --focus-ring: #8b80f0;
 
+    /* Same six hues, re-stepped for the dark surface and validated against it. */
+    --color-series-1: #7d6cf0;
+    --color-series-2: #d95926;
+    --color-series-3: #199e70;
+    --color-series-4: #c98500;
+    --color-series-5: #d55181;
+    --color-series-6: #008300;
+
     color-scheme: dark;
   }
 }
@@ -193,6 +207,14 @@
 
   --grid-line: #273049;
   --focus-ring: #8b80f0;
+
+  /* Same six hues, re-stepped for the dark surface and validated against it. */
+  --color-series-1: #7d6cf0;
+  --color-series-2: #d95926;
+  --color-series-3: #199e70;
+  --color-series-4: #c98500;
+  --color-series-5: #d55181;
+  --color-series-6: #008300;
 
   color-scheme: dark;
 }
