@@ -219,7 +219,7 @@ export function OnboardingFlow({ initial }: { initial: Initial }) {
           ) : (
             <Link
               href="/dashboard"
-              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2"
+              className="inline-flex items-center min-h-[36px] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2"
             >
               {t.onboarding.skip}
             </Link>

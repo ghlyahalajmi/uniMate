@@ -180,7 +180,7 @@ function Figure({ label, value, emphasis }: { label: string; value: string; emph
       >
         {value}
       </p>
-      <p className="text-[0.6875rem] text-[var(--text-muted)] mt-1.5 leading-tight">{label}</p>
+      <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-tight">{label}</p>
     </div>
   );
 }

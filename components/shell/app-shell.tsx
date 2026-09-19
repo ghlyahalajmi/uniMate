@@ -45,7 +45,7 @@ export function AppShell({ children, user }: ShellProps) {
         )}
       >
         <div className="px-5 py-5">
-          <Link href="/dashboard" className="inline-flex rounded-[var(--radius-sm)]">
+          <Link href="/dashboard" className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]">
             <UniMateLogo size={30} name={t.brand.name} />
           </Link>
         </div>
@@ -75,7 +75,7 @@ export function AppShell({ children, user }: ShellProps) {
           'flex items-center justify-between gap-2 px-4 h-14 border-b',
         )}
       >
-        <Link href="/dashboard" className="inline-flex rounded-[var(--radius-sm)]">
+        <Link href="/dashboard" className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]">
           <UniMateLogo size={26} name={t.brand.name} />
         </Link>
         <div className="flex items-center gap-1">
@@ -166,7 +166,7 @@ export function AppShell({ children, user }: ShellProps) {
               aria-current={active ? 'page' : undefined}
               className={cx(
                 'flex flex-col items-center justify-center gap-0.5 min-h-[58px] px-1',
-                'text-[0.6875rem] font-medium transition-colors',
+                'text-xs font-medium transition-colors',
                 active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]',
               )}
             >
@@ -178,7 +178,7 @@ export function AppShell({ children, user }: ShellProps) {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 min-h-[58px] px-1 text-[0.6875rem] font-medium text-[var(--text-muted)]"
+          className="flex flex-col items-center justify-center gap-0.5 min-h-[58px] px-1 text-xs font-medium text-[var(--text-muted)]"
         >
           <Icon.menu size={21} />
           <span>{t.nav.menu}</span>
@@ -226,9 +226,9 @@ function UserChip({ user }: { user: ShellProps['user'] }) {
       <span className="min-w-0 flex-1">
         <span className="block text-[0.8125rem] font-medium truncate">{user.name ?? user.email}</span>
         {user.isDemo ? (
-          <span className="block text-[0.6875rem] text-[var(--warning)]">{t.common.demoData}</span>
+          <span className="block text-xs text-[var(--warning)]">{t.common.demoData}</span>
         ) : (
-          <span className="block text-[0.6875rem] text-[var(--text-muted)] truncate">{user.email}</span>
+          <span className="block text-xs text-[var(--text-muted)] truncate">{user.email}</span>
         )}
       </span>
       <form action="/auth/sign-out" method="post">

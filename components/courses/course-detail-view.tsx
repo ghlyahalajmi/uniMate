@@ -58,7 +58,7 @@ export function CourseDetailView({
       <div className="mb-2">
         <Link
           href="/courses"
-          className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-1.5 min-h-[32px] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           <Icon.chevronEnd size={15} className="rotate-180 flip-rtl" />
           {t.nav.courses}
@@ -182,7 +182,7 @@ export function CourseDetailView({
               <CardHeader
                 title={t.courseDetail.tasksTab}
                 action={
-                  <Link href="/tasks" className="text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
+                  <Link href="/tasks" className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
                     {t.common.viewAll}
                   </Link>
                 }
@@ -307,7 +307,7 @@ export function CourseDetailView({
             action={
               <Link
                 href={`/study?course=${course.id}`}
-                className="text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
+                className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
               >
                 {t.courseDetail.practiceNow}
               </Link>
@@ -336,7 +336,7 @@ export function CourseDetailView({
           <CardHeader
             title={t.courseDetail.tasksTab}
             action={
-              <Link href="/tasks" className="text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
+              <Link href="/tasks" className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
                 {t.common.viewAll}
               </Link>
             }

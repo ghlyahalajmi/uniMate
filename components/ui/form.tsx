@@ -216,7 +216,7 @@ export function SegmentedControl<T extends string>({
           >
             {o.label}
             {o.hint ? (
-              <span className="block text-[0.6875rem] font-normal opacity-70">{o.hint}</span>
+              <span className="block text-xs font-normal opacity-70">{o.hint}</span>
             ) : null}
           </button>
         );

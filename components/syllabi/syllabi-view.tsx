@@ -191,7 +191,7 @@ export function SyllabiView({
 
                   {s.topics.length ? (
                     <div className="mt-4">
-                      <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                         {t.courseDetail.topics}
                       </p>
                       <ul className="flex flex-wrap gap-1.5">
@@ -202,7 +202,7 @@ export function SyllabiView({
 
                   {s.events.length ? (
                     <div className="mt-4">
-                      <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                         {t.syllabi.events}
                       </p>
                       <ul className="divide-y divide-[var(--border-subtle)]">
@@ -251,7 +251,7 @@ export function SyllabiView({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</dt>
+      <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</dt>
       <dd className="mt-1 leading-relaxed">{value}</dd>
     </div>
   );
@@ -316,7 +316,7 @@ function AskPanel({ syllabusId }: { syllabusId: string }) {
               : 'bg-[var(--warning-soft)] border-[var(--warning-border)]',
           )}
         >
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
             {answer.found ? t.ai.factLabel : t.common.unknown}
           </p>
           <p className="text-sm leading-relaxed">{answer.text}</p>

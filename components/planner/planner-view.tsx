@@ -175,7 +175,7 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
 
                 {p.rationale ? (
                   <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-                    <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                       {t.planner.rationale}
                     </p>
                     <p className="text-[0.8125rem] text-[var(--text-secondary)] leading-relaxed">{p.rationale}</p>

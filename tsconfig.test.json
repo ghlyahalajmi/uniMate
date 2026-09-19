@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": ".test-build",
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": [
+    "lib/calculations/**/*.ts",
+    "lib/validation/cleaning.ts",
+    "lib/validation/__tests__/**/*.ts",
+    "types/**/*.ts"
+  ]
+}

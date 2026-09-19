@@ -147,7 +147,7 @@ export function DashboardView({
             <CardHeader
               title={t.dashboard.gradeProgress}
               action={
-                <Link href="/grades" className="text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
+                <Link href="/grades" className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
                   {t.common.viewAll}
                 </Link>
               }
@@ -206,7 +206,7 @@ export function DashboardView({
             <CardHeader
               title={t.dashboard.todayTasks}
               action={
-                <Link href="/tasks" className="text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
+                <Link href="/tasks" className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline">
                   {t.common.viewAll}
                 </Link>
               }

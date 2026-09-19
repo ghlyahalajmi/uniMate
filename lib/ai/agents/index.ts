@@ -1,3 +1,5 @@
+import 'server-only';
+
 export { academicAnalyst } from './academic-analyst';
 export { studyQuestionGenerator, MODE_SIZES } from './study-questions';
 export { coursePlanner, findConflicts } from './course-planner';

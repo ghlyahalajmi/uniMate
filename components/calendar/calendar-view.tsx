@@ -146,7 +146,7 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
                 <div className="p-2 sm:p-3">
                   <div className="grid grid-cols-7 mb-1">
                     {WEEK_ORDER.map((d) => (
-                      <div key={d} className="text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-[var(--text-muted)] py-1.5">
+                      <div key={d} className="text-center text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] py-1.5">
                         <span className="hidden sm:inline">{t.weekdaysShort[d]}</span>
                         <span className="sm:hidden">{t.weekdaysShort[d].slice(0, 1)}</span>
                       </div>
@@ -214,7 +214,7 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
                   <div className="space-y-4">
                     {selectedClasses.length ? (
                       <div>
-                        <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                           {t.calendar.classLabel}
                         </p>
                         <ul className="space-y-2">
@@ -235,7 +235,7 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
 
                     {selectedEntries.length ? (
                       <div>
-                        <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                           {t.dashboard.upcoming}
                         </p>
                         <ul className="space-y-2.5">

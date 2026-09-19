@@ -132,7 +132,7 @@ export function Provenance({
     >
       <p
         className={cx(
-          'text-[0.6875rem] font-semibold uppercase tracking-wider mb-1.5',
+          'text-xs font-semibold uppercase tracking-wider mb-1.5',
           fact ? 'text-[var(--text-muted)]' : 'text-[var(--accent-soft-text)]',
         )}
       >

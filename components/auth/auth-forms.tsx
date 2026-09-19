@@ -67,12 +67,12 @@ export function SignInForm({ next }: { next?: string }) {
         </form>
 
         <div className="flex items-center justify-between mt-5 text-sm">
-          <Link href="/auth/reset" className="text-[var(--accent-soft-text)] hover:underline">
+          <Link href="/auth/reset" className="inline-flex items-center min-h-[32px] text-[var(--accent-soft-text)] hover:underline">
             {t.auth.forgotPassword}
           </Link>
           <span className="text-[var(--text-secondary)]">
             {t.auth.noAccount}{' '}
-            <Link href="/auth/sign-up" className="text-[var(--accent-soft-text)] hover:underline font-medium">
+            <Link href="/auth/sign-up" className="inline-flex items-center min-h-[32px] text-[var(--accent-soft-text)] hover:underline font-medium">
               {t.auth.signUp}
             </Link>
           </span>
@@ -127,7 +127,7 @@ export function SignUpForm() {
 
         <p className="text-sm text-[var(--text-secondary)] mt-5 text-center">
           {t.auth.hasAccount}{' '}
-          <Link href="/auth/sign-in" className="text-[var(--accent-soft-text)] hover:underline font-medium">
+          <Link href="/auth/sign-in" className="inline-flex items-center min-h-[32px] text-[var(--accent-soft-text)] hover:underline font-medium">
             {t.auth.signIn}
           </Link>
         </p>
@@ -183,7 +183,7 @@ export function ResetForm() {
       </form>
 
       <p className="text-sm text-center mt-5">
-        <Link href="/auth/sign-in" className="text-[var(--accent-soft-text)] hover:underline">
+        <Link href="/auth/sign-in" className="inline-flex items-center min-h-[32px] text-[var(--accent-soft-text)] hover:underline">
           {t.auth.signIn}
         </Link>
       </p>
@@ -217,7 +217,7 @@ export function UpdatePasswordForm() {
 
       {state.success ? (
         <p className="text-sm text-center mt-5">
-          <Link href="/dashboard" className="text-[var(--accent-soft-text)] hover:underline font-medium">
+          <Link href="/dashboard" className="inline-flex items-center min-h-[32px] text-[var(--accent-soft-text)] hover:underline font-medium">
             {t.nav.dashboard}
           </Link>
         </p>

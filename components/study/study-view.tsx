@@ -343,7 +343,7 @@ export function StudyView({
 
                 {current.explanation ? (
                   <div className="rounded-[var(--radius-md)] bg-[var(--bg-surface-2)] border border-[var(--border-subtle)] p-3.5">
-                    <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
                       {t.study.explanation}
                     </p>
                     <p className="text-sm leading-relaxed whitespace-pre-line">{current.explanation}</p>

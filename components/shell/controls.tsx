@@ -21,11 +21,15 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         'inline-flex items-center gap-2 rounded-[var(--radius-sm)] text-sm font-medium',
         'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]',
         'transition-colors min-h-[40px]',
-        compact ? 'px-2.5' : 'px-3 w-full',
+        compact ? 'w-10 justify-center' : 'px-3 w-full',
       )}
     >
       <Icon.globe size={18} />
-      <span>{next === 'ar' ? 'العربية' : 'English'}</span>
+      {/* Compact mode is icon-only: at 320px the header cannot afford two
+          labelled controls beside the logo and the primary action. */}
+      <span className={compact ? 'sr-only' : undefined}>
+        {next === 'ar' ? 'العربية' : 'English'}
+      </span>
     </button>
   );
 }
@@ -62,11 +66,13 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         'inline-flex items-center gap-2 rounded-[var(--radius-sm)] text-sm font-medium',
         'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]',
         'transition-colors min-h-[40px]',
-        compact ? 'px-2.5' : 'px-3 w-full',
+        compact ? 'w-10 justify-center' : 'px-3 w-full',
       )}
     >
       {theme === 'dark' ? <Icon.sun size={18} /> : <Icon.moon size={18} />}
-      <span>{theme === 'dark' ? t.settings.light : t.settings.dark}</span>
+      <span className={compact ? 'sr-only' : undefined}>
+        {theme === 'dark' ? t.settings.light : t.settings.dark}
+      </span>
     </button>
   );
 }

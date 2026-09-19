@@ -48,7 +48,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3.5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
                 {t.dashboard.todayClasses}
               </p>
               <ul className="space-y-2">
@@ -64,7 +64,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3.5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
                 {t.dashboard.gradeProgress}
               </p>
               <ul className="space-y-2.5">
@@ -103,13 +103,13 @@ export function DashboardPreview() {
               ].map((s) => (
                 <div key={s.label} className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3">
                   <p className="font-display text-2xl font-semibold tabular-nums">{s.value}</p>
-                  <p className="text-[0.6875rem] text-[var(--text-muted)] mt-0.5 leading-tight">{s.label}</p>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>
 
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-accent-soft)] p-3.5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--accent-soft-text)] mb-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-soft-text)] mb-1.5">
                 {t.dashboard.aiInsight}
               </p>
               <p className="text-[0.8125rem] leading-relaxed text-[var(--text-primary)]">
@@ -120,7 +120,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3.5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2.5">
                 {t.dashboard.todayTasks}
               </p>
               <ul className="space-y-2 text-[0.8125rem]">

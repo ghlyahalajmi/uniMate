@@ -2,13 +2,21 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 /** Routes a signed-out visitor may open. Everything else redirects to sign-in. */
-const PUBLIC_PREFIXES = [
-  '/', '/auth', '/how-it-works', '/api/health',
-];
+const PUBLIC_PREFIXES = ['/auth', '/how-it-works'];
 
 function isPublic(pathname: string) {
   if (pathname === '/') return true;
-  return PUBLIC_PREFIXES.some((p) => p !== '/' && pathname.startsWith(p));
+  return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+/**
+ * API routes authenticate themselves and answer in JSON. Redirecting them to
+ * an HTML sign-in page would turn a 401 into a parse error in the caller, and
+ * would make the server-to-server workflow webhooks — which carry a shared
+ * secret rather than a session cookie — unreachable.
+ */
+function isApi(pathname: string) {
+  return pathname.startsWith('/api/');
 }
 
 export async function updateSession(request: NextRequest) {
@@ -38,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && !isPublic(pathname)) {
+  if (!user && !isPublic(pathname) && !isApi(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/sign-in';
     url.searchParams.set('next', pathname);

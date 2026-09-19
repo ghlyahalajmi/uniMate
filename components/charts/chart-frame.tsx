@@ -36,7 +36,7 @@ export function ChartFrame({
             onClick={() => setShowTable((v) => !v)}
             aria-expanded={showTable}
             aria-controls={tableId}
-            className="text-xs text-[var(--accent-soft-text)] hover:underline shrink-0"
+            className="inline-flex items-center min-h-[32px] text-xs text-[var(--accent-soft-text)] hover:underline shrink-0"
           >
             {showTable ? t.common.showLess : t.a11y.dataTable}
           </button>

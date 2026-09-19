@@ -173,7 +173,7 @@ export function AnalyticsView({
             <div className="space-y-4">
               {analysis.patterns.length ? (
                 <div>
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                     {t.analytics.patterns}
                   </p>
                   <ul className="space-y-3">
@@ -191,7 +191,7 @@ export function AnalyticsView({
 
               {analysis.strengths.length ? (
                 <div>
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                     {t.study.strongTopics}
                   </p>
                   <ul className="flex flex-wrap gap-1.5">
@@ -202,7 +202,7 @@ export function AnalyticsView({
 
               {analysis.watchAreas.length ? (
                 <div>
-                  <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                     {t.study.weakTopics}
                   </p>
                   <ul className="flex flex-wrap gap-1.5">

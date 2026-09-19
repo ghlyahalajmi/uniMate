@@ -9,7 +9,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   return (
     <div className="min-h-dvh flex flex-col">
       <header className="px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="inline-flex rounded-[var(--radius-sm)]">
+        <Link href="/" className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]">
           <UniMateLogo size={28} name={t.brand.name} />
         </Link>
         <div className="flex items-center gap-1">
