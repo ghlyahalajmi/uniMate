@@ -163,4 +163,5 @@ never put either value anywhere a browser can reach.
 | Webhooks return 404 | `WORKFLOW_WEBHOOK_SECRET` is unset — they are disabled by design |
 | Webhooks return 500 | `SUPABASE_SERVICE_ROLE_KEY` is missing |
 | Seed fails on `auth.users` | Run it against the database directly, not through PostgREST |
+| Sign-up email links point at localhost | Set the Site URL and Redirect URLs in Supabase → Authentication → URL Configuration to the deployed origin. Password sign-in (including the demo account) works without this; only emailed links need it |
 | Charts are empty | There are no rows yet — this is the intended empty state, not a bug |

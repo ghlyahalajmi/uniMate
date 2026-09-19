@@ -11,6 +11,13 @@ need on what is left, and what should I study next.
 It is built on Next.js 15, Supabase (PostgreSQL, Auth, Storage, row level
 security) and the Anthropic API, in English and Arabic with full RTL.
 
+**Live:** https://unimate-pied.vercel.app
+**Demo sign-in:** `sara.alajmi@demo.unimate.app` / `UniMateDemo2026!`
+
+The deployment runs against a Supabase project seeded with the demo data
+below. AI features are off there until an `ANTHROPIC_API_KEY` is added — the
+rest of the app works without one.
+
 ---
 
 ## Contents
@@ -310,6 +317,8 @@ If you ran the seed:
 
 - **Email** `sara.alajmi@demo.unimate.app`
 - **Password** `UniMateDemo2026!`
+
+This account is already seeded on the live deployment above.
 
 Sara Al-Ajmi, Computer Engineering at Kuwait University, year 3. Eight
 completed courses, five active, 22 assessments, two syllabi, seven logged AI
