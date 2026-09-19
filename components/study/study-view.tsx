@@ -110,16 +110,31 @@ export function StudyView({
       return;
     }
     const correct = answers.filter((a) => a.correct).length;
-    await fetch('/api/ai/study/complete', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        correct,
-        total: questions.length,
-        duration_minutes: Math.round((Date.now() - startedAt.current) / 60000),
-      }),
-    }).catch(() => undefined);
+    try {
+      const res = await fetch('/api/ai/study/complete', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          correct,
+          total: questions.length,
+          duration_minutes: Math.round((Date.now() - startedAt.current) / 60000),
+          timezone_offset_minutes: new Date().getTimezoneOffset(),
+        }),
+      });
+      const data = await res.json();
+      const m = data?.momentum;
+      if (m) {
+        if (m.xpAwarded > 0) toast.success(tf(t.momentum.toastXp, { n: m.xpAwarded }));
+        if (m.streakExtended) toast.success(tf(t.momentum.toastStreak, { n: m.streakAfter }));
+        for (const code of m.newAchievements ?? []) {
+          const name = (t.momentum as unknown as Record<string, string>)[`a_${code}`] ?? code;
+          toast.success(tf(t.momentum.toastAchievement, { name }));
+        }
+      }
+    } catch {
+      // The session is already saved; momentum feedback is not worth an error.
+    }
     setPhase('results');
     router.refresh();
   }

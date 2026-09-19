@@ -42,6 +42,8 @@ export interface Profile {
   theme: string;
   reminders_enabled: boolean;
   onboarding_completed: boolean;
+  streak_freezes: number;
+  momentum_enabled: boolean;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -253,6 +255,30 @@ export interface CleaningLogEntry {
   cleaned_value: string | null;
   reason: string;
   created_at: string;
+}
+
+export interface ActivityDayRow {
+  id: string;
+  user_id: string;
+  day: string;
+  tasks_completed: number;
+  practice_sessions: number;
+  questions_answered: number;
+  focus_minutes: number;
+  grades_logged: number;
+  xp: number;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AchievementRow {
+  id: string;
+  user_id: string;
+  code: string;
+  evidence: string | null;
+  is_demo: boolean;
+  unlocked_at: string;
 }
 
 /** A course joined to its assessments — the shape most screens actually want. */

@@ -62,6 +62,7 @@ export const profileSchema = z.object({
   study_availability: z.string().trim().max(500).optional().or(z.literal('')).transform((v) => (v ? v : null)),
   theme: z.enum(['light','dark','system']).default('light'),
   reminders_enabled: z.coerce.boolean().default(true),
+  momentum_enabled: z.coerce.boolean().default(true),
 });
 
 export const gradeScaleSchema = z.object({

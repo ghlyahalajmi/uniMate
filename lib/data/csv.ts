@@ -50,6 +50,8 @@ export const EXPORTABLE = {
   questions: ['topic','difficulty','question_type','question_text','answer','created_at'],
   ai_runs: ['agent_name','trigger_type','workflow','status','input_summary','output_summary','error_message','duration_ms','started_at','completed_at'],
   cleaning_log: ['table_name','field_name','original_value','cleaned_value','reason','created_at'],
+  activity_days: ['day','tasks_completed','practice_sessions','questions_answered','focus_minutes','grades_logged','xp'],
+  achievements: ['code','evidence','unlocked_at'],
 } as const;
 
 export type ExportableTable = keyof typeof EXPORTABLE;

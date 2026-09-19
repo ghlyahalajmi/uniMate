@@ -21,6 +21,7 @@ export default async function SettingsPage() {
         studyMinutes: profile?.preferred_study_minutes ?? 45,
         availability: profile?.study_availability ?? '',
         remindersEnabled: profile?.reminders_enabled ?? true,
+        momentumEnabled: profile?.momentum_enabled ?? true,
         language: profile?.preferred_language ?? locale,
         isDemo: Boolean(profile?.is_demo),
       }}

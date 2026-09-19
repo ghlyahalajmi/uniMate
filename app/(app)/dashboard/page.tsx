@@ -6,6 +6,7 @@ import {
 } from '@/lib/data/queries';
 import { cumulativeGpa, semesterGpa } from '@/lib/calculations/gpa';
 import { computeCourseGrade, requiredForTarget } from '@/lib/calculations/grades';
+import { getMomentum } from '@/lib/momentum/queries';
 import { DashboardView } from '@/components/dashboard/dashboard-view';
 
 export const metadata = { title: 'Dashboard' };
@@ -15,8 +16,8 @@ export default async function DashboardPage() {
   const profile = await getProfile();
   if (profile && !profile.onboarding_completed) redirect('/onboarding');
 
-  const [courses, grades, tasks, events, scale] = await Promise.all([
-    getCourses(), getGrades(), getTasks(), getSyllabusEvents(), getGradeScale(),
+  const [courses, grades, tasks, events, scale, momentum] = await Promise.all([
+    getCourses(), getGrades(), getTasks(), getSyllabusEvents(), getGradeScale(), getMomentum(4),
   ]);
   const { t } = await getDictionary();
 
@@ -110,6 +111,17 @@ export default async function DashboardPage() {
         activeCourses: active.length,
       }}
       progress={progress}
+      momentum={
+        profile?.momentum_enabled === false
+          ? null
+          : {
+              current: momentum.streak.current,
+              atRisk: momentum.streak.atRisk,
+              activeToday: momentum.streak.activeToday,
+              level: momentum.level.level,
+              xpToday: momentum.xpToday,
+            }
+      }
       greetingFallback={t.dashboard.goodAfternoon}
     />
   );

@@ -337,3 +337,80 @@ begin
 
   raise notice 'UniMate demo data seeded for sara.alajmi@demo.unimate.app';
 end $$;
+
+-- =============================================================================
+-- Demo momentum history for Sara Al-Ajmi.
+--
+-- A believable term rather than a perfect one: a live 6-day run, an 11-day
+-- best earlier in the semester, and real gaps where life got in the way.
+-- Anchored to current_date so it stays current whenever it is seeded.
+-- =============================================================================
+do $$
+declare
+  v_user uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  -- Days ago that were active. The first six are the run still going.
+  v_active int[] := array[
+    0,1,2,3,4,5,
+    7,8,9,
+    12,13,14,15,
+    17,18,
+    20,21,22,23,24,25,26,27,28,29,30,
+    33,34,35,36,
+    38,39,40,
+    45,46,47,48,
+    51,52,
+    55,56,57
+  ];
+  d int;
+  v_day date;
+  v_xp int;
+  v_tasks int;
+  v_sets int;
+  v_questions int;
+  v_focus int;
+begin
+  delete from public.activity_days where user_id = v_user;
+  delete from public.achievements  where user_id = v_user;
+
+  foreach d in array v_active loop
+    v_day := current_date - d;
+
+    -- Deterministic but uneven, so the heatmap reads like a real term.
+    v_tasks     := (d * 7) % 3;
+    v_sets      := case when (d * 5) % 4 = 0 then 1 else 0 end;
+    v_questions := v_sets * (5 + ((d * 3) % 6));
+    v_focus     := case
+                     when d = 4  then 135          -- the day deep work was earned
+                     when (d * 11) % 5 = 0 then 50
+                     when (d * 11) % 3 = 0 then 25
+                     else 0
+                   end;
+
+    v_xp := least(
+      150,
+      v_tasks * 12 + v_sets * 15 + v_questions * 2 + (v_focus / 10) * 6
+    );
+    -- Every listed day must actually count toward the streak.
+    if v_xp < 10 then
+      v_xp := 10 + ((d * 13) % 25);
+      if v_tasks = 0 and v_sets = 0 and v_focus = 0 then v_tasks := 1; end if;
+    end if;
+
+    insert into public.activity_days
+      (user_id, day, tasks_completed, practice_sessions, questions_answered,
+       focus_minutes, grades_logged, xp, is_demo)
+    values (v_user, v_day, v_tasks, v_sets, v_questions, v_focus, 0, v_xp, true);
+  end loop;
+
+  -- Achievements the seeded history genuinely supports.
+  insert into public.achievements (user_id, code, evidence, is_demo, unlocked_at) values
+    (v_user,'first_task',      'First task completed',              true, now() - interval '56 days'),
+    (v_user,'first_practice',  'First practice set finished',       true, now() - interval '55 days'),
+    (v_user,'first_syllabus',  '2 syllabi uploaded',                true, now() - interval '16 days'),
+    (v_user,'streak_3',        '11 day streak',                     true, now() - interval '48 days'),
+    (v_user,'streak_7',        '11 day streak',                     true, now() - interval '25 days'),
+    (v_user,'deep_work',       '135 focus minutes in one day',      true, now() - interval '4 days'),
+    (v_user,'full_house',      '5 courses with every weight entered', true, now() - interval '11 days'),
+    (v_user,'early_bird',      'A task finished before 09:00',      true, now() - interval '9 days')
+  on conflict (user_id, code) do nothing;
+end $$;

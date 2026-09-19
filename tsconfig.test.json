@@ -6,12 +6,15 @@
     "outDir": ".test-build",
     "noEmit": false,
     "jsx": "react-jsx",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "lib/calculations/**/*.ts",
     "lib/validation/cleaning.ts",
     "lib/validation/__tests__/**/*.ts",
+    "lib/momentum/**/*.ts",
     "types/**/*.ts"
   ]
 }

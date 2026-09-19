@@ -12,6 +12,7 @@ import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { saveTask, setTaskStatus, deleteTask, type ActionState } from '@/lib/data/actions';
 import { actionMessage } from '@/lib/i18n/action-messages';
+import { XP_RULES } from '@/lib/momentum/engine';
 import type { Task, TaskStatus } from '@/types/database';
 
 const EMPTY: ActionState = {};
@@ -85,7 +86,22 @@ export function TasksView({
     const next: TaskStatus =
       tk.status === 'todo' ? 'in_progress' : tk.status === 'in_progress' ? 'completed' : 'todo';
     startTransition(async () => {
-      await setTaskStatus(tk.id, next);
+      const result = await setTaskStatus(tk.id, next, new Date().getTimezoneOffset());
+
+      // Ticking something off should feel like it landed.
+      const m = result.momentum;
+      if (m) {
+        if (m.xpAwarded > 0) toast.success(tf(t.momentum.toastXp, { n: m.xpAwarded }));
+        else if (m.xpToday >= XP_RULES.dailyCap) toast.info(t.momentum.capReached);
+
+        if (m.streakExtended) {
+          toast.success(tf(t.momentum.toastStreak, { n: m.streakAfter }));
+        }
+        for (const code of m.newAchievements) {
+          const name = (t.momentum as unknown as Record<string, string>)[`a_${code}`] ?? code;
+          toast.success(tf(t.momentum.toastAchievement, { name }));
+        }
+      }
       router.refresh();
     });
   }

@@ -95,6 +95,21 @@ export const Icon = {
     <Svg {...p}><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" /><path d="M15 16l4-4-4-4M19 12H9" /></Svg>
   ),
   search: (p: IconProps) => (<Svg {...p}><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></Svg>),
+  flame: (p: IconProps) => (
+    <Svg {...p}><path d="M12 3s5 4.2 5 8.6a5 5 0 0 1-10 0C7 9.4 9 7.6 9 7.6s.5 1.9 1.7 2.6C11.4 8 12 5.4 12 3Z" /></Svg>
+  ),
+  trophy: (p: IconProps) => (
+    <Svg {...p}><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 5.5H4.5A2.5 2.5 0 0 0 7 10M17 5.5h2.5A2.5 2.5 0 0 1 17 10" /><path d="M12 14v3M9 20h6M10 17h4" /></Svg>
+  ),
+  lock: (p: IconProps) => (
+    <Svg {...p}><rect x="5" y="10.5" width="14" height="9.5" rx="2" /><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" /></Svg>
+  ),
+  play: (p: IconProps) => (<Svg {...p}><path d="M8 5.5v13l10-6.5-10-6.5Z" /></Svg>),
+  pause: (p: IconProps) => (<Svg {...p}><path d="M9 5v14M15 5v14" /></Svg>),
+  stop: (p: IconProps) => (<Svg {...p}><rect x="6" y="6" width="12" height="12" rx="2" /></Svg>),
+  share: (p: IconProps) => (
+    <Svg {...p}><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" /><path d="M12 15V4M8 8l4-4 4 4" /></Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;

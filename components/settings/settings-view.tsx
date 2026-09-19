@@ -24,7 +24,8 @@ export function SettingsView({
   profile: {
     fullName: string; university: string; major: string; academicYear: string;
     targetGpa: number | null; studyMinutes: number; availability: string;
-    remindersEnabled: boolean; language: AppLanguage; isDemo: boolean;
+    remindersEnabled: boolean; momentumEnabled: boolean;
+    language: AppLanguage; isDemo: boolean;
   };
   ai: { configured: boolean; model: string | null; agents: AgentInfo[] };
 }) {
@@ -33,6 +34,7 @@ export function SettingsView({
   const toast = useToast();
 
   const [reminders, setReminders] = useState(profile.remindersEnabled);
+  const [momentum, setMomentum] = useState(profile.momentumEnabled);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
     if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem('unimate-theme');
@@ -178,6 +180,14 @@ export function SettingsView({
               onChange={setReminders}
             />
             {reminders ? <input type="hidden" name="reminders_enabled" value="on" /> : null}
+
+            <Toggle
+              label={t.momentum.enableLabel}
+              description={t.momentum.enableSub}
+              checked={momentum}
+              onChange={setMomentum}
+            />
+            {momentum ? <input type="hidden" name="momentum_enabled" value="on" /> : null}
           </div>
         </Card>
 

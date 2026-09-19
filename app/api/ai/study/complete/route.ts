@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
+import { recordActivity } from '@/lib/momentum/record';
 
 interface Body {
   session_id: string;
   correct: number;
   total: number;
   duration_minutes: number;
+  timezone_offset_minutes?: number;
 }
 
 /** Closes a practice session and stores its score. */
@@ -32,5 +34,13 @@ export async function POST(request: Request) {
     .eq('user_id', auth.ctx.userId);
 
   if (error) return apiError('save_failed', 200);
-  return NextResponse.json({ ok: true });
+
+  const momentum = await recordActivity(
+    auth.ctx.supabase,
+    auth.ctx.userId,
+    { kind: 'practice', correctAnswers: correct, questionsAnswered: total },
+    { timezoneOffsetMinutes: body.timezone_offset_minutes },
+  );
+
+  return NextResponse.json({ ok: true, momentum });
 }

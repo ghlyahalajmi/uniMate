@@ -52,6 +52,7 @@ rest of the app works without one.
 | **Calendar** | Classes, assessments, tasks and reminders in a month grid and an agenda. |
 | **Analytics** | Five charts drawn from your own rows, each with a data table. |
 | **Records** | Every table UniMate holds, with real delete, plus the AI activity log and the data cleaning log. |
+| **Momentum** | A daily streak, XP and levels, an activity heatmap, 18 achievements and a Pomodoro focus timer — all earned from work that leaves a record. Plus a Semester Wrapped card you can save as an image. |
 | **Assistant** | A chat that answers from your records, and says so when the answer is not in them. |
 
 ### Two rules the whole product is built around
@@ -64,6 +65,11 @@ rest of the app works without one.
    agents are instructed to answer only from the student's records and to say
    when something is not recorded. They never invent an exam date, a
    prerequisite, a grade or a university policy.
+3. **Momentum is earned, and the rules are on screen.** A day counts when you
+   complete a task, finish a practice set, log ten focus minutes or enter a
+   mark — opening the app earns nothing. XP is capped at 150 a day so showing
+   up regularly beats one heroic session, and the full table of what each
+   action is worth is printed on the Momentum page rather than hidden.
 
 ---
 
@@ -195,6 +201,10 @@ Browser ──► Next.js App Router
   that crashes mid-flight still leaves a trace.
 - **`lib/workflows`** — composes agents with the database writes that follow
   them. This is also the seam an external automation platform plugs into.
+- **`lib/momentum`** — streak, XP, level and achievement logic as pure
+  functions, unit-tested against boundary cases (a missed day, a gap, a
+  month rollover, the daily cap). Recording is deliberately forgiving: if the
+  momentum write fails, the task the student actually completed still saves.
 - **`lib/i18n`** — the Arabic dictionary is typed against the English one, so a
   missing translation is a build error rather than an English word leaking into
   an Arabic screen.
@@ -292,7 +302,7 @@ browser. `GET` on the same path lists the available workflows.
 ```bash
 npm run typecheck        # strict TypeScript across the project
 npm run build            # production build
-npm run test:calc        # 24 unit checks on the arithmetic and the cleaners
+npm run test:calc        # 47 unit checks: arithmetic, cleaners, streaks and XP
 npm run check:responsive # browser checks at 7 widths × 2 locales
 ```
 
@@ -301,6 +311,9 @@ And against a live database:
 ```bash
 psql "$DATABASE_URL" -f supabase/tests/rls_isolation_test.sql
 ```
+
+`npm run test:e2e` signs in as the demo student and walks every authenticated
+screen; it needs the app running and network access to your Supabase project.
 
 `npm run check:responsive` needs the app running (`PORT=3100 npm start`) and
 fails on horizontal overflow, text under 12px, or any interactive target under
@@ -381,8 +394,10 @@ Being straight about this, because "it builds" is not the same as "it works".
 - The three migrations apply cleanly to PostgreSQL 16, and the seed runs and
   re-runs without error.
 - The RLS isolation test passes all 11 checks against a real database.
-- 24 unit checks pass on the grade, GPA and cleaning logic, including the
-  brief's own worked example and the boundary cases.
+- 47 unit checks pass on the grade, GPA, cleaning, streak and XP logic,
+  including the brief's own worked example and the boundary cases.
+- The live database carries 17 tables, 68 policies, and row level security
+  enabled and forced on every one of them.
 - `npm run build` and `npm run typecheck` are clean, and `npm audit` reports
   zero vulnerabilities.
 - Server-side rendering, the locale cookie, full Arabic RTL with no English
@@ -394,11 +409,12 @@ Being straight about this, because "it builds" is not the same as "it works".
 
 **Not verified here, and worth doing first:**
 
-- **The live Supabase data path.** The container this was built in cannot reach
-  Docker Hub's CDN, so a local Supabase stack could not be started. Reads,
-  writes, auth and storage were exercised against the schema and against RLS,
-  but not through PostgREST and GoTrue end to end. Point it at a real project
-  and walk the flow once.
+- **The authenticated app in a browser.** This session's network policy blocks
+  `*.supabase.co` and `*.vercel.app` outright, so neither the local server nor
+  any fetch from here could reach the database or the deployment. The schema,
+  the policies, the seeded rows and the demo credential were all verified
+  directly against the live database, and `scripts/e2e-smoke.mjs` is ready to
+  walk the signed-in screens the moment it runs somewhere with network access.
 - **The AI agents against the live API.** No key was configured here. The
   prompts, schemas and fallbacks are in place and the offline paths were
   exercised, but the model's actual output has not been seen.

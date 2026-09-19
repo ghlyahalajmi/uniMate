@@ -8,6 +8,8 @@ import {
 } from '@/lib/validation/schemas';
 import { cleanCourseCode } from '@/lib/validation/cleaning';
 import { workflowBuildReminders, agentContext } from '@/lib/workflows';
+import { recordActivity } from '@/lib/momentum/record';
+import type { RecordResult } from '@/lib/momentum/record';
 
 export interface ActionState {
   ok?: boolean;
@@ -116,6 +118,11 @@ export async function saveGrade(_prev: ActionState, formData: FormData): Promise
 
     if (error) return { ok: false, messageKey: 'gradeSaveError' };
 
+    // Entering a mark is the act that keeps the record useful, so it counts.
+    if (parsed.data.score !== null && parsed.data.score !== undefined) {
+      await recordActivity(supabase, userId, { kind: 'grade' });
+    }
+
     revalidatePath('/grades');
     revalidatePath('/dashboard');
     revalidatePath(`/courses/${parsed.data.course_id}`);
@@ -187,17 +194,47 @@ export async function saveTask(_prev: ActionState, formData: FormData): Promise<
 export async function setTaskStatus(
   id: string,
   status: 'todo' | 'in_progress' | 'completed',
-): Promise<ActionState> {
+  timezoneOffsetMinutes?: number,
+): Promise<ActionState & { momentum?: RecordResult | null }> {
   try {
     const supabase = await createClient();
+
+    // Read first: the XP a task is worth depends on its priority and whether
+    // it is being finished on time.
+    const { data: before } = await supabase
+      .from('tasks')
+      .select('status, priority, due_date')
+      .eq('id', id)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('tasks')
       .update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null })
       .eq('id', id);
     if (error) return GENERIC;
+
+    // Only the transition into completed earns anything, so toggling a task
+    // back and forth cannot farm points.
+    let momentum: RecordResult | null = null;
+    if (status === 'completed' && before && before.status !== 'completed') {
+      const userId = await requireUserId();
+      const today = new Date().toISOString().slice(0, 10);
+      momentum = await recordActivity(
+        supabase,
+        userId,
+        {
+          kind: 'task',
+          highPriority: before.priority === 'high',
+          onTime: !before.due_date || before.due_date >= today,
+        },
+        { timezoneOffsetMinutes },
+      );
+    }
+
     revalidatePath('/tasks');
     revalidatePath('/dashboard');
-    return { ok: true };
+    revalidatePath('/momentum');
+    return { ok: true, momentum };
   } catch {
     return GENERIC;
   }
@@ -264,6 +301,7 @@ export async function rebuildReminders(): Promise<ActionState & { created?: numb
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const raw = formToObject(formData);
   raw.reminders_enabled = formData.get('reminders_enabled') === 'on';
+  raw.momentum_enabled = formData.get('momentum_enabled') === 'on';
 
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) };
@@ -340,6 +378,7 @@ export async function saveGradeScale(
 const DELETABLE = [
   'courses', 'grades', 'tasks', 'syllabi', 'syllabus_events', 'reminders',
   'study_sessions', 'questions', 'schedules', 'ai_runs', 'cleaning_log',
+  'activity_days', 'achievements',
 ] as const;
 
 export type DeletableTable = (typeof DELETABLE)[number];
