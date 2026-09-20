@@ -2,7 +2,7 @@ import { getCourses, getSyllabi, getSyllabusEvents } from '@/lib/data/queries';
 import { isAiConfigured } from '@/lib/ai/client';
 import { SyllabiView } from '@/components/syllabi/syllabi-view';
 
-export const metadata = { title: 'Syllabi' };
+export const metadata = { title: 'Syllabus' };
 export const dynamic = 'force-dynamic';
 
 export default async function SyllabiPage({

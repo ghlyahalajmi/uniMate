@@ -29,7 +29,7 @@ export const en = {
   },
   nav: {
     home: 'Home', dashboard: 'Dashboard', courses: 'Courses', planner: 'Planner',
-    grades: 'Grades', study: 'Study AI', syllabi: 'Syllabi', tasks: 'Tasks',
+    grades: 'Grades', study: 'Study AI', syllabi: 'Syllabus', tasks: 'Tasks',
     calendar: 'Calendar', analytics: 'Analytics', records: 'Records',
     momentum: 'Momentum',
     assistant: 'Assistant', settings: 'Settings', profile: 'Profile',
