@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getDictionary } from '@/lib/i18n/server';
 import { UniMateLogo } from '@/components/brand/logo';
 import { HomeControls } from '@/components/marketing/home-controls';
-import { DashboardPreview } from '@/components/marketing/dashboard-preview';
+import { ScatterHero } from '@/components/marketing/scatter-hero';
 
 export default async function HomePage() {
   const { t } = await getDictionary();
@@ -88,7 +88,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-12 sm:mt-16">
-              <DashboardPreview />
+              <ScatterHero />
             </div>
           </div>
         </section>

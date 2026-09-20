@@ -39,3 +39,5 @@ export const AGENT_REGISTRY = [
   { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null },
   { name: 'Dashboard Insight',        trigger: 'dashboard_opened',  workflow: 'dashboard_insight',              offline: 'Nearest recorded deadline plus a proportionate nudge' },
 ] as const;
+export { gradingScaleReader } from './grading-scale-reader';
+export type { ScaleRow as ReadScaleRow } from './grading-scale-reader';
