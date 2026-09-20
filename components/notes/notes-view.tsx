@@ -354,12 +354,16 @@ function NoteCard({
     // Dropped into the body of the note rather than on the title row, spread
     // so a second sticker does not land on the first, and tilted by where it
     // landed so the same sticker twice is not the same picture twice.
-    const x = 76 - (design.stickers.length % 3) * 14;
-    const y = 38 + Math.floor(design.stickers.length / 3) * 16;
+    const x = 74 - (design.stickers.length % 3) * 16;
+    const y = 30 + Math.floor(design.stickers.length / 3) * 18;
     change({ stickers: [...design.stickers, clampSticker({ k, x, y, r: tiltFor(x, y) })] });
   }
 
   return (
+    // The bar sits under the paper rather than on it: a panel laid over the
+    // note covers the very stickers it is placing, and they in turn cover its
+    // buttons. Below it, both stay reachable at once.
+    <div className="flex flex-col gap-2">
     <Card
       className="paper relative p-4 flex flex-col gap-3"
       data-tint={design.tint}
@@ -418,15 +422,6 @@ function NoteCard({
         </button>
       </div>
 
-      {designing ? (
-        <NoteDesignBar
-          design={design}
-          onPattern={(pattern: Pattern) => change({ pattern })}
-          onTint={(tint: Tint) => change({ tint })}
-          onAddSticker={addSticker}
-        />
-      ) : null}
-
       {note.items.length > 0 ? (
         <p className="text-xs text-[var(--text-muted)] -mt-1">
           {done === note.items.length
@@ -461,6 +456,16 @@ function NoteCard({
         <Icon.plus size={15} /> {t.notes.addLine}
       </Button>
     </Card>
+
+    {designing ? (
+      <NoteDesignBar
+        design={design}
+        onPattern={(pattern: Pattern) => change({ pattern })}
+        onTint={(tint: Tint) => change({ tint })}
+        onAddSticker={addSticker}
+      />
+    ) : null}
+    </div>
   );
 }
 

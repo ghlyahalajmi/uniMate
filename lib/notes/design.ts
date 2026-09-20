@@ -17,6 +17,8 @@ export type Tint = (typeof TINTS)[number];
 export const STICKER_KEYS = [
   'star', 'heart', 'flame', 'bulb', 'coffee', 'check',
   'bookmark', 'sparkle', 'clock', 'leaf', 'exam', 'smile',
+  'pin', 'book', 'pencil', 'trophy', 'rocket', 'target',
+  'crown', 'music', 'moon', 'flower', 'palm', 'laptop',
 ] as const;
 export type StickerKey = (typeof STICKER_KEYS)[number];
 
