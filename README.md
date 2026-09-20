@@ -120,6 +120,48 @@ Run in this order if applying by hand:
 | `supabase/migrations/0001_schema.sql` | 15 tables, enums, foreign keys, indexes, the new-user trigger |
 | `supabase/migrations/0002_rls.sql` | Row level security on every table, forced, with anon grants revoked |
 | `supabase/migrations/0003_storage.sql` | Two private buckets with per-user folder policies |
+| `supabase/migrations/0004_momentum.sql` | Activity days and achievements, for streaks and XP |
+| `supabase/migrations/0005_study_layer.sql` | Study plans, flashcards, the streak roll-up, and the `assessments` / `study_tasks` / `quiz_attempts` views |
+
+### The data model
+
+Everything hangs off the authenticated user, and every table carries a
+`user_id` that row level security compares to `auth.uid()`.
+
+```
+auth.users
+  └── profiles                 one per user, created by trigger on sign up
+  └── courses
+        ├── assessments        weight, score and due date per piece of work
+        │     └── study_plans  revision for a specific assessment
+        │           └── study_plan_items ──► study_tasks / study_sessions
+        ├── study_tasks        to-dos, optionally tied to a course
+        ├── syllabi ──► syllabus_events ──► reminders
+        ├── flashcards         spaced-repetition recall practice
+        └── study_sessions
+              └── questions ──► quiz_attempts
+  └── activity_days ──► streaks    roll-up maintained by trigger
+  └── ai_runs                  one row per AI operation, always written
+```
+
+Three of these names are served by updatable views rather than tables:
+
+| Name | Backed by | Why |
+|---|---|---|
+| `assessments` | `grades` | The table predates the agreed name and holds live data |
+| `study_tasks` | `tasks` | Same |
+| `quiz_attempts` | `question_attempts` | Same |
+
+Each view is declared `security_invoker`, so the base table's policies run as
+the caller — reading `assessments` is exactly as isolated as reading `grades`,
+and the isolation test checks both. They are ordinary single-table views, so
+inserts, updates and deletes pass straight through. Either name works; nothing
+was renamed, because the existing names are referenced throughout the app.
+
+`streaks` is a roll-up, not an input: a trigger on `activity_days` rewrites it
+whenever the underlying activity changes, using the same rules as
+`lib/momentum/engine.ts`, so it cannot drift from the days a student actually
+worked.
 
 ### 3. Seed the demo data (optional)
 
@@ -137,10 +179,12 @@ flagged `is_demo = true`, and the interface labels it as demonstration data.
 psql "$DATABASE_URL" -f supabase/tests/rls_isolation_test.sql
 ```
 
-Eleven checks, all of which must print `PASS`. They create a second student and
-confirm that neither can read, update or delete the other's courses, grades,
-tasks, syllabi, AI activity, study history or profile, and that the anonymous
-role can read nothing at all.
+Twenty-seven checks, all of which must print `PASS`. They create a second
+student and confirm that neither can read, update or delete the other's
+courses, grades, tasks, syllabi, AI activity, study history, study plans,
+flashcards, streak or profile; that a row cannot be filed under someone else's
+`user_id`; that the naming views are exactly as isolated as the tables behind
+them; and that the anonymous role can read nothing at all.
 
 ### 5. Fill in the environment
 
@@ -275,7 +319,7 @@ browser. `GET` on the same path lists the available workflows.
 
 ## Security
 
-- **Row level security on all 15 tables**, forced, with a policy per operation
+- **Row level security on all 21 tables**, forced, with a policy per operation
   comparing `user_id` to `auth.uid()`. Blanket `anon` grants are revoked so a
   missing policy cannot become an accidental read.
 - **Storage** is two private buckets. Objects live under a `<user-id>/` prefix
@@ -391,13 +435,15 @@ Being straight about this, because "it builds" is not the same as "it works".
 
 **Verified in this repository:**
 
-- The three migrations apply cleanly to PostgreSQL 16, and the seed runs and
-  re-runs without error.
-- The RLS isolation test passes all 11 checks against a real database.
+- The migrations apply cleanly to PostgreSQL 16 and the seed runs and re-runs
+  without error. (`0003_storage.sql` needs Supabase's `storage` schema, so it
+  applies against a Supabase project rather than a bare PostgreSQL instance.)
+- The RLS isolation test passes all 27 checks against a real database.
 - 47 unit checks pass on the grade, GPA, cleaning, streak and XP logic,
   including the brief's own worked example and the boundary cases.
-- The live database carries 17 tables, 68 policies, and row level security
-  enabled and forced on every one of them.
+- The schema defines 21 tables and 84 policies, with row level security
+  enabled and forced on every one of them, plus 3 naming views that run the
+  caller's own policies.
 - `npm run build` and `npm run typecheck` are clean, and `npm audit` reports
   zero vulnerabilities.
 - Server-side rendering, the locale cookie, full Arabic RTL with no English

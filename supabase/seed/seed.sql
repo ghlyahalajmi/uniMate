@@ -414,3 +414,95 @@ begin
     (v_user,'early_bird',      'A task finished before 09:00',      true, now() - interval '9 days')
   on conflict (user_id, code) do nothing;
 end $$;
+
+-- =============================================================================
+-- Demo study layer for Danah Hamad: a revision plan for the maths midterm she
+-- is behind on, and the flashcards she has been drilling for it.
+--
+-- Courses and assessments are looked up rather than hard-coded, so this block
+-- stays correct if the data above is edited.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_today    date := current_date;
+  c_math201  uuid;
+  c_ce301    uuid;
+  a_math_mid uuid;
+  p_math     uuid;
+begin
+  select id into c_math201 from public.courses
+   where user_id = v_user and course_code = 'MATH201';
+  select id into c_ce301 from public.courses
+   where user_id = v_user and course_code = 'CE301';
+
+  -- The midterm the plan is built around.
+  select id into a_math_mid from public.grades
+   where user_id = v_user and course_id = c_math201
+     and assessment_type = 'midterm'
+   order by due_date
+   limit 1;
+
+  -- A plan she is partway through: the first three sittings are done.
+  insert into public.study_plans
+    (user_id, course_id, assessment_id, title, goal, status,
+     starts_on, ends_on, total_minutes, source, is_demo)
+  values
+    (v_user, c_math201, a_math_mid,
+     'MATH201 Midterm 1 revision',
+     'Lift the weakest three topics before the midterm, 45 minutes at a time.',
+     'active', v_today - 6, v_today + 18, 540, 'ai', true)
+  returning id into p_math;
+
+  insert into public.study_plan_items
+    (user_id, plan_id, topic, scheduled_on, minutes, position, completed_at, is_demo)
+  values
+    (v_user, p_math, 'Limits and continuity',      v_today - 6,  45, 1, now() - interval '6 days', true),
+    (v_user, p_math, 'Derivative rules',           v_today - 4,  45, 2, now() - interval '4 days', true),
+    (v_user, p_math, 'Implicit differentiation',   v_today - 1,  60, 3, now() - interval '1 day',  true),
+    (v_user, p_math, 'Related rates',              v_today + 2,  60, 4, null, true),
+    (v_user, p_math, 'Optimisation problems',      v_today + 5,  60, 5, null, true),
+    (v_user, p_math, 'Integration by substitution',v_today + 9,  90, 6, null, true),
+    (v_user, p_math, 'Mixed past-paper practice',  v_today + 14, 90, 7, null, true),
+    (v_user, p_math, 'Full timed past paper',      v_today + 17, 90, 8, null, true);
+
+  -- Flashcards. The review state is uneven on purpose: cards she keeps getting
+  -- wrong have sunk to a short interval and come back sooner.
+  insert into public.flashcards
+    (user_id, course_id, deck, topic, front, back, difficulty,
+     repetitions, interval_days, ease, due_on, last_reviewed_at,
+     times_seen, times_correct, source, is_demo)
+  values
+    (v_user, c_math201, 'MATH201 Midterm 1', 'Derivative rules',
+     'State the product rule.', 'd/dx[f·g] = f''·g + f·g''', 'easy',
+     4, 9, 2.60, v_today + 3, now() - interval '6 days', 6, 6, 'ai', true),
+    (v_user, c_math201, 'MATH201 Midterm 1', 'Derivative rules',
+     'State the quotient rule.', 'd/dx[f/g] = (f''·g - f·g'') / g²', 'medium',
+     2, 3, 2.30, v_today, now() - interval '3 days', 5, 3, 'ai', true),
+    (v_user, c_math201, 'MATH201 Midterm 1', 'Limits',
+     'When does a limit fail to exist?',
+     'When the one-sided limits disagree, the value grows without bound, or the function oscillates near the point.',
+     'medium', 3, 6, 2.50, v_today + 1, now() - interval '5 days', 4, 3, 'ai', true),
+    (v_user, c_math201, 'MATH201 Midterm 1', 'Related rates',
+     'First step in a related-rates problem?',
+     'Write the equation relating the quantities, then differentiate both sides with respect to time.',
+     'hard', 1, 1, 1.90, v_today, now() - interval '1 day', 4, 1, 'ai', true),
+    (v_user, c_math201, 'MATH201 Midterm 1', 'Implicit differentiation',
+     'Why does dy/dx appear when differentiating y²?',
+     'The chain rule: d/dx[y²] = 2y·(dy/dx), because y is itself a function of x.',
+     'hard', 1, 1, 1.80, v_today, now() - interval '1 day', 3, 1, 'ai', true),
+    (v_user, c_ce301, 'CE301 Data Structures', 'Complexity',
+     'Average-case lookup cost of a hash table?',
+     'O(1), degrading to O(n) when every key collides.', 'easy',
+     5, 14, 2.70, v_today + 8, now() - interval '2 days', 7, 7, 'ai', true),
+    (v_user, c_ce301, 'CE301 Data Structures', 'Trees',
+     'Why balance a binary search tree?',
+     'An unbalanced tree degenerates to a linked list, taking lookup from O(log n) to O(n).',
+     'medium', 3, 5, 2.40, v_today + 2, now() - interval '3 days', 5, 4, 'ai', true),
+    (v_user, c_ce301, 'CE301 Data Structures', 'Sorting',
+     'When is merge sort preferred over quicksort?',
+     'When worst-case O(n log n) or a stable sort is required, and the extra O(n) memory is acceptable.',
+     'medium', 2, 4, 2.40, v_today + 1, now() - interval '4 days', 4, 3, 'ai', true);
+
+  raise notice 'UniMate demo study plan and flashcards seeded';
+end $$;
