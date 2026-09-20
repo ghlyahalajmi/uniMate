@@ -117,6 +117,14 @@ export const Icon = {
   flashcards: (p: IconProps) => (
     <Svg {...p}><rect x="3" y="6.5" width="13" height="11" rx="2" /><path d="M8 4.5h10a2 2 0 0 1 2 2v9" /></Svg>
   ),
+  // A list with one option filled in: pick one of several.
+  options: (p: IconProps) => (
+    <Svg {...p}><circle cx="5.5" cy="7" r="2.5" /><circle cx="5.5" cy="17" r="2.5" fill="currentColor" stroke="none" /><path d="M11 7h9M11 17h9" /></Svg>
+  ),
+  // A tick and a cross: one statement, two possible answers.
+  trueFalse: (p: IconProps) => (
+    <Svg {...p}><path d="M2.5 12.2 5.2 15l4.8-6" /><path d="M14.5 9.5l6 6M20.5 9.5l-6 6" /></Svg>
+  ),
   // Two figures: the shared, class-wide page rather than your own.
   students: (p: IconProps) => (
     <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.4a5.5 5.5 0 0 1 3 5.1" /></Svg>

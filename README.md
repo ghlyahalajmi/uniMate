@@ -45,8 +45,8 @@ rest of the app works without one.
 | **Timetable scanner** | Photograph or upload a schedule. The courses read out of it appear as editable cards with per-field confidence flags. Nothing is saved until you confirm. |
 | **Courses** | Full CRUD. A detail page that walks course → assessments → tasks → syllabus → syllabus events on one screen. |
 | **Grades** | Live weighted grade, the exact average needed on what remains, and a plain statement when a target is out of reach plus what is still achievable. GPA calculator with row-by-row working. Editable grading scale. |
-| **Study AI** | Practice questions written from your own course and syllabus topics, in four modes and four difficulty settings, including adaptive. Every answer is recorded and feeds the next set's difficulty. |
-| **Flashcards** | Cards you write, scheduled by Leitner boxes: recall one and it climbs a box and waits 1, 2, 4, 9 then 21 days; miss it and it drops to box 1 and returns the same day. A finished deck run counts as a practice session, so it feeds the streak. |
+| **Study AI** | Practice questions written from your own course and syllabus topics, in four modes and four difficulty settings, including adaptive, and in the question style you pick — multiple choice, true/false, or mixed. Every answer is recorded and feeds the next set's difficulty. |
+| **Flashcards** | Reached from a course's Practice tab, alongside the two written question styles. Cards you write, scheduled by Leitner boxes: recall one and it climbs a box and waits 1, 2, 4, 9 then 21 days; miss it and it drops to box 1 and returns the same day. A finished deck run counts as a practice session, so it feeds the streak. |
 | **Syllabus centre** | Upload a PDF, Word file or photo. Topics, assessment weights and dated deadlines are extracted, and you can ask the document questions. |
 | **Planner** | Light, balanced and intensive semester plans side by side, each stating its trade-off. Timetable conflicts are computed, not guessed. |
 | **Tasks** | Manual and AI-generated tasks, grouped by urgency. |

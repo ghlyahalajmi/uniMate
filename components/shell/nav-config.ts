@@ -22,6 +22,12 @@ export interface NavItem {
 export const STUDENT_HUB_URL =
   'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub';
 
+/**
+ * Flashcards are deliberately absent: a deck belongs to a course, so the way
+ * in is the course's own Practice tab, alongside the two written formats.
+ * `/flashcards` still exists and still takes a `?course=` — nothing links to
+ * it from the sidebar.
+ */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: (t) => t.nav.dashboard, primaryMobile: true },
   { href: '/courses',   icon: 'courses',   label: (t) => t.nav.courses,   primaryMobile: true },
@@ -30,7 +36,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/notes',     icon: 'notes',     label: (t) => t.nav.notes },
   { href: '/momentum',  icon: 'flame',     label: (t) => t.nav.momentum },
   { href: '/study',     icon: 'study',     label: (t) => t.nav.study },
-  { href: '/flashcards', icon: 'flashcards', label: (t) => t.nav.flashcards },
   { href: '/planner',   icon: 'planner',   label: (t) => t.nav.planner },
   { href: '/syllabi',   icon: 'syllabi',   label: (t) => t.nav.syllabi },
   { href: '/calendar',  icon: 'calendar',  label: (t) => t.nav.calendar },

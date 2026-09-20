@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     courseId: parsed.data.course_id,
     mode: parsed.data.mode,
     difficulty: parsed.data.difficulty,
+    format: parsed.data.format,
     topic: parsed.data.topic,
   });
   if (!result.ok || !result.data) return apiError('generation_failed', 200);

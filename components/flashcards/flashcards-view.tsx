@@ -3,6 +3,7 @@
 import {
   useActionState, useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition,
 } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
@@ -46,11 +47,13 @@ export interface CardRow {
 type Mode = 'deck' | 'review' | 'done';
 
 export function FlashcardsView({
-  serverToday, cards, courseOptions,
+  serverToday, cards, courseOptions, initialCourseId = '',
 }: {
   serverToday: string;
   cards: CardRow[];
   courseOptions: Array<{ value: string; label: string }>;
+  /** Set when the deck was opened from a course, which then scopes the screen. */
+  initialCourseId?: string;
 }) {
   const { t, tf, formatNumber } = useI18n();
   const router = useRouter();
@@ -63,7 +66,7 @@ export function FlashcardsView({
   const today = useSyncExternalStore(subscribeNothing, browserDay, () => serverToday);
 
   const [mode, setMode] = useState<Mode>('deck');
-  const [courseFilter, setCourseFilter] = useState('');
+  const [courseFilter, setCourseFilter] = useState(initialCourseId);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<CardRow | null>(null);
   const [deleting, setDeleting] = useState<CardRow | null>(null);
@@ -271,8 +274,28 @@ export function FlashcardsView({
 
   // --- Deck --------------------------------------------------------------------
 
+  // The sidebar has no Flashcards entry: a deck is reached from its course, so
+  // when one sent us here the way back is named rather than left to the
+  // browser's Back button.
+  const fromCourse = initialCourseId
+    ? courseOptions.find((c) => c.value === initialCourseId)
+    : undefined;
+  const fromCourseCode = fromCourse?.label.split('—')[0]?.trim() ?? '';
+
   return (
     <>
+      {fromCourse ? (
+        <div className="mb-2">
+          <Link
+            href={`/courses/${initialCourseId}`}
+            className="inline-flex items-center gap-1.5 min-h-[32px] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            <Icon.chevronEnd size={15} className="rotate-180 flip-rtl" />
+            {tf(t.practice.backToCourse, { code: fromCourseCode })}
+          </Link>
+        </div>
+      ) : null}
+
       <PageHeader
         title={t.flashcards.title}
         subtitle={t.flashcards.subtitle}

@@ -9,7 +9,10 @@ import { TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { MODE_SIZES, type PracticeMode, type RequestedDifficulty } from '@/lib/study/modes';
+import {
+  MODE_SIZES, PRACTICE_FORMATS,
+  type PracticeFormat, type PracticeMode, type RequestedDifficulty,
+} from '@/lib/study/modes';
 import { XP_RULES } from '@/lib/momentum/engine';
 import type { Question } from '@/types/database';
 
@@ -32,11 +35,13 @@ const DIFFICULTIES: RequestedDifficulty[] = ['easy', 'medium', 'hard', 'adaptive
 const HEAT: Record<RequestedDifficulty, number> = { easy: 1, medium: 2, hard: 3, adaptive: 0 };
 
 export function StudyView({
-  aiEnabled, courses, initialCourseId, history,
+  aiEnabled, courses, initialCourseId, initialFormat, history,
 }: {
   aiEnabled: boolean;
   courses: Array<{ id: string; code: string; name: string }>;
   initialCourseId: string;
+  /** The style the course page asked for, or 'mixed' when nobody chose. */
+  initialFormat: PracticeFormat;
   history: HistoryRow[];
 }) {
   const { t, tf, formatNumber } = useI18n();
@@ -46,6 +51,7 @@ export function StudyView({
   const [phase, setPhase] = useState<Phase>('setup');
   const [courseId, setCourseId] = useState(initialCourseId);
   const [mode, setMode] = useState<PracticeMode>('standard_10');
+  const [format, setFormat] = useState<PracticeFormat>(initialFormat);
   const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
   const [topic, setTopic] = useState('');
 
@@ -85,7 +91,7 @@ export function StudyView({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          course_id: courseId, mode, difficulty,
+          course_id: courseId, mode, difficulty, format,
           topic: topic.trim() || undefined,
         }),
       });
@@ -112,7 +118,7 @@ export function StudyView({
       setError(t.errors.network);
       setPhase('error');
     }
-  }, [courseId, mode, difficulty, topic, t]);
+  }, [courseId, mode, difficulty, format, topic, t]);
 
   const check = useCallback(() => {
     if (!current || !sessionId || checked || !given.trim()) return;
@@ -233,6 +239,7 @@ export function StudyView({
           <LaunchPad
             mode={mode}
             difficulty={difficulty}
+            format={format}
             courseCode={courseCode}
             topic={topic.trim()}
             onStart={start}
@@ -247,6 +254,34 @@ export function StudyView({
               onChange={setCourseId}
               options={courses.map((c) => ({ value: c.id, label: c.code, title: c.name }))}
             />
+          </Card>
+
+          <Card>
+            <CardHeader title={t.practice.format} />
+            <div role="radiogroup" aria-label={t.practice.format} className="flex flex-wrap gap-2">
+              {PRACTICE_FORMATS.map((f) => {
+                const selected = f === format;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setFormat(f)}
+                    className={cx(
+                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    {formatIcon(f)}
+                    {formatLabel(t, f)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-3">{formatHint(t, format)}</p>
           </Card>
 
           <Card>
@@ -541,10 +576,11 @@ export function StudyView({
  * the whole run as one sentence, right above the button that commits to it.
  */
 function LaunchPad({
-  mode, difficulty, courseCode, topic, onStart, canStart,
+  mode, difficulty, format, courseCode, topic, onStart, canStart,
 }: {
   mode: PracticeMode;
   difficulty: RequestedDifficulty;
+  format: PracticeFormat;
   courseCode: string | null;
   topic: string;
   onStart: () => void;
@@ -575,6 +611,9 @@ function LaunchPad({
 
         <ul className="flex flex-wrap gap-1.5 mt-3.5">
           {courseCode ? <li><Badge tone="accent">{courseCode}</Badge></li> : null}
+          {/* The style is the choice made back on the course, so it is
+              confirmed here rather than left to be remembered. */}
+          {format !== 'mixed' ? <li><Badge>{formatLabel(t, format)}</Badge></li> : null}
           <li><Badge>{t.study[difficulty]}</Badge></li>
           {topic ? <li><Badge>{topic}</Badge></li> : null}
           <li>
@@ -940,6 +979,20 @@ function HistoryLine({ row }: { row: HistoryRow }) {
       </Badge>
     </div>
   );
+}
+
+function formatLabel(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
+  return f === 'mixed' ? t.practice.mixed : f === 'multiple_choice' ? t.practice.mcq : t.practice.trueFalse;
+}
+
+function formatHint(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
+  return f === 'mixed' ? t.practice.mixedSub : f === 'multiple_choice' ? t.practice.mcqSub : t.practice.trueFalseSub;
+}
+
+function formatIcon(f: PracticeFormat) {
+  if (f === 'mixed') return <Icon.sparkle size={14} />;
+  if (f === 'multiple_choice') return <Icon.options size={14} />;
+  return <Icon.trueFalse size={14} />;
 }
 
 function modeLabel(t: ReturnType<typeof useI18n>['t'], m: PracticeMode): string {

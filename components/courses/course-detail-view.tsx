@@ -13,14 +13,15 @@ import { AssessmentTable } from '@/components/grades/assessment-table';
 import { CourseFormModal } from './course-form';
 import { CourseTile } from './course-tile';
 import { CourseContacts } from './course-contacts';
+import { CoursePractice } from './course-practice';
 import type { Course, Grade, Question, Syllabus, SyllabusEvent, Task } from '@/types/database';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 
-type Tab = 'overview' | 'assessments' | 'syllabus' | 'questions' | 'tasks';
+type Tab = 'overview' | 'assessments' | 'syllabus' | 'practice' | 'tasks';
 
 export function CourseDetailView({
   course, grades, tasks, syllabus, events, questions,
-  breakdown, target, bestReachable, scaleLetters,
+  breakdown, target, bestReachable, scaleLetters, deck, aiEnabled,
 }: {
   course: Course;
   grades: Grade[];
@@ -35,6 +36,9 @@ export function CourseDetailView({
   };
   bestReachable: string | null;
   scaleLetters: string[];
+  /** This course's flashcard deck, summarised for the practice panel. */
+  deck: { total: number; due: number };
+  aiEnabled: boolean;
 }) {
   const { t, tf, formatTime, formatDate, formatNumber } = useI18n();
   const router = useRouter();
@@ -51,7 +55,7 @@ export function CourseDetailView({
     { key: 'overview', label: t.courseDetail.overview },
     { key: 'assessments', label: t.courseDetail.assessments, count: grades.length },
     { key: 'syllabus', label: t.courseDetail.syllabus, count: events.length },
-    { key: 'questions', label: t.courseDetail.questions, count: questions.length },
+    { key: 'practice', label: t.practice.tab, count: deck.total + questions.length },
     { key: 'tasks', label: t.courseDetail.tasksTab, count: openTasks.length },
   ];
 
@@ -353,35 +357,39 @@ export function CourseDetailView({
         </div>
       ) : null}
 
-      {tab === 'questions' ? (
-        <Card>
-          <CardHeader
-            title={t.courseDetail.questions}
-            action={
-              <Link
-                href={`/study?course=${course.id}`}
-                className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
-              >
-                {t.courseDetail.practiceNow}
-              </Link>
-            }
-          />
-          {questions.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">{t.courseDetail.noQuestions}</p>
-          ) : (
-            <ul className="space-y-3">
-              {questions.map((q) => (
-                <li key={q.id} className="pb-3 border-b border-[var(--border-subtle)] last:border-0 last:pb-0">
-                  <p className="text-sm">{q.question_text}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {q.topic ? <Badge>{q.topic}</Badge> : null}
-                    <Badge tone={q.difficulty === 'hard' ? 'warning' : 'neutral'}>{t.study[q.difficulty]}</Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+      {tab === 'practice' ? (
+        <div className="space-y-4">
+          <CoursePractice courseId={course.id} deck={deck} aiEnabled={aiEnabled} />
+
+          <Card>
+            <CardHeader
+              title={t.courseDetail.questions}
+              action={
+                <Link
+                  href={`/study?course=${course.id}`}
+                  className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
+                >
+                  {t.courseDetail.practiceNow}
+                </Link>
+              }
+            />
+            {questions.length === 0 ? (
+              <p className="text-sm text-[var(--text-secondary)]">{t.courseDetail.noQuestions}</p>
+            ) : (
+              <ul className="space-y-3">
+                {questions.map((q) => (
+                  <li key={q.id} className="pb-3 border-b border-[var(--border-subtle)] last:border-0 last:pb-0">
+                    <p className="text-sm">{q.question_text}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {q.topic ? <Badge>{q.topic}</Badge> : null}
+                      <Badge tone={q.difficulty === 'hard' ? 'warning' : 'neutral'}>{t.study[q.difficulty]}</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
       ) : null}
 
       {tab === 'tasks' ? (

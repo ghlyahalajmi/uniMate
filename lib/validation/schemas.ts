@@ -134,6 +134,7 @@ export const studyRequestSchema = z.object({
   course_id: z.string().uuid('Choose a course'),
   mode: z.enum(['quick_5','standard_10','deep_20','exam_mode']).default('standard_10'),
   difficulty: z.enum(['easy','medium','hard','adaptive']).default('adaptive'),
+  format: z.enum(['mixed','multiple_choice','true_false']).default('mixed'),
   topic: z.string().trim().max(200).optional(),
 });
 
