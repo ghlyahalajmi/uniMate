@@ -30,7 +30,7 @@ export function StudyView({
   initialCourseId: string;
   history: HistoryRow[];
 }) {
-  const { t, tf, formatDate, formatNumber } = useI18n();
+  const { t, tf, formatDate } = useI18n();
   const router = useRouter();
   const toast = useToast();
 

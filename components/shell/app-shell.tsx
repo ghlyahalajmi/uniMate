@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { UniMateLogo, UniMateMark } from '@/components/brand/logo';
+import { UniMateLogo } from '@/components/brand/logo';
 import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-config';
@@ -19,9 +19,6 @@ export function AppShell({ children, user }: ShellProps) {
   const { t } = useI18n();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // A route change should never leave the drawer hanging open.
-  useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -124,13 +121,21 @@ export function AppShell({ children, user }: ShellProps) {
               <ul className="space-y-0.5">
                 {NAV_ITEMS.map((item) => (
                   <li key={item.href}>
-                    <NavLink item={item} active={isActive(pathname, item.href)} />
+                    <NavLink
+                      item={item}
+                      active={isActive(pathname, item.href)}
+                      onNavigate={() => setDrawerOpen(false)}
+                    />
                   </li>
                 ))}
               </ul>
             </nav>
             <div className="p-3 border-t border-[var(--border-subtle)] space-y-0.5">
-              <NavLink item={SETTINGS_ITEM} active={isActive(pathname, SETTINGS_ITEM.href)} />
+              <NavLink
+                item={SETTINGS_ITEM}
+                active={isActive(pathname, SETTINGS_ITEM.href)}
+                onNavigate={() => setDrawerOpen(false)}
+              />
               <LanguageSwitcher />
               <UserChip user={user} />
             </div>
@@ -188,12 +193,20 @@ export function AppShell({ children, user }: ShellProps) {
   );
 }
 
-function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+function NavLink({
+  item, active, onNavigate,
+}: {
+  item: NavItem;
+  active: boolean;
+  /** Closes the mobile drawer at the point navigation starts. */
+  onNavigate?: () => void;
+}) {
   const { t } = useI18n();
   const Glyph = Icon[item.icon];
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cx(
         'flex items-center gap-3 px-3 min-h-[40px] rounded-[var(--radius-sm)]',

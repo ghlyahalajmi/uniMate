@@ -1,0 +1,60 @@
+name: Bug report
+description: Something behaves differently from how it should
+labels: ['bug']
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as the demo account
+        2. Open Grades
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Which screen
+      options:
+        - Dashboard
+        - Courses
+        - Grades
+        - Momentum
+        - Study AI
+        - Planner
+        - Syllabi
+        - Tasks
+        - Calendar
+        - Analytics
+        - Records
+        - Assistant
+        - Settings
+        - Sign in / sign up
+        - Something else
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options: ['English', 'العربية', 'Both']
+    validations:
+      required: true
+
+  - type: input
+    id: width
+    attributes:
+      label: Screen width
+      description: Roughly. Layout bugs are usually width-specific.
+      placeholder: '390px (phone) / 1440px (laptop)'

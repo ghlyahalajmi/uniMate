@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, ProgressBar } from '@/components/ui/primitives';
+import { Card, CardHeader, ProgressBar } from '@/components/ui/primitives';
 import { Select } from '@/components/ui/form';
 import { Provenance } from '@/components/ui/states';
 import { setCourseTarget } from '@/lib/data/actions';

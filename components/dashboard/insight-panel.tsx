@@ -20,28 +20,50 @@ export function InsightPanel() {
   const [unavailable, setUnavailable] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  /** Pure fetch. No state is touched here, so the caller owns cancellation. */
+  const fetchInsight = useCallback(async () => {
+    const res = await fetch('/api/ai/insight', { method: 'POST' });
+    return res.json() as Promise<{ ok: boolean; error?: string; fact: string; suggestion: string; source: 'ai' | 'fallback' }>;
+  }, []);
+
+  const apply = useCallback((data: Awaited<ReturnType<typeof fetchInsight>> | null) => {
+    if (data?.ok) {
+      setInsight({ fact: data.fact, suggestion: data.suggestion, source: data.source });
+    } else if (data?.error === 'ai_not_configured') {
+      setUnavailable(true);
+    } else {
+      setFailed(true);
+    }
+    setLoading(false);
+  }, []);
+
+  /** Manual retry from the button. */
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
     setUnavailable(false);
     try {
-      const res = await fetch('/api/ai/insight', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        setInsight({ fact: data.fact, suggestion: data.suggestion, source: data.source });
-      } else if (data.error === 'ai_not_configured') {
-        setUnavailable(true);
-      } else {
-        setFailed(true);
-      }
+      apply(await fetchInsight());
     } catch {
       setFailed(true);
-    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apply, fetchInsight]);
 
-  useEffect(() => { void load(); }, [load]);
+  // On mount the component already starts in its loading state, so nothing is
+  // set synchronously here; and a result arriving after unmount is dropped.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchInsight();
+        if (!cancelled) apply(data);
+      } catch {
+        if (!cancelled) { setFailed(true); setLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [apply, fetchInsight]);
 
   if (unavailable) {
     return <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />;

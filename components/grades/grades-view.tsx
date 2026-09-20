@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/provider';
-import { Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
@@ -14,7 +14,6 @@ import { GradeScaleEditor } from './grade-scale-editor';
 import { GpaCalculator } from './gpa-calculator';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 import type { GpaResult } from '@/lib/calculations/gpa';
-import type { Grade } from '@/types/database';
 
 interface CourseCard {
   id: string; code: string; name: string; targetGrade: string | null;
@@ -29,13 +28,12 @@ interface CourseCard {
 type Tab = 'need' | 'calculator' | 'scale';
 
 export function GradesView({
-  courseCards, cumulative, semester, scale, allGrades, courseOptions, targetGpa,
+  courseCards, cumulative, semester, scale, courseOptions, targetGpa,
 }: {
   courseCards: CourseCard[];
   cumulative: GpaResult;
   semester: GpaResult;
   scale: Array<{ letter: string; min_percent: number; points: number }>;
-  allGrades: Grade[];
   courseOptions: Array<{ value: string; label: string }>;
   targetGpa: number | null;
 }) {

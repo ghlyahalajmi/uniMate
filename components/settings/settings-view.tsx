@@ -4,7 +4,7 @@ import { useActionState, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader } from '@/components/ui/primitives';
-import { TextInput, TextArea, Select, Toggle, SegmentedControl } from '@/components/ui/form';
+import { TextInput, TextArea, Toggle, SegmentedControl } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';

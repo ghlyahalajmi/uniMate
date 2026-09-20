@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, ProgressBar, cx } from '@/components/ui/primitives';
+import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';

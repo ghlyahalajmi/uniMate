@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
-import { Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { Button, Card, CardHeader } from '@/components/ui/primitives';
 import { Select, SegmentedControl } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
@@ -43,10 +43,6 @@ export function FocusTimer({
 
   const deadlineRef = useRef<number | null>(null);
   const elapsedRef = useRef(0);   // focus seconds accumulated this block
-
-  useEffect(() => {
-    if (phase === 'idle') setRemaining(focusMinutes * 60);
-  }, [focusMinutes, phase]);
 
   const logFocus = useCallback(async (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -163,10 +159,13 @@ export function FocusTimer({
     setRemaining(focusMinutes * 60);
   }
 
+  // While idle the display simply follows the chosen length, so there is no
+  // second copy of it in state to keep in sync.
+  const shown = phase === 'idle' ? focusMinutes * 60 : remaining;
   const total = phase === 'break' ? breakMinutes * 60 : focusMinutes * 60;
-  const progress = total > 0 ? 1 - remaining / total : 0;
-  const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-  const ss = String(remaining % 60).padStart(2, '0');
+  const progress = total > 0 ? 1 - shown / total : 0;
+  const mm = String(Math.floor(shown / 60)).padStart(2, '0');
+  const ss = String(shown % 60).padStart(2, '0');
 
   const size = 200;
   const stroke = 12;

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, cx } from '@/components/ui/primitives';
+import { Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';

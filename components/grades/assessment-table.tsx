@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { TextInput, Select } from '@/components/ui/form';
 import { Modal, useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm';

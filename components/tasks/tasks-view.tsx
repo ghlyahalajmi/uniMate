@@ -41,10 +41,16 @@ export function TasksView({
     filter === 'all' ? true : filter === 'open' ? tk.status !== 'completed' : tk.status === 'completed',
   );
 
+  // The day boundaries are fixed for this page load rather than re-read on
+  // every render, which keeps the grouping stable and the render pure.
+  const [todayIso, weekIso] = useState(() => {
+    const now = new Date();
+    const week = new Date(now.getTime() + 7 * 86_400_000);
+    return [now.toISOString().slice(0, 10), week.toISOString().slice(0, 10)] as const;
+  })[0];
+
   // Grouped by urgency rather than by raw date — that is how a student reads it.
   const groups = useMemo(() => {
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const weekIso = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
 
     const buckets: Array<{ key: string; label: string; items: Task[] }> = [
       { key: 'overdue', label: t.tasks.groupOverdue, items: [] },
@@ -62,7 +68,7 @@ export function TasksView({
       else buckets[3].items.push(tk);
     }
     return buckets.filter((b) => b.items.length > 0);
-  }, [visible, t]);
+  }, [visible, t, todayIso, weekIso]);
 
   async function generatePlan() {
     setPlanning(true);

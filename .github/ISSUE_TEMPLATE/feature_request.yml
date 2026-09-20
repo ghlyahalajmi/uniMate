@@ -1,0 +1,27 @@
+name: Feature idea
+description: Something UniMate should do that it does not
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is annoying or missing for a student right now?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would build
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Does it fit how UniMate works?
+      options:
+        - label: It works from the student's own records rather than invented data
+        - label: Any number it shows can be computed in `lib/`, not guessed by a model
+        - label: It makes sense in Arabic as well as English

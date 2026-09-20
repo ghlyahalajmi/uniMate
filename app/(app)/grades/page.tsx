@@ -44,7 +44,6 @@ export default async function GradesPage() {
       cumulative={cum}
       semester={sem}
       scale={scale}
-      allGrades={grades}
       courseOptions={courses.map((c) => ({ value: c.id, label: `${c.course_code} — ${c.course_name}` }))}
       targetGpa={profile?.target_gpa ?? null}
     />

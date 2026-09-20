@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { Badge, Button, Card, CardHeader } from '@/components/ui/primitives';
 import { AiThinking, EmptyState } from '@/components/ui/states';
 import { Checkbox, TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';

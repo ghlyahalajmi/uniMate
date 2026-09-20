@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { LOCALES } from '@/lib/i18n';
 import { Icon } from './icons';
@@ -36,24 +36,55 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
 
 type Theme = 'light' | 'dark';
 
+const THEME_KEY = 'unimate-theme';
+const THEME_EVENT = 'unimate-theme-change';
+
+/**
+ * The theme lives in localStorage and in the OS preference, both of which are
+ * external stores. Reading them through useSyncExternalStore keeps the value
+ * correct during render without a mount effect that sets state, and keeps
+ * every toggle on the page in step.
+ */
+function subscribeToTheme(onChange: () => void): () => void {
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  media.addEventListener('change', onChange);
+  window.addEventListener(THEME_EVENT, onChange);
+  window.addEventListener('storage', onChange);
+  return () => {
+    media.removeEventListener('change', onChange);
+    window.removeEventListener(THEME_EVENT, onChange);
+    window.removeEventListener('storage', onChange);
+  };
+}
+
+function readTheme(): Theme {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === 'dark' || stored === 'light') return stored;
+  } catch {
+    // Private mode: fall through to the OS preference.
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+/** The server cannot know the preference, so it renders the light label. */
+function serverTheme(): Theme {
+  return 'light';
+}
+
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
-  const [theme, setTheme] = useState<Theme | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('unimate-theme');
-    if (stored === 'dark' || stored === 'light') {
-      setTheme(stored);
-      return;
-    }
-    setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  }, []);
+  const theme = useSyncExternalStore(subscribeToTheme, readTheme, serverTheme);
 
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('unimate-theme', next); } catch { /* private mode */ }
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      // Nothing to persist to; the attribute above still applies for this page.
+    }
+    window.dispatchEvent(new Event(THEME_EVENT));
   };
 
   return (
