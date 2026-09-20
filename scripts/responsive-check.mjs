@@ -36,7 +36,16 @@ for (const locale of LOCALES) {
   for (const p of PAGES) {
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${BASE}${p.path}`, { waitUntil: 'networkidle' });
+      const res = await page.goto(`${BASE}${p.path}`, { waitUntil: 'networkidle' });
+
+      // Without this, a 500 from middleware renders a near-empty error page
+      // that trivially satisfies every rule below — the suite would report all
+      // green while the app was completely broken.
+      if (!res || res.status() >= 400) {
+        console.log(`FAIL ${locale} ${p.name} @${width} — HTTP ${res ? res.status() : 'no response'}`);
+        failures += 1;
+        continue;
+      }
 
       const report = await page.evaluate(() => {
         const de = document.documentElement;

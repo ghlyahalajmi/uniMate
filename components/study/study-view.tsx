@@ -1,18 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, ProgressBar, cx } from '@/components/ui/primitives';
-import { AiThinking, AiUnavailable, EmptyState, ErrorState } from '@/components/ui/states';
-import { SegmentedControl, TextInput } from '@/components/ui/form';
+import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { AiThinking, EmptyState, ErrorState } from '@/components/ui/states';
+import { TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
+import { MODE_SIZES, type PracticeMode, type RequestedDifficulty } from '@/lib/study/modes';
+import { XP_RULES } from '@/lib/momentum/engine';
 import type { Question } from '@/types/database';
 
-type Mode = 'quick_5' | 'standard_10' | 'deep_20' | 'exam_mode';
-type Difficulty = 'easy' | 'medium' | 'hard' | 'adaptive';
 type Phase = 'setup' | 'generating' | 'answering' | 'results' | 'error';
 
 interface HistoryRow {
@@ -22,6 +22,15 @@ interface HistoryRow {
 
 interface Answered { questionId: string; given: string; correct: boolean; topic: string | null }
 
+/** Option letters. Beyond nine the keyboard shortcut stops, the letters do not. */
+const LETTERS = 'ABCDEFGHIJ';
+
+const MODES: PracticeMode[] = ['quick_5', 'standard_10', 'deep_20', 'exam_mode'];
+const DIFFICULTIES: RequestedDifficulty[] = ['easy', 'medium', 'hard', 'adaptive'];
+
+/** How hot the difficulty chip burns: one bar for easy, three for hard. */
+const HEAT: Record<RequestedDifficulty, number> = { easy: 1, medium: 2, hard: 3, adaptive: 0 };
+
 export function StudyView({
   aiEnabled, courses, initialCourseId, history,
 }: {
@@ -30,14 +39,14 @@ export function StudyView({
   initialCourseId: string;
   history: HistoryRow[];
 }) {
-  const { t, tf, formatDate } = useI18n();
+  const { t, tf, formatNumber } = useI18n();
   const router = useRouter();
   const toast = useToast();
 
   const [phase, setPhase] = useState<Phase>('setup');
   const [courseId, setCourseId] = useState(initialCourseId);
-  const [mode, setMode] = useState<Mode>('standard_10');
-  const [difficulty, setDifficulty] = useState<Difficulty>('adaptive');
+  const [mode, setMode] = useState<PracticeMode>('standard_10');
+  const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
   const [topic, setTopic] = useState('');
 
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -46,11 +55,26 @@ export function StudyView({
   const [given, setGiven] = useState('');
   const [checked, setChecked] = useState(false);
   const [answers, setAnswers] = useState<Answered[]>([]);
+  const [combo, setCombo] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [awardedXp, setAwardedXp] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const startedAt = useRef<number>(0);
 
   const current = questions[index];
   const isLast = index === questions.length - 1;
+  const answeredCurrent = checked ? answers[answers.length - 1] : undefined;
+
+  // The clock only runs while questions are on screen, and is read from the
+  // start timestamp rather than accumulated, so a throttled tab cannot drift.
+  useEffect(() => {
+    if (phase !== 'answering') return;
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   const start = useCallback(async () => {
     if (!courseId) return;
@@ -78,6 +102,10 @@ export function StudyView({
       setAnswers([]);
       setGiven('');
       setChecked(false);
+      setCombo(0);
+      setBestCombo(0);
+      setElapsed(0);
+      setAwardedXp(null);
       startedAt.current = Date.now();
       setPhase('answering');
     } catch {
@@ -86,11 +114,16 @@ export function StudyView({
     }
   }, [courseId, mode, difficulty, topic, t]);
 
-  function check() {
-    if (!current || !sessionId) return;
+  const check = useCallback(() => {
+    if (!current || !sessionId || checked || !given.trim()) return;
     const correct = isCorrect(current, given);
     setChecked(true);
     setAnswers((prev) => [...prev, { questionId: current.id, given, correct, topic: current.topic }]);
+    setCombo((prev) => {
+      const next = correct ? prev + 1 : 0;
+      setBestCombo((best) => Math.max(best, next));
+      return next;
+    });
 
     void fetch('/api/ai/study/answer', {
       method: 'POST',
@@ -100,9 +133,9 @@ export function StudyView({
         given_answer: given, is_correct: correct,
       }),
     }).catch(() => undefined);
-  }
+  }, [current, sessionId, checked, given]);
 
-  async function next() {
+  const next = useCallback(async () => {
     if (!isLast) {
       setIndex((i) => i + 1);
       setGiven('');
@@ -125,7 +158,7 @@ export function StudyView({
       const data = await res.json();
       const m = data?.momentum;
       if (m) {
-        if (m.xpAwarded > 0) toast.success(tf(t.momentum.toastXp, { n: m.xpAwarded }));
+        if (typeof m.xpAwarded === 'number') setAwardedXp(m.xpAwarded);
         if (m.streakExtended) toast.success(tf(t.momentum.toastStreak, { n: m.streakAfter }));
         for (const code of m.newAchievements ?? []) {
           const name = (t.momentum as unknown as Record<string, string>)[`a_${code}`] ?? code;
@@ -137,12 +170,37 @@ export function StudyView({
     }
     setPhase('results');
     router.refresh();
-  }
+  }, [isLast, answers, sessionId, questions.length, toast, tf, t, router]);
 
-  const courseOptions = useMemo(
-    () => courses.map((c) => ({ value: c.id, label: c.code })),
-    [courses],
-  );
+  // Answering a set is a rhythm, and reaching for the mouse every question
+  // breaks it. Digits pick an option, Enter checks and then advances.
+  useEffect(() => {
+    if (phase !== 'answering' || !current) return;
+
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      const typing = el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA';
+
+      if (e.key === 'Enter') {
+        if (typing && !checked) { e.preventDefault(); check(); return; }
+        if (!typing) { e.preventDefault(); if (checked) void next(); else check(); }
+        return;
+      }
+      if (typing || checked) return;
+
+      const n = Number(e.key);
+      const options = current?.options ?? [];
+      if (Number.isInteger(n) && n >= 1 && n <= Math.min(9, options.length)) {
+        e.preventDefault();
+        setGiven(options[n - 1]);
+      }
+    }
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase, current, checked, check, next]);
+
+  const courseCode = courses.find((c) => c.id === courseId)?.code ?? null;
 
   if (courses.length === 0) {
     return (
@@ -157,7 +215,7 @@ export function StudyView({
     return (
       <>
         <PageHeader title={t.study.title} subtitle={t.study.subtitle} />
-        <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+        <LockedPanel history={history} />
       </>
     );
   }
@@ -172,47 +230,103 @@ export function StudyView({
             <ErrorState message={error} onRetry={() => setPhase('setup')} retryLabel={t.common.retry} />
           ) : null}
 
+          <LaunchPad
+            mode={mode}
+            difficulty={difficulty}
+            courseCode={courseCode}
+            topic={topic.trim()}
+            onStart={start}
+            canStart={Boolean(courseId)}
+          />
+
           <Card>
             <CardHeader title={t.common.course} />
-            <SegmentedControl
+            <ChipRow
               label={t.common.selectCourse}
               value={courseId}
-              options={courseOptions}
               onChange={setCourseId}
-              className="w-full"
+              options={courses.map((c) => ({ value: c.id, label: c.code, title: c.name }))}
             />
           </Card>
 
           <Card>
             <CardHeader title={t.study.mode} />
-            <SegmentedControl
-              label={t.study.mode}
-              value={mode}
-              onChange={(v) => setMode(v)}
-              options={[
-                { value: 'quick_5' as Mode, label: t.study.quick5, hint: t.study.quick5Sub },
-                { value: 'standard_10' as Mode, label: t.study.standard10, hint: t.study.standard10Sub },
-                { value: 'deep_20' as Mode, label: t.study.deep20, hint: t.study.deep20Sub },
-                { value: 'exam_mode' as Mode, label: t.study.examMode, hint: t.study.examModeSub },
-              ]}
-              className="w-full"
-            />
+            <div role="radiogroup" aria-label={t.study.mode} className="grid grid-cols-2 gap-2">
+              {MODES.map((m) => {
+                const selected = m === mode;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setMode(m)}
+                    className={cx(
+                      'text-start p-3 rounded-[var(--radius-md)] border transition-colors',
+                      'min-h-[76px] flex flex-col justify-between gap-1',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)]'
+                        : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        'font-display text-2xl font-semibold tabular-nums leading-none',
+                        selected ? 'text-[var(--accent-soft-text)]' : 'text-[var(--text-primary)]',
+                      )}
+                    >
+                      {formatNumber(MODE_SIZES[m])}
+                    </span>
+                    <span className="block">
+                      <span className="block text-xs font-medium">{modeLabel(t, m)}</span>
+                      <span className="block text-xs text-[var(--text-muted)]">{modeHint(t, m)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </Card>
 
           <Card>
             <CardHeader title={t.study.difficulty} />
-            <SegmentedControl
-              label={t.study.difficulty}
-              value={difficulty}
-              onChange={(v) => setDifficulty(v)}
-              options={[
-                { value: 'easy' as Difficulty, label: t.study.easy },
-                { value: 'medium' as Difficulty, label: t.study.medium },
-                { value: 'hard' as Difficulty, label: t.study.hard },
-                { value: 'adaptive' as Difficulty, label: t.study.adaptive, hint: t.study.adaptiveSub },
-              ]}
-              className="w-full"
-            />
+            <div role="radiogroup" aria-label={t.study.difficulty} className="flex flex-wrap gap-2">
+              {DIFFICULTIES.map((d) => {
+                const selected = d === difficulty;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setDifficulty(d)}
+                    className={cx(
+                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    {d === 'adaptive' ? (
+                      <Icon.sparkle size={14} />
+                    ) : (
+                      <span aria-hidden="true" className="flex items-end gap-0.5 h-3">
+                        {[1, 2, 3].map((bar) => (
+                          <span
+                            key={bar}
+                            className={cx(
+                              'w-1 rounded-full',
+                              bar <= HEAT[d] ? 'bg-current' : 'bg-current opacity-25',
+                            )}
+                            style={{ height: `${4 + bar * 3}px` }}
+                          />
+                        ))}
+                      </span>
+                    )}
+                    {t.study[d]}
+                  </button>
+                );
+              })}
+            </div>
             {difficulty === 'adaptive' ? (
               <p className="text-xs text-[var(--text-muted)] mt-3">{t.study.adaptiveNote}</p>
             ) : null}
@@ -228,26 +342,13 @@ export function StudyView({
             />
           </Card>
 
-          <Button size="lg" fullWidth onClick={start} disabled={!courseId}>
-            <Icon.sparkle size={18} />
-            {t.study.start}
-          </Button>
-
           {history.length > 0 ? (
             <Card>
               <CardHeader title={t.study.history} />
               <ul className="divide-y divide-[var(--border-subtle)]">
                 {history.map((h) => (
-                  <li key={h.id} className="py-2.5 flex items-center justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium">
-                        {h.courseCode ?? '—'}{h.topic ? ` · ${h.topic}` : ''}
-                      </span>
-                      <span className="block text-xs text-[var(--text-muted)]">{formatDate(h.completedAt)}</span>
-                    </span>
-                    <Badge tone={(h.score ?? 0) >= 80 ? 'positive' : (h.score ?? 0) >= 60 ? 'warning' : 'danger'}>
-                      {h.correct}/{h.total}
-                    </Badge>
+                  <li key={h.id} className="py-2.5">
+                    <HistoryLine row={h} />
                   </li>
                 ))}
               </ul>
@@ -266,32 +367,39 @@ export function StudyView({
 
       {phase === 'answering' && current ? (
         <div className="space-y-4">
-          <div>
-            <div className="flex items-baseline justify-between gap-2 mb-2">
-              <p className="text-sm font-medium">
+          <SessionHud
+            answers={answers}
+            total={questions.length}
+            index={index}
+            combo={combo}
+            elapsed={elapsed}
+          />
+
+          <Card>
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 {tf(t.study.question, { n: index + 1, total: questions.length })}
               </p>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap justify-end gap-1.5">
                 {current.topic ? <Badge>{current.topic}</Badge> : null}
                 <Badge tone={current.difficulty === 'hard' ? 'warning' : 'neutral'}>
                   {t.study[current.difficulty]}
                 </Badge>
               </div>
             </div>
-            <ProgressBar value={index} max={questions.length} label={t.study.title} />
-          </div>
 
-          <Card>
-            <p className="text-base leading-relaxed">{current.question_text}</p>
+            <p className="font-display text-lg leading-snug text-balance-title">{current.question_text}</p>
 
             <div className="mt-5">
               {current.options?.length ? (
                 <fieldset>
                   <legend className="sr-only">{t.study.selectAnswer}</legend>
                   <ul className="space-y-2">
-                    {current.options.map((opt) => {
+                    {current.options.map((opt, i) => {
                       const selected = given === opt;
                       const isAnswer = opt === current.answer;
+                      const reveal = checked && isAnswer;
+                      const wrong = checked && selected && !isAnswer;
                       return (
                         <li key={opt}>
                           <button
@@ -300,25 +408,34 @@ export function StudyView({
                             onClick={() => setGiven(opt)}
                             aria-pressed={selected}
                             className={cx(
-                              'w-full text-start px-4 py-3 rounded-[var(--radius-md)] border text-sm transition-colors',
-                              'disabled:cursor-default',
-                              checked && isAnswer
+                              'w-full text-start p-3 rounded-[var(--radius-md)] border text-sm transition-colors',
+                              'flex items-center gap-3 disabled:cursor-default',
+                              reveal
                                 ? 'border-[var(--positive)] bg-[var(--positive-soft)]'
-                                : checked && selected
+                                : wrong
                                   ? 'border-[var(--danger)] bg-[var(--danger-soft)]'
                                   : selected
                                     ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)]'
                                     : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)]',
                             )}
                           >
-                            <span className="flex items-start gap-2.5">
-                              {checked && isAnswer ? (
-                                <span aria-hidden="true" className="text-[var(--positive)]">✓</span>
-                              ) : checked && selected ? (
-                                <span aria-hidden="true" className="text-[var(--danger)]">✕</span>
-                              ) : null}
-                              <span>{opt}</span>
+                            <span
+                              aria-hidden="true"
+                              className={cx(
+                                'shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)]',
+                                'text-xs font-semibold tabular-nums border',
+                                reveal
+                                  ? 'border-[var(--positive)] text-[var(--positive)]'
+                                  : wrong
+                                    ? 'border-[var(--danger)] text-[var(--danger)]'
+                                    : selected
+                                      ? 'border-[var(--accent)] text-[var(--accent-soft-text)]'
+                                      : 'border-[var(--border-subtle)] text-[var(--text-muted)]',
+                              )}
+                            >
+                              {reveal ? '✓' : wrong ? '✕' : LETTERS[i] ?? '·'}
                             </span>
+                            <span className="min-w-0">{opt}</span>
                           </button>
                         </li>
                       );
@@ -336,24 +453,42 @@ export function StudyView({
             </div>
 
             {checked ? (
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 animate-pop">
                 <div
                   className={cx(
-                    'rounded-[var(--radius-md)] border p-3.5',
-                    answers[answers.length - 1]?.correct
+                    'rounded-[var(--radius-md)] border p-3.5 flex items-start gap-3',
+                    answeredCurrent?.correct
                       ? 'border-[var(--positive-border)] bg-[var(--positive-soft)]'
                       : 'border-[var(--danger-border)] bg-[var(--danger-soft)]',
                   )}
                 >
-                  <p className="text-sm font-semibold">
-                    {answers[answers.length - 1]?.correct ? `✓ ${t.study.correct}` : `✕ ${t.study.incorrect}`}
-                  </p>
-                  {!answers[answers.length - 1]?.correct ? (
-                    <p className="text-sm mt-1.5">
-                      <span className="text-[var(--text-secondary)]">{t.study.correctAnswer}: </span>
-                      {current.answer}
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      'shrink-0 w-7 h-7 grid place-items-center rounded-full text-sm font-semibold',
+                      answeredCurrent?.correct
+                        ? 'bg-[var(--positive)] text-white'
+                        : 'bg-[var(--danger)] text-white',
+                    )}
+                  >
+                    {answeredCurrent?.correct ? '✓' : '✕'}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">
+                      {answeredCurrent?.correct ? t.study.correct : t.study.incorrect}
+                      {answeredCurrent?.correct && combo >= 2 ? (
+                        <span className="ms-2 font-normal text-[var(--text-secondary)]">
+                          {tf(t.study.combo, { n: formatNumber(combo) })}
+                        </span>
+                      ) : null}
                     </p>
-                  ) : null}
+                    {!answeredCurrent?.correct ? (
+                      <p className="text-sm mt-1.5">
+                        <span className="text-[var(--text-secondary)]">{t.study.correctAnswer}: </span>
+                        {current.answer}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
                 {current.explanation ? (
@@ -367,11 +502,12 @@ export function StudyView({
               </div>
             ) : null}
 
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 mt-5">
+              <p className="text-xs text-[var(--text-muted)]">{t.study.keyboardHint}</p>
               {!checked ? (
                 <Button onClick={check} disabled={!given.trim()}>{t.study.submit}</Button>
               ) : (
-                <Button onClick={next}>
+                <Button onClick={() => void next()}>
                   {isLast ? t.study.finish : t.study.nextQuestion}
                   <Icon.chevronEnd size={16} className="flip-rtl" />
                 </Button>
@@ -385,23 +521,192 @@ export function StudyView({
         <ResultsPanel
           answers={answers}
           total={questions.length}
+          bestCombo={bestCombo}
+          seconds={elapsed}
+          awardedXp={awardedXp}
+          previousBest={bestScoreFor(history, courseCode)}
           onAgain={() => setPhase('setup')}
+          onDrillTopic={(next) => { setTopic(next); setPhase('setup'); }}
         />
       ) : null}
     </>
   );
 }
 
-function ResultsPanel({
-  answers, total, onAgain,
+// --- Setup -------------------------------------------------------------------
+
+/**
+ * The choices below are four separate controls, which makes it easy to press
+ * start without noticing you asked for twenty hard questions. This restates
+ * the whole run as one sentence, right above the button that commits to it.
+ */
+function LaunchPad({
+  mode, difficulty, courseCode, topic, onStart, canStart,
+}: {
+  mode: PracticeMode;
+  difficulty: RequestedDifficulty;
+  courseCode: string | null;
+  topic: string;
+  onStart: () => void;
+  canStart: boolean;
+}) {
+  const { t, tf, formatNumber } = useI18n();
+  const count = MODE_SIZES[mode];
+  const maxXp = XP_RULES.practiceSession + count * XP_RULES.perCorrectAnswer;
+
+  return (
+    <Card className="relative overflow-hidden bg-[var(--bg-accent-soft)] border-[var(--border-subtle)]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-16 -end-16 w-44 h-44 rounded-full opacity-40"
+        style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
+      />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-soft-text)]">
+          {t.study.runHeading}
+        </p>
+
+        <div className="flex items-end gap-2.5 mt-2">
+          <span className="font-display text-5xl font-semibold leading-none tabular-nums">
+            {formatNumber(count)}
+          </span>
+          <span className="text-sm text-[var(--text-secondary)] pb-1.5">{t.study.questionsLabel}</span>
+        </div>
+
+        <ul className="flex flex-wrap gap-1.5 mt-3.5">
+          {courseCode ? <li><Badge tone="accent">{courseCode}</Badge></li> : null}
+          <li><Badge>{t.study[difficulty]}</Badge></li>
+          {topic ? <li><Badge>{topic}</Badge></li> : null}
+          <li>
+            <Badge tone="positive" icon={<Icon.flame size={12} />}>
+              {tf(t.study.xpUpTo, { n: formatNumber(maxXp) })}
+            </Badge>
+          </li>
+        </ul>
+
+        <Button size="lg" fullWidth onClick={onStart} disabled={!canStart} className="mt-4">
+          <Icon.sparkle size={18} />
+          {t.study.start}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function ChipRow({
+  label, value, onChange, options,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  options: Array<{ value: string; label: string; title?: string }>;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            title={o.title}
+            onClick={() => onChange(o.value)}
+            className={cx(
+              'px-3 min-h-[38px] rounded-full border text-sm transition-colors',
+              selected
+                ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
+                : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// --- Answering ---------------------------------------------------------------
+
+/** One pip per question, filled as you go, so progress is visible at a glance. */
+function SessionHud({
+  answers, total, index, combo, elapsed,
 }: {
   answers: Answered[];
   total: number;
+  index: number;
+  combo: number;
+  elapsed: number;
+}) {
+  const { t, tf, formatNumber } = useI18n();
+  const correct = answers.filter((a) => a.correct).length;
+
+  return (
+    <Card padded={false} className="p-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold tabular-nums">
+          {formatNumber(correct)}
+          <span className="text-[var(--text-muted)] font-normal">/{formatNumber(total)}</span>
+        </p>
+        <div className="flex items-center gap-2.5">
+          {combo >= 2 ? (
+            <Badge tone="warning" icon={<Icon.flame size={12} />}>
+              {tf(t.study.combo, { n: formatNumber(combo) })}
+            </Badge>
+          ) : null}
+          <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] tabular-nums">
+            <Icon.clock size={13} />
+            <span className="sr-only">{t.study.elapsed}: </span>
+            {clock(elapsed)}
+          </span>
+        </div>
+      </div>
+
+      <ol className="flex gap-1 mt-3" aria-hidden="true">
+        {Array.from({ length: total }, (_, i) => {
+          const a = answers[i];
+          return (
+            <li
+              key={i}
+              className={cx(
+                'h-1.5 flex-1 rounded-full transition-colors',
+                a ? (a.correct ? 'bg-[var(--positive)]' : 'bg-[var(--danger)]')
+                  : i === index ? 'bg-[var(--accent)]' : 'bg-[var(--bg-inset)]',
+              )}
+            />
+          );
+        })}
+      </ol>
+    </Card>
+  );
+}
+
+// --- Results -----------------------------------------------------------------
+
+function ResultsPanel({
+  answers, total, bestCombo, seconds, awardedXp, previousBest, onAgain, onDrillTopic,
+}: {
+  answers: Answered[];
+  total: number;
+  bestCombo: number;
+  seconds: number;
+  awardedXp: number | null;
+  previousBest: number | null;
   onAgain: () => void;
+  onDrillTopic: (topic: string) => void;
 }) {
   const { t, tf, formatNumber } = useI18n();
   const correct = answers.filter((a) => a.correct).length;
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const tone = pct >= 80 ? 'var(--positive)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
+
+  const verdict =
+    pct === 100 ? t.study.verdictPerfect
+      : pct >= 80 ? t.study.verdictStrong
+        : pct >= 60 ? t.study.verdictSolid
+          : t.study.verdictRough;
 
   const byTopic = new Map<string, { correct: number; total: number }>();
   for (const a of answers) {
@@ -411,55 +716,260 @@ function ResultsPanel({
     if (a.correct) e.correct += 1;
     byTopic.set(key, e);
   }
-  const topics = [...byTopic.entries()].map(([topic, v]) => ({ topic, ...v, rate: v.correct / v.total }));
-  const weak = topics.filter((x) => x.rate < 0.7);
-  const strong = topics.filter((x) => x.rate >= 0.7);
+  const topics = [...byTopic.entries()]
+    .map(([name, v]) => ({ name, ...v, rate: v.correct / v.total }))
+    .sort((a, b) => a.rate - b.rate);
+
+  const weakest = topics.find((x) => x.rate < 0.7 && x.name !== '—');
+  const isBest = previousBest !== null && pct > previousBest;
 
   return (
     <div className="space-y-4">
       <Card className="text-center">
-        <p className="font-display text-5xl font-semibold tabular-nums" style={{
-          color: pct >= 80 ? 'var(--positive)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)',
-        }}>
-          {formatNumber(pct)}%
+        <ScoreRing pct={pct} colour={tone} />
+        <p className="font-display text-xl font-semibold mt-3 text-balance-title">{verdict}</p>
+        <p className="text-sm text-[var(--text-secondary)] mt-1">
+          {tf(t.study.scored, { correct: formatNumber(correct), total: formatNumber(total) })}
         </p>
-        <p className="text-sm text-[var(--text-secondary)] mt-2">
-          {tf(t.study.scored, { correct, total })}
+
+        <ul className="flex flex-wrap justify-center gap-1.5 mt-3">
+          {isBest ? (
+            <li><Badge tone="positive" icon={<Icon.trophy size={12} />}>{t.study.newBest}</Badge></li>
+          ) : null}
+          {awardedXp !== null ? (
+            <li>
+              <Badge tone="accent" icon={<Icon.flame size={12} />}>
+                {t.study.sessionXp} +{formatNumber(awardedXp)}
+              </Badge>
+            </li>
+          ) : null}
+        </ul>
+
+        {!isBest && previousBest !== null ? (
+          <p className="text-xs text-[var(--text-muted)] mt-2">
+            {tf(t.study.prevBest, { n: formatNumber(previousBest) })}
+          </p>
+        ) : null}
+
+        <dl className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-[var(--border-subtle)]">
+          <Stat label={t.study.accuracy} value={`${formatNumber(pct)}%`} />
+          <Stat label={t.study.bestRun} value={formatNumber(bestCombo)} />
+          <Stat label={t.study.elapsed} value={clock(seconds)} />
+        </dl>
+      </Card>
+
+      {topics.length > 0 ? (
+        <Card>
+          <CardHeader title={t.study.topicBreakdown} />
+          <ul className="space-y-3">
+            {topics.map((x) => (
+              <li key={x.name}>
+                <div className="flex items-baseline justify-between gap-2 text-sm mb-1">
+                  <span className="min-w-0 truncate">{x.name}</span>
+                  <span className="tabular-nums text-[var(--text-secondary)] shrink-0">
+                    {formatNumber(x.correct)}/{formatNumber(x.total)}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[var(--bg-inset)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.round(x.rate * 100)}%`,
+                      background: x.rate >= 0.7 ? 'var(--positive)' : 'var(--warning)',
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      <div className="space-y-2">
+        {weakest ? (
+          <Button fullWidth size="lg" onClick={() => onDrillTopic(weakest.name)}>
+            <Icon.sparkle size={18} />
+            {tf(t.study.focusWeakest, { topic: weakest.name })}
+          </Button>
+        ) : null}
+        <Button fullWidth size="lg" variant={weakest ? 'secondary' : 'primary'} onClick={onAgain}>
+          {t.study.practiceAgain}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-[var(--text-muted)]">{label}</dt>
+      <dd className="font-display text-lg font-semibold tabular-nums mt-0.5">{value}</dd>
+    </div>
+  );
+}
+
+const RING_R = 52;
+const RING_C = 2 * Math.PI * RING_R;
+
+function ScoreRing({ pct, colour }: { pct: number; colour: string }) {
+  const { formatNumber } = useI18n();
+  const offset = RING_C - (RING_C * pct) / 100;
+
+  return (
+    <div className="relative w-32 h-32 mx-auto">
+      <svg viewBox="0 0 120 120" className="w-full h-full" aria-hidden="true">
+        <circle
+          cx="60" cy="60" r={RING_R} fill="none" strokeWidth="10"
+          stroke="var(--bg-inset)"
+        />
+        <circle
+          cx="60" cy="60" r={RING_R} fill="none" strokeWidth="10" strokeLinecap="round"
+          stroke={colour}
+          strokeDasharray={RING_C}
+          strokeDashoffset={offset}
+          transform="rotate(-90 60 60)"
+          className="animate-ring"
+          style={{ '--ring-from': String(RING_C) } as React.CSSProperties}
+        />
+      </svg>
+      <span className="absolute inset-0 grid place-items-center">
+        <span className="font-display text-3xl font-semibold tabular-nums" style={{ color: colour }}>
+          {formatNumber(pct)}%
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// --- No API key --------------------------------------------------------------
+
+/**
+ * This screen is the one place in UniMate that genuinely cannot work without a
+ * key, so rather than a bare notice it shows what the feature is, what a
+ * question looks like, and what is still running regardless.
+ */
+function LockedPanel({ history }: { history: HistoryRow[] }) {
+  const { t } = useI18n();
+
+  return (
+    <div className="space-y-4">
+      <Card className="relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 -end-20 w-52 h-52 rounded-full opacity-25"
+          style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
+        />
+        <div className="relative flex items-start gap-3.5">
+          <span
+            aria-hidden="true"
+            className="shrink-0 w-10 h-10 rounded-[var(--radius-md)] grid place-items-center bg-[var(--bg-inset)] text-[var(--text-muted)]"
+          >
+            <Icon.lock size={18} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-semibold text-balance-title">{t.study.lockedTitle}</h2>
+            <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+              {t.study.lockedBody}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+          {t.study.lockedExample}
+        </p>
+        <div className="opacity-70 select-none" aria-hidden="true">
+          <p className="font-display text-base leading-snug">{t.study.lockedExampleQ}</p>
+          <div className="mt-4 p-3 rounded-[var(--radius-md)] border border-[var(--positive)] bg-[var(--positive-soft)] flex items-center gap-3 text-sm">
+            <span className="shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)] border border-[var(--positive)] text-[var(--positive)] text-xs font-semibold">
+              ✓
+            </span>
+            {t.study.lockedExampleA}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="bg-[var(--positive-soft)] border-[var(--positive-border)]">
+        <p className="text-sm font-semibold">{t.study.lockedWorks}</p>
+        <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+          {t.study.lockedWorksList}
         </p>
       </Card>
 
-      {weak.length > 0 ? (
+      {history.length > 0 ? (
         <Card>
-          <CardHeader title={t.study.weakTopics} />
-          <ul className="flex flex-wrap gap-1.5">
-            {weak.map((x) => (
-              <li key={x.topic}>
-                <Badge tone="warning">{x.topic} · {x.correct}/{x.total}</Badge>
-              </li>
+          <CardHeader title={t.study.history} />
+          <ul className="divide-y divide-[var(--border-subtle)]">
+            {history.map((h) => (
+              <li key={h.id} className="py-2.5"><HistoryLine row={h} /></li>
             ))}
           </ul>
         </Card>
       ) : null}
-
-      {strong.length > 0 ? (
-        <Card>
-          <CardHeader title={t.study.strongTopics} />
-          <ul className="flex flex-wrap gap-1.5">
-            {strong.map((x) => (
-              <li key={x.topic}>
-                <Badge tone="positive">{x.topic} · {x.correct}/{x.total}</Badge>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      <Button fullWidth size="lg" onClick={onAgain}>
-        <Icon.sparkle size={18} />
-        {t.study.practiceAgain}
-      </Button>
     </div>
   );
+}
+
+// --- Shared ------------------------------------------------------------------
+
+function HistoryLine({ row }: { row: HistoryRow }) {
+  const { formatDate, formatNumber } = useI18n();
+  const pct = row.score ?? (row.total > 0 ? Math.round((row.correct / row.total) * 100) : 0);
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium truncate">
+          {row.courseCode ?? '—'}{row.topic ? ` · ${row.topic}` : ''}
+        </span>
+        <span className="block text-xs text-[var(--text-muted)]">{formatDate(row.completedAt)}</span>
+        <span className="block h-1 rounded-full bg-[var(--bg-inset)] overflow-hidden mt-1.5 max-w-[10rem]">
+          <span
+            className="block h-full rounded-full"
+            style={{
+              width: `${pct}%`,
+              background: pct >= 80 ? 'var(--positive)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)',
+            }}
+          />
+        </span>
+      </span>
+      <Badge tone={pct >= 80 ? 'positive' : pct >= 60 ? 'warning' : 'danger'}>
+        {formatNumber(row.correct)}/{formatNumber(row.total)}
+      </Badge>
+    </div>
+  );
+}
+
+function modeLabel(t: ReturnType<typeof useI18n>['t'], m: PracticeMode): string {
+  return m === 'quick_5' ? t.study.quick5
+    : m === 'standard_10' ? t.study.standard10
+      : m === 'deep_20' ? t.study.deep20
+        : t.study.examMode;
+}
+
+function modeHint(t: ReturnType<typeof useI18n>['t'], m: PracticeMode): string {
+  return m === 'quick_5' ? t.study.quick5Sub
+    : m === 'standard_10' ? t.study.standard10Sub
+      : m === 'deep_20' ? t.study.deep20Sub
+        : t.study.examModeSub;
+}
+
+/** mm:ss, padded, direction-neutral. */
+function clock(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+/** The student's best score in this course so far, or null if it is their first. */
+function bestScoreFor(history: HistoryRow[], courseCode: string | null): number | null {
+  if (!courseCode) return null;
+  const scores = history
+    .filter((h) => h.courseCode === courseCode)
+    .map((h) => h.score ?? (h.total > 0 ? Math.round((h.correct / h.total) * 100) : 0));
+  return scores.length ? Math.max(...scores) : null;
 }
 
 /** Lenient on whitespace and case for free-text answers; exact for options. */

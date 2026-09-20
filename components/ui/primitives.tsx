@@ -63,7 +63,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {loading ? <Spinner size={15} /> : null}
-      <span>{loading && loadingLabel ? loadingLabel : children}</span>
+      {/* Preflight sets `svg { display: block }`, so an icon passed alongside
+          label text would drop onto its own line inside a plain span. */}
+      <span className="inline-flex items-center gap-2">
+        {loading && loadingLabel ? loadingLabel : children}
+      </span>
     </button>
   );
 });

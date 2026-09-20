@@ -4,13 +4,10 @@ import { callStructured } from '../client';
 import { systemFor } from '../prompts';
 import { renderContext, weakTopics, type StudentContext } from '../context';
 import type { DifficultyLevel, QuestionType } from '@/types/database';
+import { MODE_SIZES, type PracticeMode, type RequestedDifficulty } from '@/lib/study/modes';
 
-export type PracticeMode = 'quick_5' | 'standard_10' | 'deep_20' | 'exam_mode';
-export type RequestedDifficulty = 'easy' | 'medium' | 'hard' | 'adaptive';
-
-export const MODE_SIZES: Record<PracticeMode, number> = {
-  quick_5: 5, standard_10: 10, deep_20: 20, exam_mode: 15,
-};
+export type { PracticeMode, RequestedDifficulty } from '@/lib/study/modes';
+export { MODE_SIZES } from '@/lib/study/modes';
 
 export interface StudyInput {
   context: StudentContext;
