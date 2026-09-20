@@ -8,7 +8,7 @@
 -- student's records.
 -- =============================================================================
 
-\set sara   '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31'
+\set danah  '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31'
 \set yousef 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 -- A second student to test against.
@@ -26,43 +26,43 @@ set request.jwt.claim.sub = :'yousef';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s courses'
-  from public.courses where user_id = :'sara';
+  from public.courses where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s grades'
-  from public.grades where user_id = :'sara';
+  from public.grades where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s tasks'
-  from public.tasks where user_id = :'sara';
+  from public.tasks where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s syllabi'
-  from public.syllabi where user_id = :'sara';
+  from public.syllabi where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s AI activity'
-  from public.ai_runs where user_id = :'sara';
+  from public.ai_runs where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s study history'
-  from public.study_sessions where user_id = :'sara';
+  from public.study_sessions where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s profile'
-  from public.profiles where user_id = :'sara';
+  from public.profiles where user_id = :'danah';
 
 with u as (update public.courses set course_name = 'TAMPERED'
-           where user_id = :'sara' returning 1)
+           where user_id = :'danah' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s courses' from u;
 
-with d as (delete from public.grades where user_id = :'sara' returning 1)
+with d as (delete from public.grades where user_id = :'danah' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot delete another student''s grades' from d;
 
 with p as (update public.profiles set full_name = 'TAMPERED'
-           where user_id = :'sara' returning 1)
+           where user_id = :'danah' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s profile' from p;
 

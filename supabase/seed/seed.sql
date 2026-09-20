@@ -1,12 +1,12 @@
 -- =============================================================================
 -- UniMate — demonstration data
 --
--- Creates one signed-in-able demo student, Sara Al-Ajmi, with a coherent
+-- Creates one signed-in-able demo student, Danah Hamad, with a coherent
 -- academic history: strong in programming and digital-systems courses, weaker
 -- in pure maths. Every row is flagged is_demo = true so the UI can label it as
 -- demonstration data rather than real university records.
 --
--- Demo sign-in:  sara.alajmi@demo.unimate.app  /  UniMateDemo2026!
+-- Demo sign-in:  danah.hamad@demo.unimate.app  /  UniMateDemo2026!
 --
 -- Dates are anchored to current_date so the data still reads as a live
 -- semester whenever you seed it.
@@ -37,11 +37,11 @@ begin
     confirmation_token, email_change, email_change_token_new, recovery_token
   ) values (
     '00000000-0000-0000-0000-000000000000', v_user, 'authenticated', 'authenticated',
-    'sara.alajmi@demo.unimate.app',
+    'danah.hamad@demo.unimate.app',
     extensions.crypt('UniMateDemo2026!', extensions.gen_salt('bf')),
     now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Sara Al-Ajmi","preferred_language":"en"}'::jsonb,
+    '{"full_name":"Danah Hamad","preferred_language":"en"}'::jsonb,
     now() - interval '8 months', now(),
     '', '', '', ''
   );
@@ -50,14 +50,14 @@ begin
     id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
   ) values (
     gen_random_uuid(), v_user::text, v_user,
-    jsonb_build_object('sub', v_user::text, 'email', 'sara.alajmi@demo.unimate.app', 'email_verified', true),
+    jsonb_build_object('sub', v_user::text, 'email', 'danah.hamad@demo.unimate.app', 'email_verified', true),
     'email', now(), now() - interval '8 months', now()
   );
 
   -- The on_auth_user_created trigger already made the profile and the default
-  -- 4.0 grade scale; fill in the rest of Sara's details.
+  -- 4.0 grade scale; fill in the rest of Danah's details.
   update public.profiles set
-    full_name            = 'Sara Al-Ajmi',
+    full_name            = 'Danah Hamad',
     university           = 'Kuwait University',
     major                = 'Computer Engineering',
     academic_year        = 'Year 3',
@@ -335,11 +335,11 @@ begin
     (v_user,'grades',null,      'weight','25 %','25','Stripped the percent sign so the weight stores as a number.', now() - interval '11 days'),
     (v_user,'courses',c_engl220,'credits','2 cr','2','Extracted the numeric credit value from the scanned text.', now() - interval '16 days');
 
-  raise notice 'UniMate demo data seeded for sara.alajmi@demo.unimate.app';
+  raise notice 'UniMate demo data seeded for danah.hamad@demo.unimate.app';
 end $$;
 
 -- =============================================================================
--- Demo momentum history for Sara Al-Ajmi.
+-- Demo momentum history for Danah Hamad.
 --
 -- A believable term rather than a perfect one: a live 6-day run, an 11-day
 -- best earlier in the semester, and real gaps where life got in the way.

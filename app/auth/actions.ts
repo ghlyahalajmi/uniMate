@@ -71,7 +71,7 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
 export async function signInDemoAction(): Promise<AuthState> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
-    email: 'sara.alajmi@demo.unimate.app',
+    email: 'danah.hamad@demo.unimate.app',
     password: 'UniMateDemo2026!',
   });
   if (error) {

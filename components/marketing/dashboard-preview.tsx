@@ -40,7 +40,7 @@ export function DashboardPreview() {
           <div className="sm:col-span-3 space-y-4">
             <div>
               <p className="font-display text-xl font-semibold">
-                {t.dashboard.goodAfternoon}, Sara.
+                {t.dashboard.goodAfternoon}, Danah.
               </p>
               <p className="text-[0.8125rem] text-[var(--text-secondary)] mt-0.5">
                 2 {dir === 'rtl' ? 'محاضرات' : 'classes'} · 3 {dir === 'rtl' ? 'مهام' : 'tasks'}

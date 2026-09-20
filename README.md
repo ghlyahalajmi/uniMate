@@ -12,7 +12,7 @@ It is built on Next.js 15, Supabase (PostgreSQL, Auth, Storage, row level
 security) and the Anthropic API, in English and Arabic with full RTL.
 
 **Live:** https://unimate-pied.vercel.app
-**Demo sign-in:** `sara.alajmi@demo.unimate.app` / `UniMateDemo2026!`
+**Demo sign-in:** `danah.hamad@demo.unimate.app` / `UniMateDemo2026!`
 
 The deployment runs against a Supabase project seeded with the demo data
 below. AI features are off there until an `ANTHROPIC_API_KEY` is added — the
@@ -127,7 +127,7 @@ Run in this order if applying by hand:
 psql "$DATABASE_URL" -f supabase/seed/seed.sql
 ```
 
-This creates Sara Al-Ajmi's account and a full semester of coherent records.
+This creates Danah Hamad's account and a full semester of coherent records.
 It is safe to re-run — it deletes the demo user first. Every row it writes is
 flagged `is_demo = true`, and the interface labels it as demonstration data.
 
@@ -328,12 +328,12 @@ There is a full manual checklist in [`docs/TESTING.md`](docs/TESTING.md).
 
 If you ran the seed:
 
-- **Email** `sara.alajmi@demo.unimate.app`
+- **Email** `danah.hamad@demo.unimate.app`
 - **Password** `UniMateDemo2026!`
 
 This account is already seeded on the live deployment above.
 
-Sara Al-Ajmi, Computer Engineering at Kuwait University, year 3. Eight
+Danah Hamad, Computer Engineering at Kuwait University, year 3. Eight
 completed courses, five active, 22 assessments, two syllabi, seven logged AI
 runs and seven cleaning decisions. Her record has a deliberate shape — strong
 in programming and digital-systems courses, weaker in pure maths — so the
