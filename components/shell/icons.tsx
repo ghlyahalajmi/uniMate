@@ -129,6 +129,10 @@ export const Icon = {
   students: (p: IconProps) => (
     <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.4a5.5 5.5 0 0 1 3 5.1" /></Svg>
   ),
+  // A painter's palette: how a note is dressed, not what it says.
+  palette: (p: IconProps) => (
+    <Svg {...p}><path d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.9-.6-1.5-.6-2.2 0-.8.6-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.2-4-7.7-9-7.7Z" /><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none" /><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none" /><circle cx="16" cy="10" r="1.1" fill="currentColor" stroke="none" /></Svg>
+  ),
   // Three people joined into one shape: a group that meets, not a directory.
   groups: (p: IconProps) => (
     <Svg {...p}><circle cx="12" cy="5.6" r="2.4" /><circle cx="5.5" cy="17" r="2.4" /><circle cx="18.5" cy="17" r="2.4" /><path d="M10.3 7.1 7.2 14.7M13.7 7.1l3.1 7.6M8 17h8" /></Svg>

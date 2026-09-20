@@ -11,8 +11,14 @@ import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import {
   addNoteItem, createNote, deleteNote, deleteNoteItem,
-  renameNote, setNoteItemDone, updateNoteItem,
+  renameNote, setNoteDesign, setNoteItemDone, updateNoteItem,
 } from '@/lib/data/actions';
+import {
+  clampSticker, MAX_STICKERS, parseDesign, tiltFor,
+  type NoteDesign, type Pattern, type StickerKey, type Tint,
+} from '@/lib/notes/design';
+import { NoteDesignBar } from './note-design';
+import { StickerLayer } from './sticker-layer';
 import type { NoteItem, NoteWithItems } from '@/types/database';
 
 /** How long to sit on a keystroke before writing it. Long enough that normal
@@ -100,6 +106,21 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
       const res = await createNote();
       if (!res.ok || !res.note) return failed();
       setNotes((prev) => [{ ...res.note!, items: [] }, ...prev]);
+    });
+  }
+
+  /**
+   * The look of a note is saved the same way its text is: on screen at once,
+   * written after a pause. Dragging a sticker fires a change per frame, and
+   * one write per frame would be absurd.
+   */
+  function onDesignNote(noteId: string, design: NoteDesign) {
+    setNotes((prev) => prev.map((n) => (n.id !== noteId ? n : {
+      ...n, theme: design.pattern, color: design.tint, stickers: design.stickers,
+    })));
+    scheduleSave(`design:${noteId}`, async () => {
+      const res = await setNoteDesign(noteId, design);
+      if (!res.ok) failed();
     });
   }
 
@@ -278,6 +299,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
               onSetReminder={(item, value) => onSetReminder(note.id, item, value)}
               onDeleteLine={(item) => onDeleteLine(note.id, item)}
               onDelete={() => setDeleting(note)}
+              onDesign={(design) => onDesignNote(note.id, design)}
             />
           ))}
         </div>
@@ -298,7 +320,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
 function NoteCard({
   note, now, focusId, onFocused,
   onRename, onRenameBlur, onAddLine, onEditLine, onEditBlur,
-  onToggleLine, onSetReminder, onDeleteLine, onDelete,
+  onToggleLine, onSetReminder, onDeleteLine, onDelete, onDesign,
 }: {
   note: NoteWithItems;
   now: number;
@@ -313,13 +335,46 @@ function NoteCard({
   onSetReminder: (item: NoteItem, value: string) => void;
   onDeleteLine: (item: NoteItem) => void;
   onDelete: () => void;
+  onDesign: (design: NoteDesign) => void;
 }) {
   const { t, tf } = useI18n();
   const done = note.items.filter((i) => i.is_done).length;
 
+  // The stored design, read defensively: an unknown key from an older row (or
+  // a hand-edited one) falls back rather than reaching the page.
+  const design = useMemo(() => parseDesign(note), [note]);
+  const [designing, setDesigning] = useState(false);
+
+  function change(next: Partial<NoteDesign>) {
+    onDesign({ ...design, ...next });
+  }
+
+  function addSticker(k: StickerKey) {
+    if (design.stickers.length >= MAX_STICKERS) return;
+    // Dropped into the body of the note rather than on the title row, spread
+    // so a second sticker does not land on the first, and tilted by where it
+    // landed so the same sticker twice is not the same picture twice.
+    const x = 76 - (design.stickers.length % 3) * 14;
+    const y = 38 + Math.floor(design.stickers.length / 3) * 16;
+    change({ stickers: [...design.stickers, clampSticker({ k, x, y, r: tiltFor(x, y) })] });
+  }
+
   return (
-    <Card className="p-4 flex flex-col gap-3">
-      <div className="flex items-start gap-2">
+    <Card
+      className="paper relative p-4 flex flex-col gap-3"
+      data-tint={design.tint}
+      data-pattern={design.pattern}
+    >
+      <StickerLayer
+        stickers={design.stickers}
+        editing={designing}
+        onMove={(i, x, y) => change({
+          stickers: design.stickers.map((s, at) => (at === i ? clampSticker({ ...s, x, y }) : s)),
+        })}
+        onRemove={(i) => change({ stickers: design.stickers.filter((_, at) => at !== i) })}
+      />
+
+      <div className="relative z-[2] flex items-start gap-2">
         <input
           value={note.title}
           onChange={(e) => onRename(e.target.value)}
@@ -336,6 +391,21 @@ function NoteCard({
         />
         <button
           type="button"
+          onClick={() => setDesigning((open) => !open)}
+          aria-label={designing ? t.notes.closeDesign : t.notes.design}
+          aria-pressed={designing}
+          title={t.notes.design}
+          className={cx(
+            'shrink-0 grid place-items-center w-9 h-9 rounded-md focus-visible:outline-2',
+            designing
+              ? 'bg-[var(--accent)] text-[var(--text-on-accent)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]',
+          )}
+        >
+          <Icon.palette size={16} />
+        </button>
+        <button
+          type="button"
           onClick={onDelete}
           aria-label={t.notes.deleteNote}
           title={t.notes.deleteNote}
@@ -347,6 +417,15 @@ function NoteCard({
           <Icon.trash size={16} />
         </button>
       </div>
+
+      {designing ? (
+        <NoteDesignBar
+          design={design}
+          onPattern={(pattern: Pattern) => change({ pattern })}
+          onTint={(tint: Tint) => change({ tint })}
+          onAddSticker={addSticker}
+        />
+      ) : null}
 
       {note.items.length > 0 ? (
         <p className="text-xs text-[var(--text-muted)] -mt-1">

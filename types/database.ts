@@ -330,7 +330,12 @@ export interface Note {
   id: string;
   user_id: string;
   title: string;
+  /** The paper tint key — 'yellow', 'mint'… — never a colour value. */
   color: string | null;
+  /** The paper pattern key: plain, lined, grid or dots. */
+  theme: string;
+  /** Placed stickers, as stored: validated on read by lib/notes/design. */
+  stickers: unknown;
   position: number;
   is_archived: boolean;
   is_demo: boolean;

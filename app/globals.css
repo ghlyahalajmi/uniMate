@@ -129,6 +129,16 @@
   --grid-line: var(--color-ink-200);
   --focus-ring: var(--color-violet-500);
 
+  /* Note paper. Keys in the database, colours here: a note stores "yellow",
+     and what yellow means is decided once, per theme, where contrast can be
+     checked. */
+  --paper-yellow-bg: #fdf6d8;  --paper-yellow-line: #e3d49a;  --paper-yellow-ink: #3d3719;
+  --paper-mint-bg:   #e4f6ec;  --paper-mint-line:   #a9d8bf;  --paper-mint-ink:   #1d3a2c;
+  --paper-sky-bg:    #e5f0fb;  --paper-sky-line:    #a8c7e6;  --paper-sky-ink:    #1d3147;
+  --paper-rose-bg:   #fdeaf0;  --paper-rose-line:   #e9b6c7;  --paper-rose-ink:   #45202d;
+  --paper-lilac-bg:  #efecfd;  --paper-lilac-line:  #c3b9f2;  --paper-lilac-ink:  #2a2350;
+  --paper-kraft-bg:  #f6ecdd;  --paper-kraft-line:  #d8bf9c;  --paper-kraft-ink:  #402f1c;
+
   color-scheme: light;
 }
 
@@ -170,6 +180,15 @@
 
     --grid-line: #273049;
     --focus-ring: #8b80f0;
+
+    /* Dimmer papers with light ink: a note that glows white in a dark room is
+       the reason people stop using dark mode. */
+    --paper-yellow-bg: #322d16;  --paper-yellow-line: #554b28;  --paper-yellow-ink: #f3ead0;
+    --paper-mint-bg:   #142c22;  --paper-mint-line:   #2c5544;  --paper-mint-ink:   #d8f0e3;
+    --paper-sky-bg:    #15263a;  --paper-sky-line:    #2c4767;  --paper-sky-ink:    #dcebfb;
+    --paper-rose-bg:   #331a24;  --paper-rose-line:   #5a2f40;  --paper-rose-ink:   #fadfe8;
+    --paper-lilac-bg:  #221d47;  --paper-lilac-line:  #3f3673;  --paper-lilac-ink:  #e6e1fb;
+    --paper-kraft-bg:  #2e2418;  --paper-kraft-line:  #55442c;  --paper-kraft-ink:  #f0e3cf;
 
     /* Same six hues, re-stepped for the dark surface and validated against it. */
     --color-series-1: #7d6cf0;
@@ -219,6 +238,15 @@
 
   --grid-line: #273049;
   --focus-ring: #8b80f0;
+
+  /* Dimmer papers with light ink: a note that glows white in a dark room is
+     the reason people stop using dark mode. */
+  --paper-yellow-bg: #322d16;  --paper-yellow-line: #554b28;  --paper-yellow-ink: #f3ead0;
+  --paper-mint-bg:   #142c22;  --paper-mint-line:   #2c5544;  --paper-mint-ink:   #d8f0e3;
+  --paper-sky-bg:    #15263a;  --paper-sky-line:    #2c4767;  --paper-sky-ink:    #dcebfb;
+  --paper-rose-bg:   #331a24;  --paper-rose-line:   #5a2f40;  --paper-rose-ink:   #fadfe8;
+  --paper-lilac-bg:  #221d47;  --paper-lilac-line:  #3f3673;  --paper-lilac-ink:  #e6e1fb;
+  --paper-kraft-bg:  #2e2418;  --paper-kraft-line:  #55442c;  --paper-kraft-ink:  #f0e3cf;
 
   /* Same six hues, re-stepped for the dark surface and validated against it. */
   --color-series-1: #7d6cf0;
@@ -272,6 +300,54 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 }
 
 ::selection { background: var(--color-violet-200); color: var(--color-violet-900); }
+
+
+/* Note paper ---------------------------------------------------------------- */
+
+/**
+ * A note's surface: a tint and a ruling, both chosen from fixed keys. The
+ * pattern is drawn as a background image on the surface itself rather than an
+ * extra element, so the lines scroll with the note and nothing has to be kept
+ * in sync with its height.
+ */
+.paper {
+  --paper-bg: var(--bg-surface);
+  --paper-line: var(--border-subtle);
+  --paper-ink: var(--text-primary);
+  background-color: var(--paper-bg);
+  color: var(--paper-ink);
+}
+
+.paper[data-tint="yellow"] { --paper-bg: var(--paper-yellow-bg); --paper-line: var(--paper-yellow-line); --paper-ink: var(--paper-yellow-ink); }
+.paper[data-tint="mint"]   { --paper-bg: var(--paper-mint-bg);   --paper-line: var(--paper-mint-line);   --paper-ink: var(--paper-mint-ink); }
+.paper[data-tint="sky"]    { --paper-bg: var(--paper-sky-bg);    --paper-line: var(--paper-sky-line);    --paper-ink: var(--paper-sky-ink); }
+.paper[data-tint="rose"]   { --paper-bg: var(--paper-rose-bg);   --paper-line: var(--paper-rose-line);   --paper-ink: var(--paper-rose-ink); }
+.paper[data-tint="lilac"]  { --paper-bg: var(--paper-lilac-bg);  --paper-line: var(--paper-lilac-line);  --paper-ink: var(--paper-lilac-ink); }
+.paper[data-tint="kraft"]  { --paper-bg: var(--paper-kraft-bg);  --paper-line: var(--paper-kraft-line);  --paper-ink: var(--paper-kraft-ink); }
+
+/* The ruling sits under the text at low contrast: it should be felt, not read. */
+.paper[data-pattern="lined"] {
+  background-image: repeating-linear-gradient(
+    to bottom, transparent 0 27px, color-mix(in srgb, var(--paper-line) 70%, transparent) 27px 28px
+  );
+  background-position: 0 6px;
+}
+
+.paper[data-pattern="grid"] {
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--paper-line) 40%, transparent) 27px 28px),
+    repeating-linear-gradient(to right,  transparent 0 27px, color-mix(in srgb, var(--paper-line) 40%, transparent) 27px 28px);
+}
+
+.paper[data-pattern="dots"] {
+  background-image: radial-gradient(color-mix(in srgb, var(--paper-line) 60%, transparent) 1.3px, transparent 1.4px);
+  background-size: 20px 20px;
+  background-position: 6px 8px;
+}
+
+/* Inputs on a tinted note borrow its ink rather than the app's. */
+.paper input, .paper textarea { color: inherit; }
+.paper ::placeholder { color: color-mix(in srgb, var(--paper-ink) 45%, transparent); }
 
 /* Utilities ----------------------------------------------------------------- */
 

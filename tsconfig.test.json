@@ -19,6 +19,8 @@
     "lib/hub/format.ts",
     "lib/groups/availability.ts",
     "lib/groups/__tests__/**/*.ts",
+    "lib/notes/design.ts",
+    "lib/notes/__tests__/**/*.ts",
     "lib/time/**/*.ts",
     "lib/hub/__tests__/**/*.ts",
     "types/**/*.ts"

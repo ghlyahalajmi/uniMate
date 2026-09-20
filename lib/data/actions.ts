@@ -8,6 +8,7 @@ import {
   noteItemSchema, fieldErrors,
 } from '@/lib/validation/schemas';
 import { cleanCourseCode } from '@/lib/validation/cleaning';
+import { parseDesign } from '@/lib/notes/design';
 import { workflowBuildReminders, agentContext } from '@/lib/workflows';
 import { recordActivity } from '@/lib/momentum/record';
 import type { RecordResult } from '@/lib/momentum/record';
@@ -423,6 +424,42 @@ export async function renameNote(id: string, title: string): Promise<ActionState
       .update({ title: title.slice(0, 200) })
       .eq('id', id);
     if (error) return { ok: false, messageKey: 'noteSaveError' };
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+/**
+ * The look of a note: its paper, its tint, and where the stickers sit.
+ *
+ * Everything is validated against the fixed lists before it is written, so the
+ * columns can only ever hold keys the stylesheet knows. The database has the
+ * same rule as a check constraint — this is the friendly half of it, not the
+ * only half.
+ */
+export async function setNoteDesign(
+  id: string,
+  design: { pattern: string; tint: string; stickers: unknown },
+): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    const clean = parseDesign({
+      theme: design.pattern, color: design.tint, stickers: design.stickers,
+    });
+
+    const { error } = await supabase
+      .from('notes')
+      .update({
+        theme: clean.pattern,
+        color: clean.tint,
+        stickers: clean.stickers,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+
+    revalidatePath('/notes');
     return { ok: true };
   } catch {
     return GENERIC;
