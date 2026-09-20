@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { getDictionary } from '@/lib/i18n/server';
 import {
   getProfile, getCourses, getGrades, getTasks, getSyllabusEvents,
   getGradeScale, groupGradesByCourse, weekdayOf,
@@ -19,7 +18,6 @@ export default async function DashboardPage() {
   const [courses, grades, tasks, events, scale, momentum] = await Promise.all([
     getCourses(), getGrades(), getTasks(), getSyllabusEvents(), getGradeScale(), getMomentum(4),
   ]);
-  const { t } = await getDictionary();
 
   const byCourse = groupGradesByCourse(grades);
   const active = courses.filter((c) => c.status === 'active');
@@ -170,7 +168,6 @@ export default async function DashboardPage() {
               xpToday: momentum.xpToday,
             }
       }
-      greetingFallback={t.dashboard.goodAfternoon}
     />
   );
 }

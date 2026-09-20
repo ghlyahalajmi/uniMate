@@ -5,9 +5,9 @@ import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Card, CardHeader, ProgressBar, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
-import { PageHeader } from '@/components/shell/page-header';
 import { InsightPanel } from './insight-panel';
 import { StreakStrip } from './streak-strip';
+import { TimeGreeting } from './time-greeting';
 import { XP_RULES } from '@/lib/momentum/engine';
 
 interface ClassRow { id: string; code: string; name: string; start: string | null; end: string | null; room: string | null }
@@ -21,7 +21,7 @@ interface ProgressRow {
 
 export function DashboardView({
   name, isDemo, hasAnyCourse, todayClasses, todayTasks, openTaskCount,
-  upcoming, snapshot, progress, momentum, focus, greetingFallback,
+  upcoming, snapshot, progress, momentum, focus,
 }: {
   name: string | null;
   isDemo: boolean;
@@ -40,15 +40,8 @@ export function DashboardView({
   } | null;
   progress: ProgressRow[];
   momentum: { current: number; atRisk: boolean; activeToday: boolean; level: number; xpToday: number } | null;
-  greetingFallback: string;
 }) {
   const { t, tf, formatTime, formatNumber } = useI18n();
-
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? t.dashboard.goodMorning
-    : hour < 18 ? t.dashboard.goodAfternoon
-    : t.dashboard.goodEvening;
 
   const firstName = name?.split(' ')[0] ?? null;
 
@@ -56,7 +49,7 @@ export function DashboardView({
   if (!hasAnyCourse) {
     return (
       <>
-        <PageHeader title={`${greeting || greetingFallback}${firstName ? `, ${firstName}` : ''}.`} />
+        <div className="mb-6"><TimeGreeting firstName={firstName} /></div>
         <Card>
           <EmptyState
             title={t.dashboard.firstRunTitle}
@@ -95,9 +88,7 @@ export function DashboardView({
   return (
     <>
       <div className="mb-6">
-        <h1 className="font-display text-2xl sm:text-[1.75rem] font-semibold leading-tight">
-          {greeting}{firstName ? `, ${firstName}` : ''}.
-        </h1>
+        <TimeGreeting firstName={firstName} />
         <p className="text-sm text-[var(--text-secondary)] mt-1.5">
           {tf(t.dashboard.summary, { classes: classCount, tasks: taskCount })}
         </p>

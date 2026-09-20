@@ -17,6 +17,7 @@
     "lib/momentum/**/*.ts",
     "lib/flashcards/**/*.ts",
     "lib/hub/format.ts",
+    "lib/time/**/*.ts",
     "lib/hub/__tests__/**/*.ts",
     "types/**/*.ts"
   ]

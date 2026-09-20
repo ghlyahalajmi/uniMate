@@ -13,7 +13,6 @@ import { PageHeader } from '@/components/shell/page-header';
 import { saveHubLink, deleteHubLink, toggleHubPin } from '@/lib/hub/actions';
 import { hostOf, initialsOf } from '@/lib/hub/format';
 import { actionMessage } from '@/lib/i18n/action-messages';
-import { TEAM, profileUrl } from './team';
 import type { ActionState } from '@/lib/data/actions';
 import type { LinkRow } from '@/components/hub/hub-view';
 
@@ -64,42 +63,6 @@ export function StudentHubView({ links }: { links: LinkRow[] }) {
       />
 
       <div className="space-y-4">
-        {/* The team ------------------------------------------------------- */}
-        <Card>
-          <CardHeader title={t.hub.team} subtitle={t.hub.teamSub} />
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {TEAM.map((m) => (
-              <li key={m.login}>
-                <a
-                  href={profileUrl(m.login)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cx(
-                    'flex items-center gap-3 p-3 rounded-[var(--radius-md)] border transition-colors',
-                    'border-[var(--border-subtle)] hover:border-[var(--border-strong)]',
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 w-9 h-9 rounded-full grid place-items-center text-xs font-semibold
-                               bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
-                  >
-                    {initialsOf(m.login)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium truncate">{m.login}</span>
-                    <span className="block text-xs text-[var(--text-muted)]">
-                      {m.role === 'owner' ? t.hub.owner : t.hub.member}
-                    </span>
-                  </span>
-                  <Icon.external size={13} className="shrink-0 text-[var(--text-muted)]" />
-                  <span className="sr-only">{t.hub.viewProfile} · {t.hub.opensNewTab}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
         {/* Shared links --------------------------------------------------- */}
         <Card>
           <CardHeader title={t.hub.classLinks} subtitle={t.hub.classLinksSub} />
