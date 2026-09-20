@@ -5,6 +5,15 @@ import { syllabusAskSchema } from '@/lib/validation/schemas';
 import { isAiConfigured } from '@/lib/ai/client';
 import { runAgent, type AgentDefinition } from '@/lib/ai/run';
 
+/**
+ * These agents call Claude with adaptive thinking, and the slowest of them —
+ * reading a photographed timetable, or drafting a full practice set — take
+ * well over the default function limit. Vercel kills the function at that
+ * limit and the browser sees a bare 504 with no logged ai_run, so the ceiling
+ * is raised here rather than discovered in production.
+ */
+export const maxDuration = 300;
+
 interface AskInput { syllabusId: string; question: string; structured: string; extractedText: string }
 interface AskOutput { answer: string; found: boolean }
 

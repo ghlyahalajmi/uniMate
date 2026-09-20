@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
 import { recordActivity } from '@/lib/momentum/record';
 
+/**
+ * These agents call Claude with adaptive thinking, and the slowest of them —
+ * reading a photographed timetable, or drafting a full practice set — take
+ * well over the default function limit. Vercel kills the function at that
+ * limit and the browser sees a bare 504 with no logged ai_run, so the ceiling
+ * is raised here rather than discovered in production.
+ */
+export const maxDuration = 300;
+
 interface Body {
   session_id: string;
   correct: number;
