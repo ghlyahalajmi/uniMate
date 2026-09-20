@@ -30,7 +30,7 @@ export const en = {
   nav: {
     home: 'Home', dashboard: 'Dashboard', courses: 'Courses', planner: 'Planner',
     grades: 'Grades', study: 'Study AI', syllabi: 'Syllabus', tasks: 'Tasks',
-    flashcards: 'Flashcards', automation: 'Automation',
+    flashcards: 'Flashcards', automation: 'Automation', hub: 'Hub',
     calendar: 'Calendar', analytics: 'Analytics', records: 'Records',
     momentum: 'Momentum',
     assistant: 'Assistant', settings: 'Settings', profile: 'Profile',
@@ -399,6 +399,22 @@ export const en = {
     required: 'required',
   },
 
+
+  hub: {
+    title: 'Hub',
+    subtitle: 'Your projects and the pages you open every day, in one place.',
+    addLink: 'Add a link', newLink: 'New link', editLink: 'Edit link',
+    name: 'Name', url: 'Address', urlHint: 'Must start with https://',
+    description: 'Note', kind: 'Group',
+    kindProject: 'Projects', kindUniversity: 'University', kindResource: 'Everything else',
+    pinned: 'Pinned', pin: 'Pin to the top', unpin: 'Unpin',
+    saved: 'Link saved', deleted: 'Link removed', saveError: 'That link could not be saved.',
+    deleteConfirm: 'Remove this link?',
+    emptyTitle: 'Nothing here yet',
+    emptyBody: 'Add the pages you keep hunting for — your portfolio, the university portal, a repository, a shared drive. They are yours alone; nobody else can see them.',
+    opensNewTab: 'Opens in a new tab',
+    linkCount: '{n} links', linkCountOne: '1 link',
+  },
   flashcards: {
     title: 'Flashcards',
     subtitle: 'Cards you write, brought back exactly when you are about to forget them.',
@@ -569,7 +585,7 @@ export const ar: Dictionary = {
   nav: {
     home: 'الرئيسية', dashboard: 'لوحتي', courses: 'المقررات', planner: 'المخطط',
     grades: 'الدرجات', study: 'المذاكرة الذكية', syllabi: 'المناهج', tasks: 'المهام',
-    flashcards: 'البطاقات', automation: 'الأتمتة',
+    flashcards: 'البطاقات', automation: 'الأتمتة', hub: 'المنصة',
     calendar: 'التقويم', analytics: 'التحليلات', records: 'السجلات',
     momentum: 'الزخم',
     assistant: 'المساعد', settings: 'الإعدادات', profile: 'الملف الشخصي',
@@ -938,6 +954,22 @@ export const ar: Dictionary = {
     required: 'مطلوب',
   },
 
+
+  hub: {
+    title: 'المنصة',
+    subtitle: 'مشاريعك والصفحات التي تفتحها كل يوم، في مكان واحد.',
+    addLink: 'أضف رابطاً', newLink: 'رابط جديد', editLink: 'تعديل الرابط',
+    name: 'الاسم', url: 'العنوان', urlHint: 'يجب أن يبدأ بـ https://',
+    description: 'ملاحظة', kind: 'المجموعة',
+    kindProject: 'المشاريع', kindUniversity: 'الجامعة', kindResource: 'أخرى',
+    pinned: 'مثبّت', pin: 'ثبّت في الأعلى', unpin: 'إلغاء التثبيت',
+    saved: 'حُفظ الرابط', deleted: 'أُزيل الرابط', saveError: 'تعذّر حفظ الرابط.',
+    deleteConfirm: 'إزالة هذا الرابط؟',
+    emptyTitle: 'لا شيء هنا بعد',
+    emptyBody: 'أضف الصفحات التي تبحث عنها دائماً — ملفك الشخصي، بوابة الجامعة، مستودع، مجلد مشترك. هي لك وحدك، لا يراها أحد غيرك.',
+    opensNewTab: 'يفتح في تبويب جديد',
+    linkCount: '{n} روابط', linkCountOne: 'رابط واحد',
+  },
   flashcards: {
     title: 'البطاقات',
     subtitle: 'بطاقات تكتبها أنت، تعود إليك في اللحظة التي كدت تنساها فيها.',

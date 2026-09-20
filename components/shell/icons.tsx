@@ -114,6 +114,17 @@ export const Icon = {
   flashcards: (p: IconProps) => (
     <Svg {...p}><rect x="3" y="6.5" width="13" height="11" rx="2" /><path d="M8 4.5h10a2 2 0 0 1 2 2v9" /></Svg>
   ),
+  // A grid of tiles: separate things gathered onto one page.
+  hub: (p: IconProps) => (
+    <Svg {...p}><rect x="4" y="4" width="7" height="7" rx="1.8" /><rect x="13" y="4" width="7" height="7" rx="1.8" /><rect x="4" y="13" width="7" height="7" rx="1.8" /><rect x="13" y="13" width="7" height="7" rx="1.8" /></Svg>
+  ),
+  // An arrow leaving a frame: this opens somewhere else.
+  external: (p: IconProps) => (
+    <Svg {...p}><path d="M13 5h6v6" /><path d="M19 5l-8 8" /><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></Svg>
+  ),
+  pin: (p: IconProps) => (
+    <Svg {...p}><path d="M9 3h6l-.7 5.2 3 3.3H6.7l3-3.3L9 3Z" /><path d="M12 11.5V21" /></Svg>
+  ),
   // Nodes joined left to right: something happens, then something follows.
   automation: (p: IconProps) => (
     <Svg {...p}><circle cx="5.5" cy="12" r="2.5" /><circle cx="18.5" cy="6.5" r="2.5" /><circle cx="18.5" cy="17.5" r="2.5" /><path d="M8 11.2 16 7.3M8 12.8l8 3.9" /></Svg>

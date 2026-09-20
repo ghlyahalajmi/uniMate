@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/records',   icon: 'records',   label: (t) => t.nav.records },
   { href: '/assistant', icon: 'assistant', label: (t) => t.nav.assistant },
   { href: '/automation', icon: 'automation', label: (t) => t.nav.automation },
+  { href: '/hub',       icon: 'hub',        label: (t) => t.nav.hub },
 ];
 
 export const SETTINGS_ITEM: NavItem = {

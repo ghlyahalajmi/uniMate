@@ -160,8 +160,14 @@ export function Checkbox({
   disabled?: boolean;
 }) {
   const id = useId();
+  // The whole row is the label, so the target is the row rather than an 18px
+  // box. A checkbox that size is a miss on a phone, and the text beside it is
+  // the part people actually aim at.
   return (
-    <div className="flex items-start gap-3">
+    <label
+      htmlFor={id}
+      className="flex items-start gap-3 min-h-[32px] py-1 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         id={id}
@@ -171,13 +177,13 @@ export function Checkbox({
         onChange={(e) => onChange(e.target.checked)}
         className="mt-0.5 w-[18px] h-[18px] rounded-[4px] shrink-0 accent-[var(--accent)] cursor-pointer"
       />
-      <label htmlFor={id} className="text-sm cursor-pointer select-none">
+      <span className="text-sm">
         <span className="font-medium">{label}</span>
         {description ? (
           <span className="block text-xs text-[var(--text-secondary)] mt-0.5">{description}</span>
         ) : null}
-      </label>
-    </div>
+      </span>
+    </label>
   );
 }
 

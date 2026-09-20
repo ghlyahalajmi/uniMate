@@ -55,6 +55,7 @@ rest of the app works without one.
 | **Records** | Every table UniMate holds, with real delete, plus the AI activity log and the data cleaning log. |
 | **Momentum** | A daily streak, XP and levels, an activity heatmap, 18 achievements and a Pomodoro focus timer — all earned from work that leaves a record. Plus a Semester Wrapped card you can save as an image. |
 | **Assistant** | A chat that answers from your records, and says so when the answer is not in them. |
+| **Hub** | Your own launch page: projects, university pages and anything else you keep hunting for, grouped and pinnable. Rows in your database, so you edit it in the app rather than in a deploy. Addresses are constrained to https by the database, not only the form. |
 | **Automation** | The five workflows laid out in the order they happen, each showing what triggers it, what it produces, and its real run history from `ai_runs`. Plus the webhook endpoints and whether they are switched on. |
 
 ### Two rules the whole product is built around
@@ -124,6 +125,7 @@ Run in this order if applying by hand:
 | `supabase/migrations/0003_storage.sql` | Two private buckets with per-user folder policies |
 | `supabase/migrations/0004_momentum.sql` | Activity days, achievements and the streak columns on `profiles` |
 | `supabase/migrations/0005_flashcards.sql` | The flashcards table, its Leitner columns, and the same forced RLS |
+| `supabase/migrations/0006_hub.sql` | The hub links table, an https-only check on the address, and the same forced RLS |
 
 ### 3. Seed the demo data (optional)
 

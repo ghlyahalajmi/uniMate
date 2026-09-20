@@ -16,6 +16,8 @@
     "lib/validation/__tests__/**/*.ts",
     "lib/momentum/**/*.ts",
     "lib/flashcards/**/*.ts",
+    "lib/hub/format.ts",
+    "lib/hub/__tests__/**/*.ts",
     "types/**/*.ts"
   ]
 }

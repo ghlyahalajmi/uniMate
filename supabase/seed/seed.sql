@@ -482,3 +482,39 @@ begin
   raise notice 'Demo flashcards seeded: % cards',
     (select count(*) from public.flashcards where user_id = v_user and is_demo);
 end $$;
+
+-- =============================================================================
+-- Demo hub links.
+--
+-- Real destinations, so the page demonstrates itself rather than showing
+-- placeholder rows that go nowhere.
+-- =============================================================================
+do $$
+declare v_user uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+begin
+  delete from public.hub_links where user_id = v_user and is_demo;
+
+  insert into public.hub_links (user_id, title, url, description, kind, position, is_pinned, is_demo)
+  values
+    (v_user, 'UniMate', 'https://unimate-pied.vercel.app',
+     'This app, live.', 'project', 1, true, true),
+    (v_user, 'UniMate on GitHub', 'https://github.com/ghlyahalajmi/uniMate',
+     'Source, issues and pull requests.', 'project', 2, false, true),
+    (v_user, 'Plana — Digital Planner Studio', 'https://github.com/ghlyahalajmi/plana-digital-planner-studio',
+     null, 'project', 3, false, true),
+    (v_user, 'Day 6', 'https://github.com/ghlyahalajmi/day6', null, 'project', 4, false, true),
+    (v_user, 'Day 5', 'https://github.com/ghlyahalajmi/day5', null, 'project', 5, false, true),
+
+    (v_user, 'Kuwait University', 'https://kuweb.ku.edu.kw',
+     'Registration, transcripts and the academic calendar.', 'university', 1, true, true),
+    (v_user, 'College of Engineering', 'https://eng.ku.edu.kw',
+     'Department pages and announcements.', 'university', 2, false, true),
+
+    (v_user, 'Supabase dashboard', 'https://supabase.com/dashboard',
+     'The database behind this app.', 'resource', 1, false, true),
+    (v_user, 'Vercel dashboard', 'https://vercel.com/dashboard',
+     'Deployments and logs.', 'resource', 2, false, true);
+
+  raise notice 'Demo hub links seeded: %',
+    (select count(*) from public.hub_links where user_id = v_user and is_demo);
+end $$;

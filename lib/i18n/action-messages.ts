@@ -29,6 +29,9 @@ export function actionMessage(t: Dictionary, key: string | undefined): string {
     cardSaved: t.flashcards.saved,
     cardDeleted: t.flashcards.deleted,
     cardSaveError: t.flashcards.saveError,
+    linkSaved: t.hub.saved,
+    linkDeleted: t.hub.deleted,
+    linkSaveError: t.hub.saveError,
   };
   return table[key] ?? t.errors.generic;
 }

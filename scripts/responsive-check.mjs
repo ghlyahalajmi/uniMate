@@ -74,9 +74,16 @@ for (const locale of LOCALES) {
         }
 
         // Interactive targets smaller than 32px in either axis.
+        //
+        // What counts is the area a finger can land on, not the painted
+        // control: a checkbox is drawn at 18px, but if it sits inside a label
+        // the whole row is clickable and that row is the real target. So a
+        // control wrapped in a label is measured by the label.
         const small = [];
         for (const el of document.querySelectorAll('a, button, input, select, textarea, [role="button"], [role="tab"], [role="radio"], [role="switch"]')) {
-          const r = el.getBoundingClientRect();
+          const wrapper = el.closest('label');
+          const target = wrapper ?? el;
+          const r = target.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
           if (getComputedStyle(el).position === 'absolute' && r.height < 2) continue;
           if (r.height < 32 || r.width < 20) {

@@ -51,6 +51,17 @@ export const taskSchema = z.object({
   status: z.enum(['todo','in_progress','completed']).default('todo'),
 });
 
+export const hubLinkSchema = z.object({
+  title: z.string().trim().min(1, 'Enter a name').max(120),
+  // https only, matching the database check. These become anchors on the
+  // student's own page, so a `javascript:` URL would be a script injection.
+  url: z.string().trim().url('Enter a full https:// address').max(2000)
+    .refine((v) => v.toLowerCase().startsWith('https://'), 'The address must start with https://'),
+  description: z.string().trim().max(300).optional().or(z.literal('')).transform((v) => (v ? v : null)),
+  kind: z.enum(['project', 'university', 'resource']).default('resource'),
+  is_pinned: z.coerce.boolean().optional().default(false),
+});
+
 export const flashcardSchema = z.object({
   course_id: z.string().uuid().nullable().optional().or(z.literal('')).transform((v) => (v ? v : null)),
   front: z.string().trim().min(1, 'Enter the prompt').max(500),

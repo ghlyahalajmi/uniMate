@@ -182,6 +182,22 @@ export interface StudySession {
   completed_at: string | null;
 }
 
+export type HubLinkKind = 'project' | 'university' | 'resource';
+
+export interface HubLink {
+  id: string;
+  user_id: string;
+  title: string;
+  url: string;
+  description: string | null;
+  kind: HubLinkKind;
+  position: number;
+  is_pinned: boolean;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type FlashcardSource = 'manual' | 'generated';
 
 export interface Flashcard {
