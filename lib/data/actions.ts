@@ -304,6 +304,8 @@ export async function saveProfile(_prev: ActionState, formData: FormData): Promi
   const raw = formToObject(formData);
   raw.reminders_enabled = formData.get('reminders_enabled') === 'on';
   raw.momentum_enabled = formData.get('momentum_enabled') === 'on';
+  raw.leaderboard_opt_in = formData.get('leaderboard_opt_in') === 'on';
+  raw.leaderboard_show_name = formData.get('leaderboard_show_name') === 'on';
 
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) };

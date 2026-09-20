@@ -66,6 +66,11 @@ begin
     preferred_study_minutes = 45,
     study_availability   = 'Weekday evenings 19:00–22:00, Saturday mornings',
     onboarding_completed = true,
+    -- The demo account shows its name on the streak board so the board
+    -- demonstrates itself. A real student appears anonymously until they
+    -- choose otherwise in Settings.
+    leaderboard_opt_in   = true,
+    leaderboard_show_name = true,
     is_demo              = true
   where user_id = v_user;
 

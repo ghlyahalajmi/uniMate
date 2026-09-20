@@ -103,6 +103,10 @@ export const profileSchema = z.object({
   theme: z.enum(['light','dark','system']).default('light'),
   reminders_enabled: z.coerce.boolean().default(true),
   momentum_enabled: z.coerce.boolean().default(true),
+  leaderboard_opt_in: z.coerce.boolean().default(true),
+  // Off unless the student turns it on: publishing a name to classmates
+  // should be a choice, not a default they failed to notice.
+  leaderboard_show_name: z.coerce.boolean().default(false),
 });
 
 export const gradeScaleSchema = z.object({

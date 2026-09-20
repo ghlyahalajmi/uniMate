@@ -14,11 +14,13 @@ import { saveHubLink, deleteHubLink, toggleHubPin } from '@/lib/hub/actions';
 import { hostOf, initialsOf } from '@/lib/hub/format';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { ActionState } from '@/lib/data/actions';
+import { StreakBoard } from './streak-board';
+import type { LeaderboardRow } from '@/lib/momentum/leaderboard';
 import type { LinkRow } from '@/components/hub/hub-view';
 
 const EMPTY: ActionState = {};
 
-export function StudentHubView({ links }: { links: LinkRow[] }) {
+export function StudentHubView({ links, board }: { links: LinkRow[]; board: LeaderboardRow[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -63,6 +65,9 @@ export function StudentHubView({ links }: { links: LinkRow[] }) {
       />
 
       <div className="space-y-4">
+        {/* Who is keeping their run going --------------------------------- */}
+        <StreakBoard rows={board} />
+
         {/* Shared links --------------------------------------------------- */}
         <Card>
           <CardHeader title={t.hub.classLinks} subtitle={t.hub.classLinksSub} />

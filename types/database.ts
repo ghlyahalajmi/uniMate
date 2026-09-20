@@ -44,6 +44,8 @@ export interface Profile {
   onboarding_completed: boolean;
   streak_freezes: number;
   momentum_enabled: boolean;
+  leaderboard_opt_in: boolean;
+  leaderboard_show_name: boolean;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
