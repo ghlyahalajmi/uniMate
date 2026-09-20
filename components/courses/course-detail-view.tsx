@@ -115,6 +115,12 @@ export function CourseDetailView({
         {course.is_demo ? <Badge tone="warning">{t.common.demoData}</Badge> : null}
       </div>
 
+      {/* Who teaches it sits with the schedule rather than inside a tab: it is
+          read alongside the days and times, and wanted from every tab. */}
+      <div className="mb-5">
+        <CourseContacts course={course} />
+      </div>
+
       {/* Tabs -------------------------------------------------------------- */}
       <div role="tablist" aria-label={t.courseDetail.overview} className="flex gap-1 overflow-x-auto pb-1 mb-5 -mx-1 px-1">
         {tabs.map((tb) => (
@@ -209,8 +215,6 @@ export function CourseDetailView({
                 ) : null}
               </dl>
             </Card>
-
-            <CourseContacts course={course} />
 
             <Card>
               <CardHeader title={t.courseDetail.topics} />
