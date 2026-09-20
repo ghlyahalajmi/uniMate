@@ -21,6 +21,14 @@ insert into public.courses (user_id, course_code, course_name, credits, semester
 values (:'yousef', 'BUS101', 'Principles of Management', 3, 'Fall 2026', 'active')
 on conflict do nothing;
 
+-- A note of Danah's, with a line in it, to read against.
+with n as (
+  insert into public.notes (user_id, title) values (:'danah', 'Before Sunday')
+  returning id
+)
+insert into public.note_items (user_id, note_id, content, position)
+select :'danah', n.id, 'Return library books', 0 from n;
+
 set role authenticated;
 set request.jwt.claim.sub = :'yousef';
 
@@ -49,6 +57,14 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
   from public.study_sessions where user_id = :'danah';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s notes'
+  from public.notes where user_id = :'danah';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s note lines'
+  from public.note_items where user_id = :'danah';
+
        || ' — cannot read another student''s profile'
   from public.profiles where user_id = :'danah';
 

@@ -2,6 +2,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type {
   AiRun, CleaningLogEntry, Course, Grade, GradeScaleEntry, Profile,
+  Note, NoteItem, NoteWithItems,
   Question, Reminder, Schedule, ScheduleCourse, StudySession, Syllabus,
   SyllabusEvent, Task, Weekday,
 } from '@/types/database';
@@ -162,6 +163,64 @@ export async function getSchedules(): Promise<Array<Schedule & { courses: Schedu
 export const WEEKDAY_KEYS: Weekday[] = [
   'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
 ];
+
+/**
+ * Notes with their lines, ready for the screen. Two queries rather than a
+ * nested select, because the lines have their own ordering and a note with no
+ * lines still has to come back.
+ */
+export async function getNotes(): Promise<NoteWithItems[]> {
+  const supabase = await createClient();
+  const userId = await requireUserId();
+
+  const { data: notes } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_archived', false)
+    .order('position')
+    .order('created_at');
+
+  if (!notes?.length) return [];
+
+  const { data: items } = await supabase
+    .from('note_items')
+    .select('*')
+    .in('note_id', notes.map((n) => n.id))
+    .order('position')
+    .order('created_at');
+
+  const byNote = new Map<string, NoteItem[]>();
+  for (const item of (items as NoteItem[]) ?? []) {
+    const list = byNote.get(item.note_id);
+    if (list) list.push(item);
+    else byNote.set(item.note_id, [item]);
+  }
+
+  return (notes as Note[]).map((n) => ({ ...n, items: byNote.get(n.id) ?? [] }));
+}
+
+/**
+ * Outstanding reminders, soonest first — the ones the dashboard and the notes
+ * screen surface. Lines already ticked off are excluded: a reminder for
+ * something that is done is noise.
+ */
+export async function getDueNoteItems(withinHours = 24): Promise<NoteItem[]> {
+  const supabase = await createClient();
+  const userId = await requireUserId();
+  const until = new Date(Date.now() + withinHours * 3_600_000).toISOString();
+
+  const { data } = await supabase
+    .from('note_items')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_done', false)
+    .not('remind_at', 'is', null)
+    .lte('remind_at', until)
+    .order('remind_at');
+
+  return (data as NoteItem[]) ?? [];
+}
 
 export function weekdayOf(date: Date): Weekday {
   return WEEKDAY_KEYS[date.getDay()];

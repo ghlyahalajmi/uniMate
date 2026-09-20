@@ -529,3 +529,36 @@ begin
   raise notice 'Demo hub links seeded: %',
     (select count(*) from public.hub_links where user_id = v_user and is_demo);
 end $$;
+
+-- =============================================================================
+-- Demo notes for Danah Hamad: the quick checklist she keeps outside her course
+-- work, with a couple of lines already ticked off and two reminders set.
+-- =============================================================================
+do $$
+declare
+  v_user uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  n_week uuid;
+  n_life uuid;
+begin
+  insert into public.notes (user_id, title, position, is_demo)
+  values (v_user, 'Before Sunday', 0, true) returning id into n_week;
+
+  insert into public.notes (user_id, title, position, is_demo)
+  values (v_user, 'Shopping', 1, true) returning id into n_life;
+
+  insert into public.note_items
+    (user_id, note_id, content, is_done, completed_at, remind_at, position, is_demo)
+  values
+    (v_user, n_week, 'Email Dr. Al-Sabah about the CE315 syllabus', true,
+     now() - interval '2 days', null, 0, true),
+    (v_user, n_week, 'Return the library books', false, null,
+     date_trunc('hour', now()) + interval '5 hours', 1, true),
+    (v_user, n_week, 'Print the CE340 lab report', false, null,
+     date_trunc('day', now()) + interval '1 day 9 hours', 2, true),
+    (v_user, n_week, 'Ask Layla for her MATH201 notes', false, null, null, 3, true),
+    (v_user, n_life, 'Notebook and highlighters', true,
+     now() - interval '1 day', null, 0, true),
+    (v_user, n_life, 'Coffee', false, null, null, 1, true);
+
+  raise notice 'UniMate demo notes seeded';
+end $$;

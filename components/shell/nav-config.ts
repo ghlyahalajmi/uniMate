@@ -27,6 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/courses',   icon: 'courses',   label: (t) => t.nav.courses,   primaryMobile: true },
   { href: '/grades',    icon: 'grades',    label: (t) => t.nav.grades,    primaryMobile: true },
   { href: '/tasks',     icon: 'tasks',     label: (t) => t.nav.tasks,     primaryMobile: true },
+  { href: '/notes',     icon: 'notes',     label: (t) => t.nav.notes },
   { href: '/momentum',  icon: 'flame',     label: (t) => t.nav.momentum },
   { href: '/study',     icon: 'study',     label: (t) => t.nav.study },
   { href: '/flashcards', icon: 'flashcards', label: (t) => t.nav.flashcards },

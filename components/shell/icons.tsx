@@ -38,6 +38,9 @@ export const Icon = {
   tasks: (p: IconProps) => (
     <Svg {...p}><path d="M4 6.5 6 8.5 9.5 5" /><path d="M4 13.5 6 15.5 9.5 12" /><path d="M13 7h7M13 14h7M13 20h7" /></Svg>
   ),
+  notes: (p: IconProps) => (
+    <Svg {...p}><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m8 9 1.5 1.5L12.5 7.5" /><path d="M8 15h8" /></Svg>
+  ),
   calendar: (p: IconProps) => (
     <Svg {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></Svg>
   ),

@@ -126,6 +126,7 @@ Run in this order if applying by hand:
 | `supabase/migrations/0004_momentum.sql` | Activity days, achievements and the streak columns on `profiles` |
 | `supabase/migrations/0005_flashcards.sql` | The flashcards table, its Leitner columns, and the same forced RLS |
 | `supabase/migrations/0006_hub.sql` | The hub links table, an https-only check on the address, and the same forced RLS |
+| `supabase/migrations/0009_notes.sql` | Notes and their checklist lines, with per-line reminders |
 
 ### 3. Seed the demo data (optional)
 

@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireUserId } from './queries';
 import {
-  courseSchema, gradeSchema, taskSchema, profileSchema, gradeScaleSchema, fieldErrors,
+  courseSchema, gradeSchema, taskSchema, profileSchema, gradeScaleSchema,
+  noteItemSchema, fieldErrors,
 } from '@/lib/validation/schemas';
 import { cleanCourseCode } from '@/lib/validation/cleaning';
 import { workflowBuildReminders, agentContext } from '@/lib/workflows';
 import { recordActivity } from '@/lib/momentum/record';
 import type { RecordResult } from '@/lib/momentum/record';
+import type { Note, NoteItem } from '@/types/database';
 
 export interface ActionState {
   ok?: boolean;
@@ -373,12 +375,175 @@ export async function saveGradeScale(
   }
 }
 
+// --- Notes -------------------------------------------------------------------
+//
+// These are called as the student types rather than on a form submit, so each
+// one does the smallest possible write and returns the row the screen needs to
+// keep its local copy honest. `revalidatePath` is deliberately limited to the
+// operations that change the shape of the page — re-rendering mid-keystroke
+// would take the cursor with it.
+
+export async function createNote(title = ''): Promise<ActionState & { note?: Note }> {
+  try {
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    // New notes go to the top, which is where a student looks for the one they
+    // just made.
+    const { data: first } = await supabase
+      .from('notes')
+      .select('position')
+      .eq('user_id', userId)
+      .order('position')
+      .limit(1)
+      .maybeSingle();
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({ user_id: userId, title: title.slice(0, 200), position: (first?.position ?? 0) - 1 })
+      .select('*')
+      .single();
+
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+
+    revalidatePath('/notes');
+    return { ok: true, note: data as Note };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function renameNote(id: string, title: string): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('notes')
+      .update({ title: title.slice(0, 200) })
+      .eq('id', id);
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function deleteNote(id: string): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    // The lines go with it through the foreign key, not by a second delete.
+    const { error } = await supabase.from('notes').delete().eq('id', id);
+    if (error) return GENERIC;
+    revalidatePath('/notes');
+    revalidatePath('/dashboard');
+    return { ok: true, messageKey: 'noteDeleted' };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function addNoteItem(
+  noteId: string,
+  afterPosition?: number,
+): Promise<ActionState & { item?: NoteItem }> {
+  try {
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    // A new line lands directly under the one it was added from, so pressing
+    // Enter halfway down a list does not send the line to the bottom.
+    let position: number;
+    if (afterPosition === undefined) {
+      const { data: last } = await supabase
+        .from('note_items')
+        .select('position')
+        .eq('note_id', noteId)
+        .order('position', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      position = (last?.position ?? -1) + 1;
+    } else {
+      position = afterPosition + 1;
+      // Make room rather than colliding: everything below shifts down one.
+      const { data: below } = await supabase
+        .from('note_items')
+        .select('id, position')
+        .eq('note_id', noteId)
+        .gte('position', position)
+        .order('position');
+      for (const row of below ?? []) {
+        await supabase.from('note_items').update({ position: row.position + 1 }).eq('id', row.id);
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('note_items')
+      .insert({ user_id: userId, note_id: noteId, position })
+      .select('*')
+      .single();
+
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+    return { ok: true, item: data as NoteItem };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function updateNoteItem(
+  id: string,
+  patch: { content?: string; remind_at?: string | null },
+): Promise<ActionState> {
+  const parsed = noteItemSchema.partial().safeParse(patch);
+  if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) };
+
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from('note_items').update(parsed.data).eq('id', id);
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+
+    // A changed reminder is worth reflecting elsewhere; a changed word is not.
+    if (patch.remind_at !== undefined) {
+      revalidatePath('/notes');
+      revalidatePath('/dashboard');
+    }
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function setNoteItemDone(id: string, done: boolean): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    // completed_at moves with is_done, which the table also insists on.
+    const { error } = await supabase
+      .from('note_items')
+      .update({ is_done: done, completed_at: done ? new Date().toISOString() : null })
+      .eq('id', id);
+    if (error) return GENERIC;
+    revalidatePath('/dashboard');
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+export async function deleteNoteItem(id: string): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from('note_items').delete().eq('id', id);
+    if (error) return GENERIC;
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
 // --- Generic row delete for the Records screen -------------------------------
 
 const DELETABLE = [
   'courses', 'grades', 'tasks', 'syllabi', 'syllabus_events', 'reminders',
   'study_sessions', 'questions', 'schedules', 'ai_runs', 'cleaning_log',
-  'activity_days', 'achievements',
+  'activity_days', 'achievements', 'notes', 'note_items',
 ] as const;
 
 export type DeletableTable = (typeof DELETABLE)[number];
