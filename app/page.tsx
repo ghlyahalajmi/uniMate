@@ -14,6 +14,11 @@ export default async function HomePage() {
     { n: '03', title: t.home.step3Title, body: t.home.step3Body },
   ];
 
+  // "Plan smarter. Study better. Graduate stronger." set as three beats rather
+  // than one long line. Arabic punctuates with the same full stop, so one split
+  // serves both dictionaries; anything that does not split is left whole.
+  const beats = t.brand.subTagline.split('.').map((b) => b.trim()).filter(Boolean);
+
   const features = [
     { title: t.home.f1, body: t.home.f1b },
     { title: t.home.f2, body: t.home.f2b },
@@ -63,17 +68,40 @@ export default async function HomePage() {
               <div className="mb-6">
                 <HeroMark size={84} />
               </div>
-              <p className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] animate-rise" style={{ animationDelay: '0.40s' }}>
-                <span aria-hidden="true">✦</span>
-                {t.brand.subTagline}
-              </p>
-              <h1 className="font-display text-[2.5rem] leading-[1.08] sm:text-6xl font-semibold mt-5 text-balance-title animate-rise" style={{ animationDelay: '0.50s' }}>
-                {t.brand.name}
+              {/*
+                Name, then what it is, then what it gives you — three sizes,
+                one column, nothing repeated. The name is the only coloured
+                thing here, so the eye lands on it first.
+              */}
+              <h1
+                className="font-display text-[2.75rem] leading-[1.04] sm:text-7xl font-semibold text-balance-title animate-rise"
+                style={{ animationDelay: '0.40s' }}
+              >
+                <span className="wordmark">{t.brand.name}</span>
               </h1>
-              <p className="font-display text-xl sm:text-2xl text-[var(--text-secondary)] mt-3 text-balance-title animate-rise" style={{ animationDelay: '0.60s' }}>
+              <p
+                className="font-display text-xl sm:text-[1.75rem] sm:leading-snug text-[var(--text-secondary)] mt-2.5 text-balance-title animate-rise"
+                style={{ animationDelay: '0.50s' }}
+              >
                 {t.brand.tagline}
               </p>
-              <p className="text-base text-[var(--text-secondary)] mt-5 leading-relaxed max-w-xl animate-rise" style={{ animationDelay: '0.70s' }}>
+
+              <ul
+                className="flex flex-wrap items-center gap-2 mt-5 animate-rise"
+                style={{ animationDelay: '0.60s' }}
+              >
+                {beats.map((beat) => (
+                  <li
+                    key={beat}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-[0.8125rem] font-medium
+                               bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
+                  >
+                    {beat}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="text-base text-[var(--text-secondary)] mt-6 leading-relaxed max-w-xl animate-rise" style={{ animationDelay: '0.70s' }}>
                 {t.home.heroSub}
               </p>
               <div className="flex flex-wrap gap-3 mt-8 animate-rise" style={{ animationDelay: '0.80s' }}>

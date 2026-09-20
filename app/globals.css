@@ -109,6 +109,11 @@
   --accent-hover: var(--color-violet-700);
   --accent-soft-text: var(--color-violet-700);
 
+  /* The wordmark's two stops — the same gradient the logo tile is painted
+     with, so the name reads as part of the mark rather than as text near it. */
+  --wordmark-from: var(--color-violet-600);
+  --wordmark-to: var(--color-violet-800);
+
   --positive: var(--color-sage-600);
   --positive-soft: var(--color-sage-50);
   --positive-border: var(--color-sage-200);
@@ -146,6 +151,10 @@
     --accent: #8b80f0;
     --accent-hover: #a49bf4;
     --accent-soft-text: #b3abf6;
+
+    /* Re-stepped for the dark surface: violet-600 disappears into it. */
+    --wordmark-from: #cdc7fa;
+    --wordmark-to: #8b80f0;
 
     --positive: #4cc39c;
     --positive-soft: #10281f;
@@ -192,6 +201,9 @@
   --accent: #8b80f0;
   --accent-hover: #a49bf4;
   --accent-soft-text: #b3abf6;
+
+  --wordmark-from: #cdc7fa;
+  --wordmark-to: #8b80f0;
 
   --positive: #4cc39c;
   --positive-soft: #10281f;
@@ -245,6 +257,14 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
   letter-spacing: 0;
 }
 
+/* Negative tracking pulls Arabic letterforms into each other; the name is set
+   at its natural spacing there, and the gradient runs the way the name is read
+   so it starts on brand violet in both directions. */
+[dir="rtl"] .wordmark {
+  letter-spacing: 0;
+  background-image: linear-gradient(-100deg, var(--wordmark-from), var(--wordmark-to));
+}
+
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
@@ -277,6 +297,29 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 }
 
 @utility text-balance-title { text-wrap: balance; }
+
+/**
+ * The app's name, wherever it is written out.
+ *
+ * It carries the logo's own gradient so the name and the mark are one thing,
+ * and the flat `color` is set first: a browser without `background-clip: text`
+ * gets a violet name rather than an invisible one.
+ */
+@utility wordmark {
+  color: var(--accent);
+  letter-spacing: -0.03em;
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    background-image: linear-gradient(100deg, var(--wordmark-from), var(--wordmark-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* The gradient is clipped to the box, so leave room below the baseline —
+       Arabic descends further than the line box allows for. */
+    padding-block-end: 0.14em;
+    margin-block-end: -0.14em;
+  }
+}
 
 /* Direction-aware helpers: `ms`/`me` already flip, these cover the rest. */
 @utility flip-rtl {
