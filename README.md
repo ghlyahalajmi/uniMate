@@ -122,6 +122,7 @@ Run in this order if applying by hand:
 | `supabase/migrations/0003_storage.sql` | Two private buckets with per-user folder policies |
 | `supabase/migrations/0004_momentum.sql` | Activity days and achievements, for streaks and XP |
 | `supabase/migrations/0005_study_layer.sql` | Study plans, flashcards, the streak roll-up, and the `assessments` / `study_tasks` / `quiz_attempts` views |
+| `supabase/migrations/0006_notes.sql` | Notes and their checklist lines, with per-line reminders |
 
 ### The data model
 
@@ -140,6 +141,7 @@ auth.users
         ├── flashcards         spaced-repetition recall practice
         └── study_sessions
               └── questions ──► quiz_attempts
+  └── notes ──► note_items         free checklist lines, each with a reminder
   └── activity_days ──► streaks    roll-up maintained by trigger
   └── ai_runs                  one row per AI operation, always written
 ```
@@ -157,6 +159,12 @@ the caller — reading `assessments` is exactly as isolated as reading `grades`,
 and the isolation test checks both. They are ordinary single-table views, so
 inserts, updates and deletes pass straight through. Either name works; nothing
 was renamed, because the existing names are referenced throughout the app.
+
+`notes` is the student's own checklist, kept separate from `tasks` on purpose:
+a task belongs to a course, carries a priority and a due date and feeds the
+planner and the XP rules, while a note line is whatever was typed and nothing
+else depends on it. Each line can carry a `remind_at` timestamp, which the
+Notes screen and the dashboard surface while UniMate is open.
 
 `streaks` is a roll-up, not an input: a trigger on `activity_days` rewrites it
 whenever the underlying activity changes, using the same rules as
@@ -179,10 +187,10 @@ flagged `is_demo = true`, and the interface labels it as demonstration data.
 psql "$DATABASE_URL" -f supabase/tests/rls_isolation_test.sql
 ```
 
-Twenty-seven checks, all of which must print `PASS`. They create a second
+Thirty-three checks, all of which must print `PASS`. They create a second
 student and confirm that neither can read, update or delete the other's
 courses, grades, tasks, syllabi, AI activity, study history, study plans,
-flashcards, streak or profile; that a row cannot be filed under someone else's
+flashcards, notes, streak or profile; that a row cannot be filed under someone else's
 `user_id`; that the naming views are exactly as isolated as the tables behind
 them; and that the anonymous role can read nothing at all.
 
@@ -319,7 +327,7 @@ browser. `GET` on the same path lists the available workflows.
 
 ## Security
 
-- **Row level security on all 21 tables**, forced, with a policy per operation
+- **Row level security on all 23 tables**, forced, with a policy per operation
   comparing `user_id` to `auth.uid()`. Blanket `anon` grants are revoked so a
   missing policy cannot become an accidental read.
 - **Storage** is two private buckets. Objects live under a `<user-id>/` prefix
@@ -438,10 +446,10 @@ Being straight about this, because "it builds" is not the same as "it works".
 - The migrations apply cleanly to PostgreSQL 16 and the seed runs and re-runs
   without error. (`0003_storage.sql` needs Supabase's `storage` schema, so it
   applies against a Supabase project rather than a bare PostgreSQL instance.)
-- The RLS isolation test passes all 27 checks against a real database.
+- The RLS isolation test passes all 33 checks against a real database.
 - 47 unit checks pass on the grade, GPA, cleaning, streak and XP logic,
   including the brief's own worked example and the boundary cases.
-- The schema defines 21 tables and 84 policies, with row level security
+- The schema defines 23 tables and 92 policies, with row level security
   enabled and forced on every one of them, plus 3 naming views that run the
   caller's own policies.
 - `npm run build` and `npm run typecheck` are clean, and `npm audit` reports

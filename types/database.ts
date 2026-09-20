@@ -368,6 +368,38 @@ export interface StudyPlanWithItems extends StudyPlan {
   items: StudyPlanItem[];
 }
 
+export interface Note {
+  id: string;
+  user_id: string;
+  title: string;
+  color: string | null;
+  position: number;
+  is_archived: boolean;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteItem {
+  id: string;
+  user_id: string;
+  note_id: string;
+  content: string;
+  is_done: boolean;
+  /** A timestamp rather than a date: "remind me at 19:00" is the point of it. */
+  remind_at: string | null;
+  position: number;
+  completed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A note with its lines, which is the only way the screen ever wants it. */
+export interface NoteWithItems extends Note {
+  items: NoteItem[];
+}
+
 /** A course joined to its assessments — the shape most screens actually want. */
 export interface CourseWithGrades extends Course {
   grades: Grade[];

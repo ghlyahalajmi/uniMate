@@ -31,6 +31,14 @@ insert into public.flashcards (user_id, front, back, topic)
 values (:'danah', 'What does RLS stand for?', 'Row level security', 'Databases')
 on conflict do nothing;
 
+-- A note of Danah's, with a line in it, to read against.
+with n as (
+  insert into public.notes (user_id, title) values (:'danah', 'Before Sunday')
+  returning id
+)
+insert into public.note_items (user_id, note_id, content, position)
+select :'danah', n.id, 'Return library books', 0 from n;
+
 set role authenticated;
 set request.jwt.claim.sub = :'yousef';
 
@@ -69,6 +77,14 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s streak'
   from public.streaks where user_id = :'danah';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s notes'
+  from public.notes where user_id = :'danah';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s note lines'
+  from public.note_items where user_id = :'danah';
 
 -- The agreed-name views must be exactly as isolated as the tables behind them.
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
@@ -110,6 +126,15 @@ with s as (update public.streaks set current_streak = 999
            where user_id = :'danah' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot inflate another student''s streak' from s;
+
+with n as (update public.note_items set content = 'TAMPERED'
+           where user_id = :'danah' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot rewrite another student''s note lines' from n;
+
+with n as (delete from public.notes where user_id = :'danah' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot delete another student''s notes' from n;
 
 -- A write through a view must be refused for the same reason a direct one is.
 with v as (update public.study_tasks set title = 'TAMPERED'
@@ -154,7 +179,7 @@ declare
   v    text;
   ok   boolean;
 begin
-  foreach v in array array['assessments','study_tasks','quiz_attempts','study_plans','flashcards','streaks']
+  foreach v in array array['assessments','study_tasks','quiz_attempts','study_plans','flashcards','streaks','notes','note_items']
   loop
     ok := false;
     begin

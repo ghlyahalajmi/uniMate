@@ -51,6 +51,16 @@ export const taskSchema = z.object({
   status: z.enum(['todo','in_progress','completed']).default('todo'),
 });
 
+export const noteSchema = z.object({
+  title: z.string().trim().max(200).optional().or(z.literal('')).transform((v) => v ?? ''),
+});
+
+export const noteItemSchema = z.object({
+  content: z.string().max(2000),
+  remind_at: z.string().datetime({ offset: true }).nullable().optional()
+    .or(z.literal('')).transform((v) => (v ? v : null)),
+});
+
 export const profileSchema = z.object({
   full_name: z.string().trim().max(120).optional().or(z.literal('')).transform((v) => (v ? v : null)),
   university: z.string().trim().max(160).optional().or(z.literal('')).transform((v) => (v ? v : null)),
