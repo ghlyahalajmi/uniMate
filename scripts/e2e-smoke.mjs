@@ -12,9 +12,10 @@
  * an application one.
  */
 import { chromium } from 'playwright';
+import { chromiumLaunchOptions } from './browser.mjs';
 
 const B = process.env.BASE ?? 'http://localhost:3100';
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const b = await chromium.launch(chromiumLaunchOptions());
 const ctx = await b.newContext({ viewport: { width: 1280, height: 1100 } });
 const p = await ctx.newPage();
 const errors = [];

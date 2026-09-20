@@ -14,6 +14,7 @@
  * reflows the header and is where the overflow bugs actually showed up.
  */
 import { chromium } from 'playwright';
+import { chromiumLaunchOptions } from './browser.mjs';
 
 const BASE = process.env.BASE ?? 'http://localhost:3100';
 const WIDTHS = [320, 375, 390, 430, 768, 1024, 1440];
@@ -24,7 +25,7 @@ const PAGES = [
 ];
 const LOCALES = ['en', 'ar'];
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const browser = await chromium.launch(chromiumLaunchOptions());
 let failures = 0;
 
 for (const locale of LOCALES) {
