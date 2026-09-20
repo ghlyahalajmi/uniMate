@@ -6,11 +6,23 @@ const WEEKDAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','s
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Use a 24-hour time such as 10:00');
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date such as 2026-10-22');
 const optionalText = z.string().trim().max(500).optional().or(z.literal('')).transform((v) => (v ? v : null));
+/** Empty stays empty; anything present must look like an address we can mailto:. */
+const optionalEmail = z
+  .string().trim().max(254)
+  .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Enter an email such as name@university.edu')
+  .optional().or(z.literal('')).transform((v) => (v ? v.toLowerCase() : null));
 
 export const courseSchema = z.object({
   course_code: z.string().trim().min(2, 'Enter a course code, for example CE301').max(20),
   course_name: z.string().trim().min(2, 'Enter the course name').max(200),
   instructor: optionalText,
+  instructor_email: optionalEmail,
+  instructor_office: optionalText,
+  instructor_office_hours: optionalText,
+  ta_name: optionalText,
+  ta_email: optionalEmail,
+  ta_office: optionalText,
+  ta_office_hours: optionalText,
   credits: z.coerce.number().min(0).max(24),
   semester: optionalText,
   difficulty: z.coerce.number().int().min(1).max(5).nullable().optional(),
