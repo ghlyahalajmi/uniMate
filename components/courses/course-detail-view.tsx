@@ -361,6 +361,34 @@ export function CourseDetailView({
         <div className="space-y-4">
           <CoursePractice courseId={course.id} deck={deck} aiEnabled={aiEnabled} />
 
+          {/* Studying it with other people is the same decision, one step out. */}
+          <Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="shrink-0 w-10 h-10 rounded-[var(--radius-md)] grid place-items-center
+                           bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
+              >
+                <Icon.groups size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display text-base font-semibold">{t.groups.find}</h3>
+                <p className="text-[0.8125rem] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                  {t.groups.subtitle}
+                </p>
+              </div>
+              <Link
+                href={`/groups?course=${encodeURIComponent(course.course_code)}`}
+                className="inline-flex items-center gap-1.5 px-4 min-h-[42px] rounded-[var(--radius-sm)]
+                           text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)]
+                           hover:border-[var(--border-strong)] transition-colors"
+              >
+                {t.groups.openGroup}
+                <Icon.chevronEnd size={15} className="flip-rtl" />
+              </Link>
+            </div>
+          </Card>
+
           <Card>
             <CardHeader
               title={t.courseDetail.questions}

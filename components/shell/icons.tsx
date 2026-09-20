@@ -129,6 +129,10 @@ export const Icon = {
   students: (p: IconProps) => (
     <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.4a5.5 5.5 0 0 1 3 5.1" /></Svg>
   ),
+  // Three people joined into one shape: a group that meets, not a directory.
+  groups: (p: IconProps) => (
+    <Svg {...p}><circle cx="12" cy="5.6" r="2.4" /><circle cx="5.5" cy="17" r="2.4" /><circle cx="18.5" cy="17" r="2.4" /><path d="M10.3 7.1 7.2 14.7M13.7 7.1l3.1 7.6M8 17h8" /></Svg>
+  ),
   // A grid of tiles: separate things gathered onto one page.
   hub: (p: IconProps) => (
     <Svg {...p}><rect x="4" y="4" width="7" height="7" rx="1.8" /><rect x="13" y="4" width="7" height="7" rx="1.8" /><rect x="4" y="13" width="7" height="7" rx="1.8" /><rect x="13" y="13" width="7" height="7" rx="1.8" /></Svg>

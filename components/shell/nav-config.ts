@@ -36,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/notes',     icon: 'notes',     label: (t) => t.nav.notes },
   { href: '/momentum',  icon: 'flame',     label: (t) => t.nav.momentum },
   { href: '/study',     icon: 'study',     label: (t) => t.nav.study },
+  { href: '/groups',    icon: 'groups',    label: (t) => t.nav.groups },
   { href: '/planner',   icon: 'planner',   label: (t) => t.nav.planner },
   { href: '/syllabi',   icon: 'syllabi',   label: (t) => t.nav.syllabi },
   { href: '/calendar',  icon: 'calendar',  label: (t) => t.nav.calendar },
