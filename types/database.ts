@@ -65,6 +65,13 @@ export interface Course {
   course_code: string;
   course_name: string;
   instructor: string | null;
+  instructor_email: string | null;
+  instructor_office: string | null;
+  instructor_office_hours: string | null;
+  ta_name: string | null;
+  ta_email: string | null;
+  ta_office: string | null;
+  ta_office_hours: string | null;
   credits: number;
   semester: string | null;
   difficulty: number | null;

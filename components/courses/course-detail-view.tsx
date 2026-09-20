@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/shell/page-header';
 import { GradeTargetPanel } from '@/components/grades/grade-target-panel';
 import { AssessmentTable } from '@/components/grades/assessment-table';
 import { CourseFormModal } from './course-form';
+import { CourseTile } from './course-tile';
+import { CourseContacts } from './course-contacts';
 import type { Course, Grade, Question, Syllabus, SyllabusEvent, Task } from '@/types/database';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 
@@ -65,30 +67,41 @@ export function CourseDetailView({
         </Link>
       </div>
 
-      <PageHeader
-        title={`${course.course_code} — ${course.course_name}`}
-        subtitle={[
-          course.instructor,
-          `${formatNumber(course.credits)} ${t.common.credits}`,
-          course.semester,
-          course.room,
-        ].filter(Boolean).join(' · ')}
-        action={
-          <>
-            <Link
-              href={`/study?course=${course.id}`}
-              className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
-            >
-              <Icon.study size={17} />
-              <span className="hidden sm:inline">{t.courseDetail.practiceNow}</span>
-            </Link>
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
-              <Icon.edit size={16} />
-              <span className="hidden sm:inline">{t.common.edit}</span>
-            </Button>
-          </>
-        }
-      />
+      <div className="flex items-start gap-4">
+        <CourseTile
+          code={course.course_code}
+          name={course.course_name}
+          color={course.color}
+          size="lg"
+          className="hidden sm:grid mt-0.5"
+        />
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title={`${course.course_code} — ${course.course_name}`}
+            subtitle={[
+              course.instructor,
+              `${formatNumber(course.credits)} ${t.common.credits}`,
+              course.semester,
+              course.room,
+            ].filter(Boolean).join(' · ')}
+            action={
+              <>
+                <Link
+                  href={`/study?course=${course.id}`}
+                  className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+                >
+                  <Icon.study size={17} />
+                  <span className="hidden sm:inline">{t.courseDetail.practiceNow}</span>
+                </Link>
+                <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                  <Icon.edit size={16} />
+                  <span className="hidden sm:inline">{t.common.edit}</span>
+                </Button>
+              </>
+            }
+          />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-1.5 mb-5">
         <Badge tone={course.status === 'active' ? 'accent' : 'neutral'}>{t.courses[course.status]}</Badge>
@@ -100,6 +113,12 @@ export function CourseDetailView({
         ) : null}
         {course.difficulty ? <Badge>{t.courses.difficulty} {course.difficulty}/5</Badge> : null}
         {course.is_demo ? <Badge tone="warning">{t.common.demoData}</Badge> : null}
+      </div>
+
+      {/* Who teaches it sits with the schedule rather than inside a tab: it is
+          read alongside the days and times, and wanted from every tab. */}
+      <div className="mb-5">
+        <CourseContacts course={course} />
       </div>
 
       {/* Tabs -------------------------------------------------------------- */}
@@ -163,6 +182,40 @@ export function CourseDetailView({
           </div>
 
           <div className="space-y-5">
+            <Card>
+              <CardHeader title={t.courseDetail.meets} />
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                    {t.courses.daysLabel}
+                  </dt>
+                  <dd className="mt-1">
+                    {course.days.length
+                      ? course.days.map((d) => t.weekdays[d]).join(' · ')
+                      : t.courses.noSchedule}
+                  </dd>
+                </div>
+                {course.start_time ? (
+                  <div>
+                    <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                      {t.courseDetail.time}
+                    </dt>
+                    <dd className="mt-1 tabular-nums">
+                      {formatTime(course.start_time)}–{formatTime(course.end_time)}
+                    </dd>
+                  </div>
+                ) : null}
+                {course.room ? (
+                  <div>
+                    <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                      {t.courses.room}
+                    </dt>
+                    <dd className="mt-1">{course.room}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </Card>
+
             <Card>
               <CardHeader title={t.courseDetail.topics} />
               {!syllabus?.topics?.length ? (

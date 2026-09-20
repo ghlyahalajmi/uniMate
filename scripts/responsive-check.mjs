@@ -57,6 +57,10 @@ for (const locale of LOCALES) {
         for (const el of document.querySelectorAll('body *')) {
           const r = el.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
+          // A 1x1 box is the visually-hidden input pattern (sr-only file
+          // pickers): a visible button triggers it, and that button is the
+          // real target, measured on its own.
+          if (r.width <= 1 && r.height <= 1) continue;
           if (r.right > vw + 1 || r.left < -1) {
             offenders.push(`${el.tagName.toLowerCase()}.${(el.className || '').toString().slice(0, 40)} [${Math.round(r.left)}..${Math.round(r.right)}]`);
           }
@@ -85,6 +89,10 @@ for (const locale of LOCALES) {
           const target = wrapper ?? el;
           const r = target.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
+          // A 1x1 box is the visually-hidden input pattern (sr-only file
+          // pickers): a visible button triggers it, and that button is the
+          // real target, measured on its own.
+          if (r.width <= 1 && r.height <= 1) continue;
           if (getComputedStyle(el).position === 'absolute' && r.height < 2) continue;
           if (r.height < 32 || r.width < 20) {
             small.push(`${el.tagName.toLowerCase()} ${Math.round(r.width)}x${Math.round(r.height)}`);

@@ -133,6 +133,17 @@ export const Icon = {
   automation: (p: IconProps) => (
     <Svg {...p}><circle cx="5.5" cy="12" r="2.5" /><circle cx="18.5" cy="6.5" r="2.5" /><circle cx="18.5" cy="17.5" r="2.5" /><path d="M8 11.2 16 7.3M8 12.8l8 3.9" /></Svg>
   ),
+  mail: (p: IconProps) => (
+    <Svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 7 8.5 6 8.5-6" /></Svg>
+  ),
+  // A map pin: where an office is. Distinct from `pin`, the thumbtack that
+  // pins a hub link to the top.
+  location: (p: IconProps) => (
+    <Svg {...p}><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" /></Svg>
+  ),
+  person: (p: IconProps) => (
+    <Svg {...p}><circle cx="12" cy="8" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;

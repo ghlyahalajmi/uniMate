@@ -8,6 +8,7 @@ export { gradeCoach } from './grade-coach';
 export { taskPlanner, studyReminderAgent } from './task-planner';
 export { unimateAssistant, dashboardInsight } from './assistant';
 export { setupScanner } from './setup-scanner';
+export { syllabusCourseReader } from './syllabus-course-reader';
 
 export type { AnalystInput, AnalystOutput } from './academic-analyst';
 export type { StudyInput, StudyOutput, GeneratedQuestion, PracticeMode, RequestedDifficulty } from './study-questions';
@@ -17,6 +18,9 @@ export type { GradeCoachInput, GradeCoachOutput } from './grade-coach';
 export type { TaskPlannerInput, TaskPlannerOutput, PlannedTask, ReminderInput, ReminderOutput, PlannedReminder } from './task-planner';
 export type { AssistantInput, AssistantOutput, InsightInput, InsightOutput } from './assistant';
 export type { ScannerInput, ScannerOutput, ScannedCourse } from './setup-scanner';
+export type {
+  SyllabusCourseInput, SyllabusCourseOutput, SyllabusPage, ReadCourse, ReadContact,
+} from './syllabus-course-reader';
 
 /**
  * The agent roster, for the documentation page and the activity log legend.
@@ -32,5 +36,6 @@ export const AGENT_REGISTRY = [
   { name: 'Study Reminder Agent',     trigger: 'exam_approaching',  workflow: 'workflow_d_upcoming_exam',       offline: 'Full revision ramp — deterministic by design' },
   { name: 'UniMate Assistant',        trigger: 'user_message',      workflow: 'assistant_chat',                 offline: null },
   { name: 'Setup Scanner',            trigger: 'timetable_uploaded',workflow: 'workflow_a_schedule_scan',       offline: null },
+  { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null },
   { name: 'Dashboard Insight',        trigger: 'dashboard_opened',  workflow: 'dashboard_insight',              offline: 'Nearest recorded deadline plus a proportionate nudge' },
 ] as const;
