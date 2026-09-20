@@ -182,7 +182,7 @@ export interface StudySession {
   completed_at: string | null;
 }
 
-export type HubLinkKind = 'project' | 'university' | 'resource';
+export type HubLinkKind = 'project' | 'university' | 'resource' | 'class';
 
 export interface HubLink {
   id: string;

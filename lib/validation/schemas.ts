@@ -58,7 +58,7 @@ export const hubLinkSchema = z.object({
   url: z.string().trim().url('Enter a full https:// address').max(2000)
     .refine((v) => v.toLowerCase().startsWith('https://'), 'The address must start with https://'),
   description: z.string().trim().max(300).optional().or(z.literal('')).transform((v) => (v ? v : null)),
-  kind: z.enum(['project', 'university', 'resource']).default('resource'),
+  kind: z.enum(['project', 'university', 'resource', 'class']).default('resource'),
   is_pinned: z.coerce.boolean().optional().default(false),
 });
 

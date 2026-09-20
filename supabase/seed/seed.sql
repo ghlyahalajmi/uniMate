@@ -514,11 +514,17 @@ begin
      'The database behind this app.', 'resource', 1, false, true),
     (v_user, 'Vercel dashboard', 'https://vercel.com/dashboard',
      'Deployments and logs.', 'resource', 2, false, true),
-    -- Also in the sidebar. A preview URL, so it will need updating when the
-    -- class hub gets a production domain.
-    (v_user, 'Student Hub',
+    -- Shown on the Student Hub page. A preview URL, so it will need updating
+    -- when the class hub gets a production domain.
+    (v_user, 'Class hub',
      'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub',
-     'The shared hub for the class.', 'resource', 3, true, true);
+     'The hub the class published.', 'class', 1, true, true),
+    (v_user, 'uniMate repository', 'https://github.com/ghlyahalajmi/uniMate',
+     'Where the team works: issues, branches and pull requests.', 'class', 2, false, true),
+    (v_user, 'Pull requests', 'https://github.com/ghlyahalajmi/uniMate/pulls',
+     'What is waiting for review.', 'class', 3, false, true),
+    (v_user, 'CI runs', 'https://github.com/ghlyahalajmi/uniMate/actions',
+     'Whether the last push is green.', 'class', 4, false, true);
 
   raise notice 'Demo hub links seeded: %',
     (select count(*) from public.hub_links where user_id = v_user and is_demo);
