@@ -513,7 +513,12 @@ begin
     (v_user, 'Supabase dashboard', 'https://supabase.com/dashboard',
      'The database behind this app.', 'resource', 1, false, true),
     (v_user, 'Vercel dashboard', 'https://vercel.com/dashboard',
-     'Deployments and logs.', 'resource', 2, false, true);
+     'Deployments and logs.', 'resource', 2, false, true),
+    -- Also in the sidebar. A preview URL, so it will need updating when the
+    -- class hub gets a production domain.
+    (v_user, 'Student Hub',
+     'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub',
+     'The shared hub for the class.', 'resource', 3, true, true);
 
   raise notice 'Demo hub links seeded: %',
     (select count(*) from public.hub_links where user_id = v_user and is_demo);

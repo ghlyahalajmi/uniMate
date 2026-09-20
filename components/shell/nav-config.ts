@@ -7,7 +7,19 @@ export interface NavItem {
   label: (t: Dictionary) => string;
   /** Shown in the mobile bottom bar rather than behind "More". */
   primaryMobile?: boolean;
+  /** Leaves UniMate: opened in a new tab and never marked as the current page. */
+  external?: boolean;
 }
+
+/**
+ * The class's shared Student Hub, which lives outside UniMate.
+ *
+ * This is a Vercel *preview* URL, tied to a branch rather than to the project,
+ * so it will stop resolving if that branch is renamed or deleted. Swap it for
+ * the production domain once there is one.
+ */
+export const STUDENT_HUB_URL =
+  'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub';
 
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: (t) => t.nav.dashboard, primaryMobile: true },
@@ -25,6 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/assistant', icon: 'assistant', label: (t) => t.nav.assistant },
   { href: '/automation', icon: 'automation', label: (t) => t.nav.automation },
   { href: '/hub',       icon: 'hub',        label: (t) => t.nav.hub },
+  { href: STUDENT_HUB_URL, icon: 'students', label: (t) => t.nav.studentHub, external: true },
 ];
 
 export const SETTINGS_ITEM: NavItem = {

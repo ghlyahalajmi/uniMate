@@ -114,6 +114,10 @@ export const Icon = {
   flashcards: (p: IconProps) => (
     <Svg {...p}><rect x="3" y="6.5" width="13" height="11" rx="2" /><path d="M8 4.5h10a2 2 0 0 1 2 2v9" /></Svg>
   ),
+  // Two figures: the shared, class-wide page rather than your own.
+  students: (p: IconProps) => (
+    <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.4a5.5 5.5 0 0 1 3 5.1" /></Svg>
+  ),
   // A grid of tiles: separate things gathered onto one page.
   hub: (p: IconProps) => (
     <Svg {...p}><rect x="4" y="4" width="7" height="7" rx="1.8" /><rect x="13" y="4" width="7" height="7" rx="1.8" /><rect x="4" y="13" width="7" height="7" rx="1.8" /><rect x="13" y="13" width="7" height="7" rx="1.8" /></Svg>
