@@ -16,12 +16,14 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/tasks',     icon: 'tasks',     label: (t) => t.nav.tasks,     primaryMobile: true },
   { href: '/momentum',  icon: 'flame',     label: (t) => t.nav.momentum },
   { href: '/study',     icon: 'study',     label: (t) => t.nav.study },
+  { href: '/flashcards', icon: 'flashcards', label: (t) => t.nav.flashcards },
   { href: '/planner',   icon: 'planner',   label: (t) => t.nav.planner },
   { href: '/syllabi',   icon: 'syllabi',   label: (t) => t.nav.syllabi },
   { href: '/calendar',  icon: 'calendar',  label: (t) => t.nav.calendar },
   { href: '/analytics', icon: 'analytics', label: (t) => t.nav.analytics },
   { href: '/records',   icon: 'records',   label: (t) => t.nav.records },
   { href: '/assistant', icon: 'assistant', label: (t) => t.nav.assistant },
+  { href: '/automation', icon: 'automation', label: (t) => t.nav.automation },
 ];
 
 export const SETTINGS_ITEM: NavItem = {

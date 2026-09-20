@@ -15,6 +15,7 @@
     "lib/validation/cleaning.ts",
     "lib/validation/__tests__/**/*.ts",
     "lib/momentum/**/*.ts",
+    "lib/flashcards/**/*.ts",
     "types/**/*.ts"
   ]
 }

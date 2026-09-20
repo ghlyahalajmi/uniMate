@@ -51,6 +51,13 @@ export const taskSchema = z.object({
   status: z.enum(['todo','in_progress','completed']).default('todo'),
 });
 
+export const flashcardSchema = z.object({
+  course_id: z.string().uuid().nullable().optional().or(z.literal('')).transform((v) => (v ? v : null)),
+  front: z.string().trim().min(1, 'Enter the prompt').max(500),
+  back: z.string().trim().min(1, 'Enter the answer').max(2000),
+  topic: z.string().trim().max(120).optional().or(z.literal('')).transform((v) => (v ? v : null)),
+});
+
 export const profileSchema = z.object({
   full_name: z.string().trim().max(120).optional().or(z.literal('')).transform((v) => (v ? v : null)),
   university: z.string().trim().max(160).optional().or(z.literal('')).transform((v) => (v ? v : null)),

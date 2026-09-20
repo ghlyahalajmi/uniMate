@@ -110,6 +110,14 @@ export const Icon = {
   share: (p: IconProps) => (
     <Svg {...p}><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" /><path d="M12 15V4M8 8l4-4 4 4" /></Svg>
   ),
+  // Two cards, the front one offset — a stack you work through.
+  flashcards: (p: IconProps) => (
+    <Svg {...p}><rect x="3" y="6.5" width="13" height="11" rx="2" /><path d="M8 4.5h10a2 2 0 0 1 2 2v9" /></Svg>
+  ),
+  // Nodes joined left to right: something happens, then something follows.
+  automation: (p: IconProps) => (
+    <Svg {...p}><circle cx="5.5" cy="12" r="2.5" /><circle cx="18.5" cy="6.5" r="2.5" /><circle cx="18.5" cy="17.5" r="2.5" /><path d="M8 11.2 16 7.3M8 12.8l8 3.9" /></Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;

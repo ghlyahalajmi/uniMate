@@ -182,6 +182,26 @@ export interface StudySession {
   completed_at: string | null;
 }
 
+export type FlashcardSource = 'manual' | 'generated';
+
+export interface Flashcard {
+  id: string;
+  user_id: string;
+  course_id: string | null;
+  front: string;
+  back: string;
+  topic: string | null;
+  source: FlashcardSource;
+  box: number;
+  due_on: string;
+  reviews: number;
+  lapses: number;
+  last_reviewed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Question {
   id: string;
   user_id: string;

@@ -21,7 +21,7 @@ interface ProgressRow {
 
 export function DashboardView({
   name, isDemo, hasAnyCourse, todayClasses, todayTasks, openTaskCount,
-  upcoming, snapshot, progress, momentum, greetingFallback,
+  upcoming, snapshot, progress, momentum, focus, greetingFallback,
 }: {
   name: string | null;
   isDemo: boolean;
@@ -30,7 +30,14 @@ export function DashboardView({
   todayTasks: TaskRow[];
   openTaskCount: number;
   upcoming: UpcomingRow[];
-  snapshot: { cumulativeGpa: number | null; semesterGpa: number | null; creditsCompleted: number; activeCourses: number };
+  snapshot: {
+    cumulativeGpa: number | null; targetGpa: number | null;
+    semesterGpa: number | null; creditsCompleted: number; activeCourses: number;
+  };
+  focus: {
+    title: string; courseCode: string | null; minutes: number;
+    reason: 'overdue' | 'today' | 'class' | 'exam'; days: number | null;
+  } | null;
   progress: ProgressRow[];
   momentum: { current: number; atRisk: boolean; activeToday: boolean; level: number; xpToday: number } | null;
   greetingFallback: string;
@@ -107,10 +114,15 @@ export function DashboardView({
 
       {/* Snapshot ---------------------------------------------------------- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <Stat label={t.dashboard.cumulativeGpa} value={snapshot.cumulativeGpa === null ? '—' : formatNumber(snapshot.cumulativeGpa, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+        <Stat
+          label={t.dashboard.cumulativeGpa}
+          value={snapshot.cumulativeGpa === null ? '—' : gpa(snapshot.cumulativeGpa, formatNumber)}
+          sub={snapshot.targetGpa === null ? undefined : gpa(snapshot.targetGpa, formatNumber)}
+          subLabel={t.dashboard.targetGpa}
+        />
         <Stat
           label={t.dashboard.semesterGpa}
-          value={snapshot.semesterGpa === null ? '—' : formatNumber(snapshot.semesterGpa, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          value={snapshot.semesterGpa === null ? '—' : gpa(snapshot.semesterGpa, formatNumber)}
           note={t.grades.projectedNote}
         />
         <Stat label={t.dashboard.creditsCompleted} value={formatNumber(snapshot.creditsCompleted)} />
@@ -118,7 +130,48 @@ export function DashboardView({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5 min-w-0">
+          {/* Today's focus -------------------------------------------------- */}
+          <Card className="relative overflow-hidden bg-[var(--bg-accent-soft)] border-[var(--border-subtle)]">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-16 -end-16 w-44 h-44 rounded-full opacity-40"
+              style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
+            />
+            <div className="relative">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-soft-text)]">
+                {t.dashboard.todayFocus}
+              </p>
+
+              {focus === null ? (
+                <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">
+                  {t.dashboard.focusNone}
+                </p>
+              ) : (
+                <>
+                  <p className="font-display text-lg font-semibold mt-1.5 text-balance-title">
+                    {focus.courseCode ? `${focus.courseCode} — ` : ''}{focus.title}
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5 mt-2.5">
+                    <li>
+                      <Badge tone={focus.reason === 'overdue' ? 'danger' : 'neutral'}>
+                        {focus.reason === 'overdue' ? t.dashboard.focusReasonOverdue
+                          : focus.reason === 'today' ? t.dashboard.focusReasonTask
+                            : focus.reason === 'class' ? t.dashboard.focusReasonClass
+                              : tf(t.dashboard.focusReasonExam, { n: formatNumber(focus.days ?? 0) })}
+                      </Badge>
+                    </li>
+                    <li>
+                      <Badge tone="accent" icon={<Icon.clock size={12} />}>
+                        {tf(t.dashboard.focusMinutes, { n: formatNumber(focus.minutes) })}
+                      </Badge>
+                    </li>
+                  </ul>
+                </>
+              )}
+            </div>
+          </Card>
+
           {/* Today's classes ---------------------------------------------- */}
           <Card>
             <CardHeader title={t.dashboard.todayClasses} />
@@ -174,7 +227,12 @@ export function DashboardView({
                   return (
                     <li key={p.id}>
                       <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                        <Link href={`/courses/${p.id}`} className="text-sm font-medium hover:underline truncate">
+                        {/* min-h keeps this a thumb-sized target; a bare text
+                            link here measured 20px tall. */}
+                        <Link
+                          href={`/courses/${p.id}`}
+                          className="inline-flex items-center min-h-[32px] text-sm font-medium hover:underline truncate"
+                        >
                           {p.code}
                         </Link>
                         <span className="text-[0.8125rem] tabular-nums text-[var(--text-secondary)] shrink-0">
@@ -207,7 +265,7 @@ export function DashboardView({
           </Card>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           <InsightPanel />
 
           {/* Today's tasks -------------------------------------------------- */}
@@ -286,14 +344,37 @@ export function DashboardView({
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+function Stat({
+  label, value, note, sub, subLabel,
+}: {
+  label: string;
+  value: string;
+  /** Announced but not drawn — for context a sighted reader gets from layout. */
+  note?: string;
+  /** A second figure shown beside the first, such as the GPA you are aiming at. */
+  sub?: string;
+  /** What `sub` means, announced rather than drawn, since the arrow carries it visually. */
+  subLabel?: string;
+}) {
   return (
     <Card padded={false} className="p-3.5">
       <p className="font-display text-2xl sm:text-[1.75rem] font-semibold tabular-nums leading-none">
         {value}
+        {sub ? (
+          <span className="text-base font-medium text-[var(--text-muted)] ms-1.5">
+            <span aria-hidden="true">→ </span>
+            {subLabel ? <span className="sr-only">{subLabel} </span> : null}
+            {sub}
+          </span>
+        ) : null}
       </p>
       <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-tight">{label}</p>
       {note ? <p className="sr-only">{note}</p> : null}
     </Card>
   );
+}
+
+/** Two decimals, in the reader's numerals. */
+function gpa(value: number, formatNumber: ReturnType<typeof useI18n>['formatNumber']): string {
+  return formatNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

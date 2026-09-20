@@ -414,3 +414,71 @@ begin
     (v_user,'early_bird',      'A task finished before 09:00',      true, now() - interval '9 days')
   on conflict (user_id, code) do nothing;
 end $$;
+
+-- =============================================================================
+-- Demo flashcards.
+--
+-- Spread across boxes and due dates on purpose: a deck where everything is due
+-- at once, or nothing is, shows neither the queue nor the distribution. This
+-- gives the demo a handful due today and the rest scheduled ahead.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_today    date := current_date;
+  c_ce301    uuid;
+  c_ce315    uuid;
+  c_math201  uuid;
+begin
+  select id into c_ce301   from public.courses where user_id = v_user and course_code = 'CE301';
+  select id into c_ce315   from public.courses where user_id = v_user and course_code = 'CE315';
+  select id into c_math201 from public.courses where user_id = v_user and course_code = 'MATH201';
+
+  delete from public.flashcards where user_id = v_user and is_demo;
+
+  insert into public.flashcards
+    (user_id, course_id, front, back, topic, source, box, due_on, reviews, lapses, is_demo)
+  values
+    -- Due today: the queue the student lands on.
+    (v_user, c_ce301, 'What does the convolution theorem let you replace?',
+     'Convolution in the time domain with multiplication in the frequency domain — and the other way round.',
+     'Fourier transforms', 'manual', 1, v_today, 2, 1, true),
+    (v_user, c_ce301, 'State the Nyquist–Shannon sampling condition.',
+     'Sample at more than twice the highest frequency present, or the spectrum folds back on itself and the signal cannot be recovered.',
+     'Sampling', 'manual', 2, v_today, 4, 1, true),
+    (v_user, c_ce315, 'Why is an FIR filter always stable?',
+     'It has no feedback path, so the impulse response is finite and no pole can sit outside the unit circle.',
+     'Filters', 'manual', 1, v_today, 1, 0, true),
+    (v_user, c_math201, 'When is a first-order ODE exact?',
+     'When ∂M/∂y = ∂N/∂x for M dx + N dy = 0 — then a potential function exists.',
+     'Exact equations', 'manual', 1, v_today, 3, 2, true),
+    (v_user, c_math201, 'What does the Wronskian being non-zero tell you?',
+     'The solutions are linearly independent, so together they span the solution space.',
+     'Linear independence', 'manual', 2, v_today, 2, 0, true),
+
+    -- Scheduled ahead: these fill out the box distribution.
+    (v_user, c_ce301, 'What is aliasing, in one sentence?',
+     'A frequency above half the sampling rate reappearing as a lower one, indistinguishable from a real signal at that frequency.',
+     'Sampling', 'manual', 3, v_today + 2, 6, 1, true),
+    (v_user, c_ce301, 'What does the region of convergence of a z-transform decide?',
+     'Whether the system is causal, stable, or neither — the transform alone does not say.',
+     'z-transform', 'manual', 3, v_today + 3, 5, 0, true),
+    (v_user, c_ce315, 'What is the point of a pipeline in a processor?',
+     'Throughput, not latency: one instruction still takes the same time, but one finishes every cycle.',
+     'Pipelining', 'manual', 4, v_today + 6, 8, 1, true),
+    (v_user, c_ce315, 'What causes a structural hazard?',
+     'Two instructions needing the same hardware in the same cycle.',
+     'Hazards', 'manual', 4, v_today + 8, 7, 0, true),
+    (v_user, c_ce315, 'Write the formula for average memory access time.',
+     'Hit time + miss rate × miss penalty.',
+     'Caches', 'manual', 5, v_today + 15, 11, 0, true),
+    (v_user, c_math201, 'What does the Laplace transform turn differentiation into?',
+     'Multiplication by s, minus the initial conditions — which is why it turns an ODE into algebra.',
+     'Laplace transforms', 'manual', 5, v_today + 19, 12, 1, true),
+    (v_user, c_math201, 'When does the method of undetermined coefficients fail?',
+     'When the guess already solves the homogeneous equation — multiply by t until it does not.',
+     'Non-homogeneous equations', 'manual', 2, v_today + 1, 3, 1, true);
+
+  raise notice 'Demo flashcards seeded: % cards',
+    (select count(*) from public.flashcards where user_id = v_user and is_demo);
+end $$;

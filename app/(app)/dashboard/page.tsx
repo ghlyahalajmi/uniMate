@@ -76,6 +76,52 @@ export default async function DashboardPage() {
     .slice(0, 6)
     .map((x) => ({ ...x, days: daysBetween(todayIso, x.date) }));
 
+  /**
+   * One thing to do next, chosen by a fixed rule rather than by a model, so
+   * the same records always produce the same answer and the reason can be
+   * shown beside it: whatever is overdue, else what is due today, else the
+   * next class, else the nearest assessment. Null when none of those exist —
+   * an invented suggestion would be worse than an honest blank.
+   */
+  const focusTask =
+    todayTasks.find((tk) => tk.overdue) ??
+    todayTasks.find((tk) => tk.status !== 'completed') ??
+    null;
+
+  const nextClass = todayClasses[0] ?? null;
+  const nextExam = upcoming[0] ?? null;
+  const defaultBlock = profile?.preferred_study_minutes ?? 30;
+
+  const focus: {
+    title: string; courseCode: string | null; minutes: number;
+    reason: 'overdue' | 'today' | 'class' | 'exam'; days: number | null;
+  } | null =
+    focusTask
+      ? {
+          title: focusTask.title,
+          courseCode: focusTask.courseCode,
+          minutes: tasks.find((tk) => tk.id === focusTask.id)?.estimated_minutes ?? defaultBlock,
+          reason: focusTask.overdue ? 'overdue' : 'today',
+          days: null,
+        }
+      : nextClass
+        ? {
+            title: nextClass.name,
+            courseCode: nextClass.code,
+            minutes: minutesBetween(nextClass.start, nextClass.end) ?? defaultBlock,
+            reason: 'class',
+            days: null,
+          }
+        : nextExam
+          ? {
+              title: nextExam.title,
+              courseCode: nextExam.courseCode,
+              minutes: defaultBlock,
+              reason: 'exam',
+              days: nextExam.days,
+            }
+          : null;
+
   const cum = cumulativeGpa(courses, scale);
   const sem = semesterGpa(courses, byCourse, scale);
 
@@ -104,8 +150,10 @@ export default async function DashboardPage() {
       todayTasks={todayTasks}
       openTaskCount={openTaskCount}
       upcoming={upcoming}
+      focus={focus}
       snapshot={{
         cumulativeGpa: cum.gpa,
+        targetGpa: profile?.target_gpa ?? null,
         semesterGpa: sem.gpa,
         creditsCompleted: cum.gradedCredits,
         activeCourses: active.length,
@@ -129,6 +177,17 @@ export default async function DashboardPage() {
 
 function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Length of a timetabled class, when both ends are known. */
+function minutesBetween(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null;
+  const toMinutes = (v: string) => {
+    const [h, m] = v.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+  const span = toMinutes(end) - toMinutes(start);
+  return span > 0 ? span : null;
 }
 
 function daysBetween(from: string, to: string): number {

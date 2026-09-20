@@ -46,6 +46,7 @@ rest of the app works without one.
 | **Courses** | Full CRUD. A detail page that walks course → assessments → tasks → syllabus → syllabus events on one screen. |
 | **Grades** | Live weighted grade, the exact average needed on what remains, and a plain statement when a target is out of reach plus what is still achievable. GPA calculator with row-by-row working. Editable grading scale. |
 | **Study AI** | Practice questions written from your own course and syllabus topics, in four modes and four difficulty settings, including adaptive. Every answer is recorded and feeds the next set's difficulty. |
+| **Flashcards** | Cards you write, scheduled by Leitner boxes: recall one and it climbs a box and waits 1, 2, 4, 9 then 21 days; miss it and it drops to box 1 and returns the same day. A finished deck run counts as a practice session, so it feeds the streak. |
 | **Syllabus centre** | Upload a PDF, Word file or photo. Topics, assessment weights and dated deadlines are extracted, and you can ask the document questions. |
 | **Planner** | Light, balanced and intensive semester plans side by side, each stating its trade-off. Timetable conflicts are computed, not guessed. |
 | **Tasks** | Manual and AI-generated tasks, grouped by urgency. |
@@ -54,6 +55,7 @@ rest of the app works without one.
 | **Records** | Every table UniMate holds, with real delete, plus the AI activity log and the data cleaning log. |
 | **Momentum** | A daily streak, XP and levels, an activity heatmap, 18 achievements and a Pomodoro focus timer — all earned from work that leaves a record. Plus a Semester Wrapped card you can save as an image. |
 | **Assistant** | A chat that answers from your records, and says so when the answer is not in them. |
+| **Automation** | The five workflows laid out in the order they happen, each showing what triggers it, what it produces, and its real run history from `ai_runs`. Plus the webhook endpoints and whether they are switched on. |
 
 ### Two rules the whole product is built around
 
@@ -120,6 +122,8 @@ Run in this order if applying by hand:
 | `supabase/migrations/0001_schema.sql` | 15 tables, enums, foreign keys, indexes, the new-user trigger |
 | `supabase/migrations/0002_rls.sql` | Row level security on every table, forced, with anon grants revoked |
 | `supabase/migrations/0003_storage.sql` | Two private buckets with per-user folder policies |
+| `supabase/migrations/0004_momentum.sql` | Activity days, achievements and the streak columns on `profiles` |
+| `supabase/migrations/0005_flashcards.sql` | The flashcards table, its Leitner columns, and the same forced RLS |
 
 ### 3. Seed the demo data (optional)
 
