@@ -63,9 +63,14 @@ export function StickerLayer({
       ref={surface}
       // Clipped to the note: nothing a sticker carries may reach past its own
       // paper and widen the page.
+      //
+      // The layer never takes pointer events itself — it covers the entire
+      // note, and taking them meant that opening the design bar put an
+      // invisible sheet over the bar, the lines and the buttons. Only the
+      // stickers on it are clickable, and only while designing.
       className={cx(
-        'absolute inset-0 overflow-hidden rounded-[var(--radius-lg)]',
-        editing ? 'z-10' : 'pointer-events-none',
+        'absolute inset-0 overflow-hidden rounded-[var(--radius-lg)] pointer-events-none',
+        editing && 'z-10',
       )}
       aria-hidden={editing ? undefined : true}
     >
@@ -85,7 +90,15 @@ export function StickerLayer({
         }
 
         return (
-          <span key={`${s.k}-${i}`} className="absolute" style={style}>
+          // Sized, not a bare point: the remove button is positioned against
+          // this box's corner, and while the box had no size that corner *was*
+          // the sticker's centre — so letting go of a drag landed on the remove
+          // button and deleted the sticker you had just placed.
+          <span
+            key={`${s.k}-${i}`}
+            className="absolute pointer-events-auto inline-grid place-items-center w-11 h-11"
+            style={style}
+          >
             <button
               type="button"
               aria-label={tf(t.notes.moveSticker, { name: t.notes[s.k] })}
@@ -129,7 +142,7 @@ export function StickerLayer({
               aria-label={tf(t.notes.removeSticker, { name: t.notes[s.k] })}
               // 32px of hit area around a small mark: comfortable for a thumb
               // without a red dot the size of the sticker it removes.
-              className="absolute -top-1 -end-1 grid place-items-center w-8 h-8 rounded-full"
+              className="absolute -top-2 -end-2 grid place-items-center w-8 h-8 rounded-full"
             >
               <span
                 aria-hidden="true"
