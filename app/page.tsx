@@ -3,6 +3,7 @@ import { getDictionary } from '@/lib/i18n/server';
 import { UniMateLogo } from '@/components/brand/logo';
 import { HomeControls } from '@/components/marketing/home-controls';
 import { ScatterHero } from '@/components/marketing/scatter-hero';
+import { HeroMark } from '@/components/marketing/hero-mark';
 
 export default async function HomePage() {
   const { t } = await getDictionary();
@@ -58,20 +59,24 @@ export default async function HomePage() {
           />
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-14 sm:pt-20 pb-12 sm:pb-16">
             <div className="max-w-2xl">
-              <p className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)]">
+              {/* The logo builds itself before the page says a word. */}
+              <div className="mb-6">
+                <HeroMark size={84} />
+              </div>
+              <p className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] animate-rise" style={{ animationDelay: '0.40s' }}>
                 <span aria-hidden="true">✦</span>
                 {t.brand.subTagline}
               </p>
-              <h1 className="font-display text-[2.5rem] leading-[1.08] sm:text-6xl font-semibold mt-5 text-balance-title">
+              <h1 className="font-display text-[2.5rem] leading-[1.08] sm:text-6xl font-semibold mt-5 text-balance-title animate-rise" style={{ animationDelay: '0.50s' }}>
                 {t.brand.name}
               </h1>
-              <p className="font-display text-xl sm:text-2xl text-[var(--text-secondary)] mt-3 text-balance-title">
+              <p className="font-display text-xl sm:text-2xl text-[var(--text-secondary)] mt-3 text-balance-title animate-rise" style={{ animationDelay: '0.60s' }}>
                 {t.brand.tagline}
               </p>
-              <p className="text-base text-[var(--text-secondary)] mt-5 leading-relaxed max-w-xl">
+              <p className="text-base text-[var(--text-secondary)] mt-5 leading-relaxed max-w-xl animate-rise" style={{ animationDelay: '0.70s' }}>
                 {t.home.heroSub}
               </p>
-              <div className="flex flex-wrap gap-3 mt-8">
+              <div className="flex flex-wrap gap-3 mt-8 animate-rise" style={{ animationDelay: '0.80s' }}>
                 <Link
                   href="/auth/sign-up"
                   className="inline-flex items-center px-6 min-h-[48px] rounded-[var(--radius-sm)] font-medium bg-[var(--accent)] text-[var(--text-on-accent)] hover:bg-[var(--accent-hover)] shadow-[var(--shadow-lift)] transition-colors"
