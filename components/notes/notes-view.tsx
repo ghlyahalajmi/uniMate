@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
+import { useBrowserNow } from '@/lib/time/clock';
 import { Badge, Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
@@ -20,21 +21,6 @@ const SAVE_DELAY_MS = 700;
 
 /** Half a minute is fine for "overdue" and keeps re-renders rare. */
 const CLOCK_MS = 30_000;
-
-function subscribeToClock(onChange: () => void): () => void {
-  const id = setInterval(onChange, CLOCK_MS);
-  return () => clearInterval(id);
-}
-
-/** Stable between ticks, so React sees one snapshot per window. */
-function clockNow(): number {
-  return Math.floor(Date.now() / CLOCK_MS) * CLOCK_MS;
-}
-
-/** 0 means the browser has not answered yet; nothing is judged overdue on it. */
-function serverClockNow(): number {
-  return 0;
-}
 
 type ReminderState = 'none' | 'soon' | 'overdue';
 
@@ -84,7 +70,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
   // then hydrated a different answer — React error #418. The server snapshot
   // is 0, meaning "no clock yet", and the reminder line stays quiet until the
   // browser supplies one.
-  const now = useSyncExternalStore(subscribeToClock, clockNow, serverClockNow);
+  const now = useBrowserNow(CLOCK_MS);
 
   // Pending debounced writes, keyed by line. The callback is kept alongside the
   // timer so that unmounting runs the write rather than dropping it — closing

@@ -8,6 +8,7 @@ import { Icon } from '@/components/shell/icons';
 import { InsightPanel } from './insight-panel';
 import { StreakStrip } from './streak-strip';
 import { TimeGreeting } from './time-greeting';
+import { DaypartGlow } from './daypart-glow';
 import { XP_RULES } from '@/lib/momentum/engine';
 
 interface ClassRow { id: string; code: string; name: string; start: string | null; end: string | null; room: string | null }
@@ -87,6 +88,8 @@ export function DashboardView({
 
   return (
     <>
+      <DaypartGlow />
+
       <div className="mb-6">
         <TimeGreeting firstName={firstName} />
         <p className="text-sm text-[var(--text-secondary)] mt-1.5">

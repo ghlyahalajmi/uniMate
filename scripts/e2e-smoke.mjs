@@ -23,7 +23,7 @@ p.on('pageerror', (e) => errors.push(String(e).slice(0, 200)));
 
 console.log('--- signing in as the demo student ---');
 await p.goto(`${B}/auth/sign-in`, { waitUntil: 'networkidle' });
-await p.fill('input[name="email"]', 'danah.hamad@demo.unimate.app');
+await p.fill('input[name="email"]', 'dana.hamad@demo.unimate.app');
 await p.fill('input[name="password"]', 'UniMateDemo2026!');
 await Promise.all([
   p.waitForURL(/\/(dashboard|onboarding)/, { timeout: 30000 }).catch(() => {}),
@@ -43,7 +43,7 @@ const check = async (path, expect) => {
 };
 
 console.log('\n--- authenticated screens against the live database ---');
-const dash = await check('/dashboard', ['Danah', 'CE301']);
+const dash = await check('/dashboard', ['Dana', 'CE301']);
 await check('/momentum',  ['Momentum', 'Streak', 'Level']);
 await check('/courses',   ['CE301', 'MATH201']);
 await check('/grades',    ['CE301']);

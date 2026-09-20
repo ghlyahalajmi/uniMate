@@ -2,6 +2,8 @@
 
 import { useI18n } from '@/lib/i18n/provider';
 import { cx } from '@/components/ui/primitives';
+import { useBrowserNow } from '@/lib/time/clock';
+import { greetingFor, type GreetingKey } from '@/lib/time/greeting';
 
 /**
  * A static, illustrative rendering of the dashboard for the landing page.
@@ -10,6 +12,11 @@ import { cx } from '@/components/ui/primitives';
  */
 export function DashboardPreview() {
   const { t, dir } = useI18n();
+
+  const now = useBrowserNow(60_000);
+  const greeting = now === 0
+    ? t.dashboard.goodMorning
+    : GREETING[greetingFor(new Date(now).getHours())](t);
 
   const classes = [
     { time: '10:00', code: 'CE301', name: 'Digital Signal Processing', room: 'Room 204' },
@@ -39,8 +46,14 @@ export function DashboardPreview() {
           {/* Left column */}
           <div className="sm:col-span-3 space-y-4">
             <div>
+              {/*
+                This was a hard-coded "Good afternoon" on the public landing
+                page — the one greeting no clock ever touched, so at night the
+                first thing a visitor saw was wrong. It follows the browser now.
+                No name: the landing page is UniMate's, not a student's.
+              */}
               <p className="font-display text-xl font-semibold">
-                {t.dashboard.goodAfternoon}, Danah.
+                {greeting}
               </p>
               <p className="text-[0.8125rem] text-[var(--text-secondary)] mt-0.5">
                 2 {dir === 'rtl' ? 'محاضرات' : 'classes'} · 3 {dir === 'rtl' ? 'مهام' : 'tasks'}
@@ -146,3 +159,10 @@ export function DashboardPreview() {
     </figure>
   );
 }
+
+const GREETING: Record<GreetingKey, (t: ReturnType<typeof useI18n>['t']) => string> = {
+  morning: (t) => t.dashboard.goodMorning,
+  afternoon: (t) => t.dashboard.goodAfternoon,
+  evening: (t) => t.dashboard.goodEvening,
+  night: (t) => t.dashboard.goodNight,
+};

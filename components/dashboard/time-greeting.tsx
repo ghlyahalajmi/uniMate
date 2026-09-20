@@ -1,8 +1,8 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { greetingFor, type GreetingKey } from '@/lib/time/greeting';
+import { useBrowserNow } from '@/lib/time/clock';
 
 /**
  * The greeting, the date and the clock — all from the *browser's* time.
@@ -20,8 +20,8 @@ export function TimeGreeting({ firstName }: { firstName: string | null }) {
   // Read through an external store rather than state set from an effect: the
   // server snapshot is 0 ("not known yet") so the markup React sends matches
   // what it hydrates, and the browser's clock takes over from the first tick.
-  const tick = useSyncExternalStore(subscribeToClock, clockTick, serverClockTick);
-  const now = tick === 0 ? null : new Date(tick * TICK_MS);
+  const ms = useBrowserNow(15_000);
+  const now = ms === 0 ? null : new Date(ms);
 
   const key: GreetingKey | null = now ? greetingFor(now.getHours()) : null;
   const greeting = key === null ? null : GREETING[key](t);
@@ -51,27 +51,6 @@ export function TimeGreeting({ firstName }: { firstName: string | null }) {
       </p>
     </div>
   );
-}
-
-/** Re-render at most four times a minute — enough for an hh:mm clock. */
-const TICK_MS = 15_000;
-
-function subscribeToClock(onChange: () => void): () => void {
-  const id = setInterval(onChange, TICK_MS);
-  return () => clearInterval(id);
-}
-
-/**
- * A number that only changes every TICK_MS, so React sees a stable snapshot
- * between ticks rather than a new value on every read.
- */
-function clockTick(): number {
-  return Math.floor(Date.now() / TICK_MS);
-}
-
-/** 0 means "no clock yet" — the server has no business guessing the hour. */
-function serverClockTick(): number {
-  return 0;
 }
 
 const GREETING: Record<GreetingKey, (t: ReturnType<typeof useI18n>['t']) => string> = {
