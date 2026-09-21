@@ -26,6 +26,7 @@
     "lib/coach/**/*.ts",
     "lib/syllabus/**/*.ts",
     "lib/ai/json.ts",
+    "lib/ai/models.ts",
     "lib/ai/__tests__/**/*.ts",
     "types/**/*.ts"
   ]

@@ -1,6 +1,7 @@
 import 'server-only';
 import type { JsonSchema, StructuredCallOptions } from './client';
 import { extractJson } from './json';
+import { pickFreeModels, resolveModels, type CatalogueModel } from './models';
 
 /**
  * OpenRouter, as a second way to power the AI features.
@@ -16,13 +17,56 @@ import { extractJson } from './json';
  */
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+const CATALOGUE = 'https://openrouter.ai/api/v1/models';
 
 /**
- * The default routes the request rather than naming a model, because model ids
- * on OpenRouter come and go and a hardcoded one turns into a 404 months later.
- * Set `OPENROUTER_MODEL` to pin a specific model — including a `:free` one.
+ * What Settings shows. `auto` is not a model id here — it is the honest answer
+ * when the model is decided per request from whatever OpenRouter currently
+ * offers for free.
  */
-export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'openrouter/auto';
+export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'openrouter · free models (auto)';
+
+/**
+ * The discovered free roster, remembered for an hour.
+ *
+ * A miss costs one extra request and the result is the same for every student,
+ * so it is worth holding. An hour is short enough that a model retired today
+ * stops being offered today, and long enough that the catalogue is not fetched
+ * on every question a student asks.
+ */
+const CACHE_MS = 60 * 60 * 1000;
+let cache: { at: number; ids: string[] } | null = null;
+
+/** Exposed for tests and for a deployment that wants to force a re-read. */
+export function forgetFreeModels(): void {
+  cache = null;
+}
+
+/**
+ * Ask OpenRouter which models cost nothing today.
+ *
+ * Never throws: discovery is an optimisation, and a failure here should degrade
+ * to OpenRouter's own router rather than take down every AI feature.
+ */
+async function discoverFreeModels(key: string): Promise<string[]> {
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache.ids;
+
+  try {
+    const response = await fetch(CATALOGUE, {
+      headers: { Authorization: `Bearer ${key}`, ...attribution() },
+    });
+    if (!response.ok) return cache?.ids ?? [];
+
+    const payload = (await response.json()) as { data?: CatalogueModel[] } | null;
+    const ids = pickFreeModels(payload?.data ?? []);
+    if (ids.length === 0) return cache?.ids ?? [];
+
+    cache = { at: Date.now(), ids };
+    return ids;
+  } catch {
+    return cache?.ids ?? [];
+  }
+}
 
 type Part =
   | { type: 'text'; text: string }
@@ -47,6 +91,9 @@ async function post(body: Record<string, unknown>): Promise<string> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error('AI_NOT_CONFIGURED');
 
+  const pinned = process.env.OPENROUTER_MODEL;
+  const models = resolveModels(pinned, pinned ? [] : await discoverFreeModels(key));
+
   let response: Response;
   try {
     response = await fetch(ENDPOINT, {
@@ -56,7 +103,14 @@ async function post(body: Record<string, unknown>): Promise<string> {
         'Content-Type': 'application/json',
         ...attribution(),
       },
-      body: JSON.stringify({ model: OPENROUTER_MODEL, ...body }),
+      // `model` is the first choice and `models` lets OpenRouter fall through
+      // the rest when one is rate-limited or has been retired — which on the
+      // free roster is a normal Tuesday, not an exception.
+      body: JSON.stringify({
+        model: models[0],
+        ...(models.length > 1 ? { models } : {}),
+        ...body,
+      }),
     });
   } catch {
     throw new Error('AI_UNREACHABLE');

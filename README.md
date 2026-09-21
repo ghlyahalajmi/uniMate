@@ -214,7 +214,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 # AI is optional, and either provider turns on every agent. Set one:
 ANTHROPIC_API_KEY=sk-ant-...           # Anthropic directly, used first if both are set
-OPENROUTER_API_KEY=sk-or-...           # or route through OpenRouter
+OPENROUTER_API_KEY=sk-or-...           # or route through OpenRouter (free models, auto-selected)
 ```
 
 ### Choosing an AI provider
@@ -225,9 +225,13 @@ falls back to its deterministic path.
 - **`ANTHROPIC_API_KEY`** is the one the prompts were written against, and
   takes precedence when both are present.
 - **`OPENROUTER_API_KEY`** routes the same calls through OpenRouter, which
-  fronts many models behind one key. `OPENROUTER_MODEL` picks the model and
-  defaults to `openrouter/auto`; set it to any model id OpenRouter lists,
-  including a `:free` one, to run the AI features at no cost.
+  fronts many models behind one key. The key is all it needs: UniMate reads
+  OpenRouter's catalogue, keeps the models that cost nothing, and sends the
+  best few so the provider can fall through when one is busy — so the AI
+  features run at **no cost** with nothing else to configure. The roster is
+  re-read hourly, which is why no free model id is hardcoded: they are
+  retired often, and a pinned one becomes a 404. Set `OPENROUTER_MODEL` only
+  to override that and pin a specific model.
 
 A Claude, ChatGPT or similar *subscription* cannot be used here. Those cover
 the chat apps, not programmatic access, so a deployed site has no way to
@@ -256,7 +260,7 @@ data already loaded. It needs Docker.
    | `OPENROUTER_API_KEY` | optional | Alternative to the above; server only |
    | `NEXT_PUBLIC_SITE_URL` | all | Your deployed URL, for auth emails |
    | `ANTHROPIC_MODEL` | optional | Defaults to `claude-opus-5` |
-   | `OPENROUTER_MODEL` | optional | Defaults to `openrouter/auto` |
+   | `OPENROUTER_MODEL` | optional | Pins one model; otherwise a free one is chosen automatically |
    | `WORKFLOW_WEBHOOK_SECRET` | optional | Enables the automation webhooks |
    | `SUPABASE_SERVICE_ROLE_KEY` | optional | Required only by those webhooks |
 
