@@ -30,7 +30,17 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
   const router = useRouter();
   const toast = useToast();
 
-  const [selected, setSelected] = useState<string[]>(() => candidates.map((c) => c.id));
+  /**
+   * Which candidates are *excluded*, rather than which are chosen.
+   *
+   * Selecting was seeded once from the list at mount, so a course added
+   * afterwards arrived unticked and silently sat out of the plan — the student
+   * adds a course, watches it appear, and the planner ignores it. Tracking the
+   * exclusions instead means the list can grow underneath and everything new
+   * is in by default, which is what adding a candidate means.
+   */
+  const [excluded, setExcluded] = useState<string[]>([]);
+  const selected = candidates.map((c) => c.id).filter((id) => !excluded.includes(id));
   const [semester, setSemester] = useState('');
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState<Plan | null>(null);
@@ -60,7 +70,11 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
         setNewName('');
         router.refresh();
       } else {
-        toast.error(t.errors.generic);
+        toast.error(
+          result.messageKey === 'duplicateCourse'
+            ? t.syllabusImport.duplicate
+            : t.errors.generic,
+        );
       }
     } finally {
       setAdding(false);
@@ -159,9 +173,9 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
                       c.difficulty ? `${t.courses.difficulty} ${c.difficulty}/5` : null,
                       c.days.length ? c.days.map((d) => t.weekdaysShort[d]).join(', ') : null,
                     ].filter(Boolean).join(' · ')}
-                    checked={selected.includes(c.id)}
+                    checked={!excluded.includes(c.id)}
                     onChange={(on) =>
-                      setSelected((prev) => (on ? [...prev, c.id] : prev.filter((x) => x !== c.id)))
+                      setExcluded((prev) => (on ? prev.filter((x) => x !== c.id) : [...prev, c.id]))
                     }
                   />
                   </div>
@@ -339,7 +353,7 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
         onConfirm={async () => {
           if (!removing) return;
           await deleteRecord('courses', removing.id);
-          setSelected((prev) => prev.filter((x) => x !== removing.id));
+          setExcluded((prev) => prev.filter((x) => x !== removing.id));
           toast.success(t.planner.candidateRemoved);
           setRemoving(null);
           router.refresh();

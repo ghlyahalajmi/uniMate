@@ -81,7 +81,16 @@ export async function addPlannerCandidate(input: {
       .select('id')
       .single();
 
-    if (error || !data) return GENERIC;
+    if (error) {
+      // There is a unique index on (user_id, course code, semester). Saying
+      // "something went wrong" for that reads as "this screen cannot add
+      // courses", which is exactly the wrong conclusion: the course is
+      // already there, and naming the collision is what lets them fix it.
+      return error.code === '23505'
+        ? { ok: false, messageKey: 'duplicateCourse' }
+        : GENERIC;
+    }
+    if (!data) return GENERIC;
     revalidatePath('/planner');
     revalidatePath('/courses');
     return { ok: true, id: (data as { id: string }).id };
