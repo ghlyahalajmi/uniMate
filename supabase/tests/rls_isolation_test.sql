@@ -39,6 +39,14 @@ with n as (
 insert into public.note_items (user_id, note_id, content, position)
 select :'danah', n.id, 'Return library books', 0 from n;
 
+-- Coach rows of Danah's: a milestone in progress and a line she was shown.
+insert into public.milestones (user_id, code, target, current_progress)
+values (:'danah', 'tasks_10', 10, 7)
+on conflict (user_id, code) do nothing;
+
+insert into public.motivation_logs (user_id, message, trigger, tone)
+values (:'danah', 'A strong week — keep the momentum going.', 'daily_coach', 'positive');
+
 set role authenticated;
 set request.jwt.claim.sub = :'yousef';
 
@@ -85,6 +93,15 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s note lines'
   from public.note_items where user_id = :'danah';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s milestones'
+  from public.milestones where user_id = :'danah';
+
+-- What a student was told is as private as the records behind it.
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s coaching history'
+  from public.motivation_logs where user_id = :'danah';
 
 -- The agreed-name views must be exactly as isolated as the tables behind them.
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
@@ -136,6 +153,12 @@ with n as (delete from public.notes where user_id = :'danah' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot delete another student''s notes' from n;
 
+with m as (update public.milestones set current_progress = 10, status = 'completed',
+                                        completed_at = now()
+           where user_id = :'danah' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot complete another student''s milestone' from m;
+
 -- A write through a view must be refused for the same reason a direct one is.
 with v as (update public.study_tasks set title = 'TAMPERED'
            where user_id = :'danah' returning 1)
@@ -179,7 +202,7 @@ declare
   v    text;
   ok   boolean;
 begin
-  foreach v in array array['assessments','study_tasks','quiz_attempts','study_plans','flashcards','streaks','notes','note_items']
+  foreach v in array array['assessments','study_tasks','quiz_attempts','study_plans','flashcards','streaks','notes','note_items','milestones','motivation_logs']
   loop
     ok := false;
     begin

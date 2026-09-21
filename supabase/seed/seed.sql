@@ -539,3 +539,61 @@ begin
 
   raise notice 'UniMate demo notes seeded';
 end $$;
+
+-- =============================================================================
+-- Demo coach state for Danah Hamad.
+--
+-- Milestones are derived from her real seeded history rather than asserted:
+-- the counts below are read back from the tables the earlier blocks filled, so
+-- the demo cannot show a milestone the demo data does not support.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_tasks    int;
+  v_sessions int;
+  v_streak   int;
+  v_degree   int := 120;
+begin
+  select count(*) into v_tasks
+    from public.tasks where user_id = v_user and status = 'completed';
+  select count(*) into v_sessions
+    from public.study_sessions where user_id = v_user and total_questions > 0;
+  select coalesce(current_streak, 0) into v_streak
+    from public.streaks where user_id = v_user;
+
+  update public.profiles set degree_credits = v_degree where user_id = v_user;
+
+  -- Only the milestones her records actually support.
+  insert into public.milestones (user_id, code, target, current_progress, status, completed_at, celebrated_at, is_demo)
+  values
+    (v_user, 'first_task',    1,  least(v_tasks, 1),    case when v_tasks    >= 1 then 'completed' else 'active' end::public.milestone_status,
+     case when v_tasks    >= 1 then now() - interval '56 days' else null end,
+     case when v_tasks    >= 1 then now() - interval '56 days' else null end, true),
+    (v_user, 'first_session', 1,  least(v_sessions, 1), case when v_sessions >= 1 then 'completed' else 'active' end::public.milestone_status,
+     case when v_sessions >= 1 then now() - interval '55 days' else null end,
+     case when v_sessions >= 1 then now() - interval '55 days' else null end, true),
+    (v_user, 'tasks_10',      10, least(v_tasks, 10),   case when v_tasks    >= 10 then 'completed' else 'active' end::public.milestone_status,
+     case when v_tasks    >= 10 then now() - interval '20 days' else null end,
+     case when v_tasks    >= 10 then now() - interval '20 days' else null end, true),
+    (v_user, 'streak_7',      7,  least(v_streak, 7),   case when v_streak   >= 7 then 'completed' else 'active' end::public.milestone_status,
+     case when v_streak   >= 7 then now() - interval '25 days' else null end,
+     case when v_streak   >= 7 then now() - interval '25 days' else null end, true)
+  on conflict (user_id, code) do nothing;
+
+  -- A short coaching history, each line stored with the figures behind it.
+  insert into public.motivation_logs (user_id, message, trigger, tone, context, from_ai, is_demo, created_at)
+  values
+    (v_user, 'A strong week: tasks completed and steady study time. Keep the momentum going.',
+     'daily_coach', 'positive',
+     jsonb_build_object('tasksLast7', v_tasks, 'streak', v_streak), false, true, now() - interval '2 days'),
+    (v_user, 'Your quiz average improved. That is real progress — keep going.',
+     'daily_coach', 'positive',
+     jsonb_build_object('sessions', v_sessions), false, true, now() - interval '1 day'),
+    (v_user, 'Your MATH201 assessment is coming up. Let us focus on the highest-impact topics first.',
+     'daily_coach', 'steady',
+     jsonb_build_object('course', 'MATH201'), false, true, now() - interval '4 hours');
+
+  raise notice 'UniMate demo coach state seeded (% tasks, % sessions, % day streak)',
+    v_tasks, v_sessions, v_streak;
+end $$;

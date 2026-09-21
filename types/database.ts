@@ -43,6 +43,9 @@ export interface Profile {
   theme: string;
   reminders_enabled: boolean;
   onboarding_completed: boolean;
+  /** Credits this degree needs. Null until the student says; the coach then
+   *  falls back to a stated default rather than inventing one. */
+  degree_credits: number | null;
   streak_freezes: number;
   momentum_enabled: boolean;
   is_demo: boolean;
