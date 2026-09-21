@@ -12,17 +12,6 @@ export interface NavItem {
 }
 
 /**
- * The class's hub as it was originally published, outside UniMate.
- *
- * The Student Hub is a page here now, so this is only offered as one card on
- * it. It is a Vercel *preview* URL, tied to a branch rather than a project, so
- * it will stop resolving if that branch is renamed or deleted — swap it for a
- * production domain once there is one.
- */
-export const STUDENT_HUB_URL =
-  'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub';
-
-/**
  * Three things are deliberately absent from this list, because each belongs
  * inside something else rather than beside it:
  *
