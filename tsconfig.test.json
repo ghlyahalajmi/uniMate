@@ -16,6 +16,7 @@
     "lib/validation/__tests__/**/*.ts",
     "lib/momentum/**/*.ts",
     "lib/coach/**/*.ts",
+    "lib/syllabus/**/*.ts",
     "types/**/*.ts"
   ]
 }

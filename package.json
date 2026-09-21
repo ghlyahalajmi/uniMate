@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check:responsive": "node scripts/responsive-check.mjs",
-    "test:calc": "tsc -p tsconfig.test.json && node .test-build/lib/calculations/__tests__/calculations.test.js && node .test-build/lib/validation/__tests__/cleaning.test.js && node .test-build/lib/momentum/__tests__/momentum.test.js && node .test-build/lib/coach/__tests__/coach.test.js",
+    "test:calc": "tsc -p tsconfig.test.json && node .test-build/lib/calculations/__tests__/calculations.test.js && node .test-build/lib/validation/__tests__/cleaning.test.js && node .test-build/lib/momentum/__tests__/momentum.test.js && node .test-build/lib/coach/__tests__/coach.test.js && node .test-build/lib/syllabus/__tests__/apply.test.js",
     "test:e2e": "node scripts/e2e-smoke.mjs"
   },
   "dependencies": {
