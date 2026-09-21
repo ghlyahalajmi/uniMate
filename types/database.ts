@@ -22,6 +22,7 @@ export type SyllabusEventType =
   | 'exam' | 'midterm' | 'final' | 'quiz' | 'assignment' | 'project'
   | 'presentation' | 'deadline' | 'lecture' | 'holiday' | 'other';
 export type ReminderStatus = 'scheduled' | 'done' | 'dismissed';
+export type StudyPlanStatus = 'active' | 'completed' | 'archived';
 
 export type Weekday =
   | 'sunday' | 'monday' | 'tuesday' | 'wednesday'
@@ -42,6 +43,9 @@ export interface Profile {
   theme: string;
   reminders_enabled: boolean;
   onboarding_completed: boolean;
+  /** Credits this degree needs. Null until the student says; the coach then
+   *  falls back to a stated default rather than inventing one. */
+  degree_credits: number | null;
   streak_freezes: number;
   momentum_enabled: boolean;
   leaderboard_opt_in: boolean;
@@ -324,6 +328,69 @@ export interface AchievementRow {
   evidence: string | null;
   is_demo: boolean;
   unlocked_at: string;
+}
+
+export interface StudyPlan {
+  id: string;
+  user_id: string;
+  course_id: string | null;
+  /** The assessment this plan prepares for, when it is exam revision. */
+  assessment_id: string | null;
+  title: string;
+  goal: string | null;
+  status: StudyPlanStatus;
+  starts_on: string | null;
+  ends_on: string | null;
+  total_minutes: number | null;
+  source: RecordSource;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudyPlanItem {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  task_id: string | null;
+  session_id: string | null;
+  topic: string;
+  scheduled_on: string | null;
+  minutes: number | null;
+  position: number;
+  completed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+}
+
+/**
+ * Derived from activity_days by a database trigger — read it, never write it.
+ * The rules match lib/momentum/engine.ts: a day counts when it earned XP, and
+ * the current run has to end today or yesterday.
+ */
+export interface StreakRow {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_active_on: string | null;
+  total_active_days: number;
+  total_xp: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * The agreed table names are served by updatable views over the tables that
+ * already held this data, so the two names describe one set of rows.
+ */
+export type Assessment = Grade;
+export type StudyTask = Task;
+export type QuizAttempt = QuestionAttempt;
+
+/** A plan joined to the sittings it breaks down into. */
+export interface StudyPlanWithItems extends StudyPlan {
+  items: StudyPlanItem[];
 }
 
 export interface Note {

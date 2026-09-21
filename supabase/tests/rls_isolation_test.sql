@@ -29,6 +29,19 @@ with n as (
 insert into public.note_items (user_id, note_id, content, position)
 select :'dana', n.id, 'Return library books', 0 from n;
 
+-- Study-layer and coach rows of Dana's, so the reads below are tested against
+-- data that genuinely exists rather than an empty table.
+insert into public.study_plans (user_id, title, goal, status)
+values (:'dana', 'Midterm revision', 'Two weeks of spaced revision', 'active')
+on conflict do nothing;
+
+insert into public.milestones (user_id, code, target, current_progress)
+values (:'dana', 'tasks_10', 10, 7)
+on conflict (user_id, code) do nothing;
+
+insert into public.motivation_logs (user_id, message, trigger, tone)
+values (:'dana', 'A strong week — keep the momentum going.', 'daily_coach', 'positive');
+
 set role authenticated;
 set request.jwt.claim.sub = :'yousef';
 
@@ -57,7 +70,6 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
   from public.study_sessions where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s notes'
   from public.notes where user_id = :'dana';
 
@@ -65,8 +77,39 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s note lines'
   from public.note_items where user_id = :'dana';
 
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s profile'
   from public.profiles where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s study plans'
+  from public.study_plans where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s streak'
+  from public.streaks where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s milestones'
+  from public.milestones where user_id = :'dana';
+
+-- What a student was told is as private as the records behind it.
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s coaching history'
+  from public.motivation_logs where user_id = :'dana';
+
+-- The agreed-name views must be exactly as isolated as the tables behind them.
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s assessments (view)'
+  from public.assessments where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s study_tasks (view)'
+  from public.study_tasks where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s quiz_attempts (view)'
+  from public.quiz_attempts where user_id = :'dana';
 
 with u as (update public.courses set course_name = 'TAMPERED'
            where user_id = :'dana' returning 1)
@@ -82,6 +125,23 @@ with p as (update public.profiles set full_name = 'TAMPERED'
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s profile' from p;
 
+with s as (update public.streaks set current_streak = 999
+           where user_id = :'dana' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot inflate another student''s streak' from s;
+
+with m as (update public.milestones set current_progress = 10, status = 'completed',
+                                        completed_at = now()
+           where user_id = :'dana' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot complete another student''s milestone' from m;
+
+-- A write through a view must be refused for the same reason a direct one is.
+with v as (update public.study_tasks set title = 'TAMPERED'
+           where user_id = :'dana' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot update another student''s tasks through study_tasks' from v;
+
 reset role;
 
 -- Anonymous visitors hold no grants at all.
@@ -96,4 +156,23 @@ begin
   end;
   reset role;
   raise notice '% — anonymous role cannot read courses', case when ok then 'PASS' else 'FAIL' end;
+end $$;
+
+-- The new tables and views get the same anonymous check as everything else.
+do $$
+declare v text; ok boolean;
+begin
+  foreach v in array array['assessments','study_tasks','quiz_attempts',
+                           'study_plans','streaks','milestones','motivation_logs']
+  loop
+    ok := false;
+    begin
+      set local role anon;
+      execute format('select count(*) from public.%I', v);
+    exception when insufficient_privilege then
+      ok := true;
+    end;
+    reset role;
+    raise notice '% — anonymous role cannot read %', case when ok then 'PASS' else 'FAIL' end, v;
+  end loop;
 end $$;

@@ -10,6 +10,7 @@ import { StreakStrip } from './streak-strip';
 import { TimeGreeting } from './time-greeting';
 import { DaypartGlow } from './daypart-glow';
 import { XP_RULES } from '@/lib/momentum/engine';
+import { CoachStrip, type CoachStripData } from './coach-strip';
 
 interface ClassRow { id: string; code: string; name: string; start: string | null; end: string | null; room: string | null }
 interface TaskRow { id: string; title: string; priority: string; status: string; courseCode: string | null; overdue: boolean; source: string }
@@ -22,7 +23,7 @@ interface ProgressRow {
 
 export function DashboardView({
   name, isDemo, hasAnyCourse, todayClasses, todayTasks, openTaskCount,
-  upcoming, snapshot, progress, momentum, focus,
+  upcoming, snapshot, progress, momentum, focus, coach,
 }: {
   name: string | null;
   isDemo: boolean;
@@ -41,6 +42,7 @@ export function DashboardView({
   } | null;
   progress: ProgressRow[];
   momentum: { current: number; atRisk: boolean; activeToday: boolean; level: number; xpToday: number } | null;
+  coach: CoachStripData | null;
 }) {
   const { t, tf, formatTime, formatNumber } = useI18n();
 
@@ -105,6 +107,8 @@ export function DashboardView({
           <StreakStrip {...momentum} dailyCap={XP_RULES.dailyCap} />
         </div>
       ) : null}
+
+      {coach ? <CoachStrip data={coach} /> : null}
 
       {/* Snapshot ---------------------------------------------------------- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">

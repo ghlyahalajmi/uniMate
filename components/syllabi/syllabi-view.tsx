@@ -23,7 +23,7 @@ interface EventRow {
 }
 
 interface SyllabusRow {
-  id: string; fileName: string | null; courseCode: string | null;
+  id: string; fileName: string | null; courseId: string | null; courseCode: string | null;
   status: ProcessingStatus; errorMessage: string | null;
   summary: string | null; instructor: string | null; officeHours: string | null;
   material: string | null; policies: string | null; topics: string[];
@@ -223,6 +223,12 @@ export function SyllabiView({
                     </div>
                   ) : null}
 
+                  <ApplyPanel
+                    syllabusId={s.id}
+                    courseId={s.courseId}
+                    courseOptions={courseOptions}
+                  />
+
                   {aiEnabled ? <AskPanel syllabusId={s.id} /> : null}
                 </>
               ) : null}
@@ -253,6 +259,216 @@ function Detail({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</dt>
       <dd className="mt-1 leading-relaxed">{value}</dd>
+    </div>
+  );
+}
+
+
+export interface ApplyPlan {
+  create: Array<{ assessment_name: string; assessment_type: string; weight: number; due_date: string | null }>;
+  skipped: Array<{ title: string; reason: 'notGradeable' | 'duplicate' | 'noWeightOrDate'; existingName?: string }>;
+  courseUpdates: Array<{ field: string; to: string }>;
+  totalWeightAfter: number;
+  weightOverflows: boolean;
+  unaccountedWeight: number;
+  needsCourse: boolean;
+  courseCode: string | null;
+}
+
+/**
+ * Puts what the document says into the course.
+ *
+ * Until this existed, everything the analyst read stopped on this screen: a
+ * student could see "Midterm · 25% · 22 Oct" printed here while their Grades
+ * screen stayed empty and their course grade could not be computed.
+ *
+ * Two steps on purpose. These weights feed the grade and GPA arithmetic and
+ * they were read out of a PDF by a model, so the student sees the exact rows
+ * first — the same way the timetable scanner shows the courses it found before
+ * saving any of them.
+ */
+export function ApplyPanel({
+  syllabusId, courseId, courseOptions,
+}: {
+  syllabusId: string;
+  courseId: string | null;
+  courseOptions: Array<{ value: string; label: string }>;
+}) {
+  const { t, tf, formatDate } = useI18n();
+  const router = useRouter();
+  const toast = useToast();
+
+  const [plan, setPlan] = useState<ApplyPlan | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [target, setTarget] = useState(courseId ?? '');
+
+  async function review(courseOverride?: string) {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/syllabus/apply', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          syllabus_id: syllabusId,
+          course_id: courseOverride ?? target ?? null,
+          preview: true,
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok) setPlan(data.plan);
+      else toast.error(t.syllabi.applyError);
+    } catch {
+      toast.error(t.errors.network);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function apply() {
+    if (!target) { toast.error(t.syllabi.applyNoCourse); return; }
+    setApplying(true);
+    try {
+      const res = await fetch('/api/syllabus/apply', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ syllabus_id: syllabusId, course_id: target, preview: false }),
+      });
+      const data = await res.json();
+      if (!data?.ok) { toast.error(t.syllabi.applyError); return; }
+
+      toast.success(
+        data.updatedFields > 0
+          ? tf(t.syllabi.applyDoneFields, { n: data.created, f: data.updatedFields })
+          : tf(t.syllabi.applyDone, {
+              n: data.created,
+              course: plan?.courseCode ?? courseOptions.find((c) => c.value === target)?.label ?? '',
+            }),
+      );
+      setPlan(null);
+      router.refresh();
+    } catch {
+      toast.error(t.errors.network);
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  const skipLabel = (reason: string) =>
+    reason === 'duplicate' ? t.syllabi.applySkipDuplicate
+    : reason === 'notGradeable' ? t.syllabi.applySkipNotGradeable
+    : t.syllabi.applySkipNoWeightOrDate;
+
+  return (
+    <div className="mt-5 pt-4 border-t border-[var(--border-subtle)]">
+      <p className="text-sm font-semibold mb-1">{t.syllabi.applyTitle}</p>
+      <p className="text-sm text-[var(--text-secondary)] mb-3">{t.syllabi.applyBody}</p>
+
+      {!plan ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => review()}
+          loading={loading}
+          loadingLabel={t.syllabi.applyChecking}
+        >
+          <Icon.check size={15} /> {t.syllabi.applyReview}
+        </Button>
+      ) : (
+        <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-3">
+          {plan.needsCourse ? (
+            <div className="mb-3">
+              <Select
+                label={t.syllabi.applyPickCourse}
+                value={target}
+                onChange={(e) => { setTarget(e.target.value); void review(e.target.value); }}
+                options={[{ value: '', label: t.common.selectCourse }, ...courseOptions]}
+              />
+            </div>
+          ) : null}
+
+          {plan.create.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">
+              {plan.skipped.some((k) => k.reason === 'duplicate')
+                ? t.syllabi.applyNothingNew
+                : t.syllabi.applyNothingGradeable}
+            </p>
+          ) : (
+            <>
+              <p className="text-sm font-medium mb-2">
+                {tf(t.syllabi.applyWillAdd, { n: plan.create.length })}
+              </p>
+              <ul className="divide-y divide-[var(--border-subtle)] mb-3">
+                {plan.create.map((a) => (
+                  <li key={a.assessment_name + a.due_date} className="py-2 flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block text-sm">{a.assessment_name}</span>
+                      <span className="block text-xs text-[var(--text-muted)]">
+                        {t.assessmentTypes[a.assessment_type as keyof typeof t.assessmentTypes] ?? a.assessment_type}
+                        {a.weight > 0 ? ` · ${a.weight}%` : ''}
+                      </span>
+                    </span>
+                    <span className="text-xs tabular-nums text-[var(--text-secondary)] shrink-0">
+                      {a.due_date ? formatDate(a.due_date) : t.common.notSet}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {plan.courseUpdates.length ? (
+            <p className="text-xs text-[var(--text-secondary)] mb-2">
+              {tf(t.syllabi.applyCourseFields, {
+                fields: plan.courseUpdates.map((u) => u.to).join(', '),
+              })}
+            </p>
+          ) : null}
+
+          {plan.skipped.length ? (
+            <details className="mb-2">
+              <summary className="text-xs text-[var(--text-muted)] cursor-pointer min-h-[32px] flex items-center">
+                {tf(t.syllabi.applySkipped, { n: plan.skipped.length })}
+              </summary>
+              <ul className="mt-1.5 flex flex-col gap-1">
+                {plan.skipped.map((k, i) => (
+                  <li key={k.title + i} className="text-xs text-[var(--text-muted)]">
+                    {k.title} — {skipLabel(k.reason)}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+
+          {plan.create.length > 0 ? (
+            <>
+              <p className="text-xs text-[var(--text-muted)] tabular-nums">
+                {tf(t.syllabi.applyWeightTotal, { n: plan.totalWeightAfter })}
+              </p>
+              {plan.weightOverflows ? (
+                <p className="text-xs text-[var(--danger)] mt-1">{t.syllabi.applyWeightOverflow}</p>
+              ) : plan.unaccountedWeight > 0 ? (
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  {tf(t.syllabi.applyWeightRemaining, { n: plan.unaccountedWeight })}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Button size="sm" onClick={apply} loading={applying} loadingLabel={t.syllabi.applyApplying}>
+                  {t.syllabi.applyConfirm}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPlan(null)}>
+                  {t.common.cancel}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setPlan(null)} className="mt-2">
+              {t.common.close}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

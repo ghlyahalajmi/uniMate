@@ -27,6 +27,7 @@ rest of the app works without one.
 - [Supabase setup](#supabase-setup)
 - [Deploying to Vercel](#deploying-to-vercel)
 - [Architecture](#architecture)
+- [Progress, motivation and coaching](#progress-motivation-and-coaching)
 - [The AI agents](#the-ai-agents)
 - [Workflows and automation](#workflows-and-automation)
 - [Security](#security)
@@ -129,6 +130,57 @@ Run in this order if applying by hand:
 | `supabase/migrations/0005_flashcards.sql` | The flashcards table, its Leitner columns, and the same forced RLS |
 | `supabase/migrations/0006_hub.sql` | The hub links table, an https-only check on the address, and the same forced RLS |
 | `supabase/migrations/0009_notes.sql` | Notes and their checklist lines, with per-line reminders |
+| `supabase/migrations/0014_study_layer.sql` | Study plans, the streak roll-up, and the `assessments` / `study_tasks` / `quiz_attempts` views |
+| `supabase/migrations/0015_coach.sql` | Milestones and the coaching log, plus the degree length on the profile |
+
+### The data model
+
+Everything hangs off the authenticated user, and every table carries a
+`user_id` that row level security compares to `auth.uid()`.
+
+```
+auth.users
+  └── profiles                 one per user, created by trigger on sign up
+  └── courses
+        ├── assessments        weight, score and due date per piece of work
+        │     └── study_plans  revision for a specific assessment
+        │           └── study_plan_items ──► study_tasks / study_sessions
+        ├── study_tasks        to-dos, optionally tied to a course
+        ├── syllabi ──► syllabus_events ──► reminders
+        ├── flashcards         Leitner-box recall practice
+        └── study_sessions
+              └── questions ──► quiz_attempts
+  └── notes ──► note_items         free checklist lines, each with a reminder
+  └── milestones                   the goal being worked toward, celebrated once
+  └── motivation_logs              every line the coach showed, with its evidence
+  └── activity_days ──► streaks    roll-up maintained by trigger
+  └── ai_runs                  one row per AI operation, always written
+```
+
+Three of these names are served by updatable views rather than tables:
+
+| Name | Backed by | Why |
+|---|---|---|
+| `assessments` | `grades` | The table predates the agreed name and holds live data |
+| `study_tasks` | `tasks` | Same |
+| `quiz_attempts` | `question_attempts` | Same |
+
+Each view is declared `security_invoker`, so the base table's policies run as
+the caller — reading `assessments` is exactly as isolated as reading `grades`,
+and the isolation test checks both. They are ordinary single-table views, so
+inserts, updates and deletes pass straight through. Either name works; nothing
+was renamed, because the existing names are referenced throughout the app.
+
+`notes` is the student's own checklist, kept separate from `tasks` on purpose:
+a task belongs to a course, carries a priority and a due date and feeds the
+planner and the XP rules, while a note line is whatever was typed and nothing
+else depends on it. Each line can carry a `remind_at` timestamp, which the
+Notes screen and the dashboard surface while UniMate is open.
+
+`streaks` is a roll-up, not an input: a trigger on `activity_days` rewrites it
+whenever the underlying activity changes, using the same rules as
+`lib/momentum/engine.ts`, so it cannot drift from the days a student actually
+worked.
 
 ### 3. Seed the demo data (optional)
 
@@ -146,10 +198,12 @@ flagged `is_demo = true`, and the interface labels it as demonstration data.
 psql "$DATABASE_URL" -f supabase/tests/rls_isolation_test.sql
 ```
 
-Eleven checks, all of which must print `PASS`. They create a second student and
-confirm that neither can read, update or delete the other's courses, grades,
-tasks, syllabi, AI activity, study history or profile, and that the anonymous
-role can read nothing at all.
+Thirty-eight checks, all of which must print `PASS`. They create a second
+student and confirm that neither can read, update or delete the other's
+courses, grades, tasks, syllabi, AI activity, study history, study plans,
+flashcards, notes, streak, milestones, coaching history or profile; that a row cannot be filed under someone else's
+`user_id`; that the naming views are exactly as isolated as the tables behind
+them; and that the anonymous role can read nothing at all.
 
 ### 5. Fill in the environment
 
@@ -220,6 +274,64 @@ Browser ──► Next.js App Router
 
 ---
 
+## Progress, motivation and coaching
+
+`/journey` — **My Academic Journey** — answers four questions in order:
+**Level → Progress → Today's Mission → Next Milestone.** A condensed version of
+the same loop sits on the dashboard, so the student meets it where they land.
+
+| Piece | What it is | Where it lives |
+|---|---|---|
+| **Academic Level** | Six named stages from seven signals — consistency, tasks, quizzes, sessions, course progress, exam prep and streak | `lib/coach/academic-level.ts` |
+| **Academic Momentum** | 0–100 from five equally weighted components, each a ratio against a stated expectation | `lib/coach/momentum-score.ts` |
+| **Graduation & GPA** | Credits done against the degree length, and current GPA against target | `lib/coach/progress.ts` |
+| **Course health** | On track / needs attention / time-sensitive, with the reason | `lib/coach/progress.ts` |
+| **What should I do now?** | Exactly one next action, chosen by an explicit priority order | `lib/coach/recommend.ts` |
+| **Milestones** | The next reachable goal, celebrated once | `lib/coach/milestones.ts` |
+| **Motivation** | Picks a dictionary *key*, never a sentence | `lib/coach/messages.ts` |
+
+Everything in `lib/coach` is pure and unit-tested. Nothing there performs I/O
+or calls a model, so every rule a student is measured by can be checked against
+a fixture.
+
+### The level is not your GPA
+
+A student who inherits a strong GPA has not done anything this week, and a
+student rebuilding from a weak one should still be able to climb. Every signal
+feeding the level is something the student can act on today. There is a test
+asserting that a student with a 1.2 GPA and a working term outranks one with a
+4.0 and no activity.
+
+### How the tone rules are enforced
+
+The brief says the coach must never shame the student. That is enforced in
+code, not in a prompt:
+
+- **`tone` has three values — `positive`, `steady`, `encouraging` — and none of
+  them is negative.** A database constraint rejects anything else, so there is
+  no shaming state to store or render.
+- **Falling behind maps to `encouraging`**, which pairs a smaller ask with an
+  acknowledgement.
+- **Nothing compares one student to another.** No function takes another
+  student's data as input, so such a message cannot be built.
+- **The recommended action is chosen before the model is called.** The model is
+  told what it is and may reword it; it cannot substitute a different one. The
+  advice a student acts on is always the one the rules justified.
+- **Generated prose is filtered.** Anything containing a forbidden phrase, in
+  English or Arabic, is discarded in favour of the deterministic message. A
+  model that ignores the tone rule cannot reach the student.
+- **Every line is logged with the figures behind it** in `motivation_logs`, so
+  "never invent progress" is checkable after the fact rather than a promise.
+
+### Without an API key
+
+The Daily Coach's fallback is a complete answer, not a degraded one: the rules
+pick the message, the action and the milestone on their own. The screen renders
+immediately from them and upgrades to the written version only if a model
+replies. A missing or slow key delays nothing.
+
+---
+
 ## The AI agents
 
 Every agent declares a trigger, an input, an output and what happens when it
@@ -284,7 +396,7 @@ browser. `GET` on the same path lists the available workflows.
 
 ## Security
 
-- **Row level security on all 15 tables**, forced, with a policy per operation
+- **Row level security on all 25 tables**, forced, with a policy per operation
   comparing `user_id` to `auth.uid()`. Blanket `anon` grants are revoked so a
   missing policy cannot become an accidental read.
 - **Storage** is two private buckets. Objects live under a `<user-id>/` prefix
@@ -400,13 +512,17 @@ Being straight about this, because "it builds" is not the same as "it works".
 
 **Verified in this repository:**
 
-- The three migrations apply cleanly to PostgreSQL 16, and the seed runs and
-  re-runs without error.
-- The RLS isolation test passes all 11 checks against a real database.
-- 47 unit checks pass on the grade, GPA, cleaning, streak and XP logic,
-  including the brief's own worked example and the boundary cases.
-- The live database carries 17 tables, 68 policies, and row level security
-  enabled and forced on every one of them.
+- The migrations apply cleanly to PostgreSQL 16 and the seed runs and re-runs
+  without error. (`0003_storage.sql` needs Supabase's `storage` schema, so it
+  applies against a Supabase project rather than a bare PostgreSQL instance.)
+- The RLS isolation test passes all 38 checks against a real database.
+- 89 unit checks pass on the grade, GPA, cleaning, streak, XP and coaching
+  logic, including the brief's own worked example and the boundary cases.
+  Among them, every phrase the coach is forbidden from saying is asserted to be
+  rejected, and no input is able to produce a negative tone.
+- The schema defines 25 tables and 100 policies, with row level security
+  enabled and forced on every one of them, plus 3 naming views that run the
+  caller's own policies.
 - `npm run build` and `npm run typecheck` are clean, and `npm audit` reports
   zero vulnerabilities.
 - Server-side rendering, the locale cookie, full Arabic RTL with no English

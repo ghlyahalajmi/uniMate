@@ -6,6 +6,7 @@ import {
 import { cumulativeGpa, semesterGpa } from '@/lib/calculations/gpa';
 import { computeCourseGrade, requiredForTarget } from '@/lib/calculations/grades';
 import { getMomentum } from '@/lib/momentum/queries';
+import { getJourneyData } from '@/lib/coach/view';
 import { DashboardView } from '@/components/dashboard/dashboard-view';
 
 export const metadata = { title: 'Dashboard' };
@@ -15,8 +16,11 @@ export default async function DashboardPage() {
   const profile = await getProfile();
   if (profile && !profile.onboarding_completed) redirect('/onboarding');
 
-  const [courses, grades, tasks, events, scale, momentum] = await Promise.all([
+  const [courses, grades, tasks, events, scale, momentum, journey] = await Promise.all([
     getCourses(), getGrades(), getTasks(), getSyllabusEvents(), getGradeScale(), getMomentum(4),
+    // The coaching loop starts on the screen students land on, not only on
+    // /journey. A failure here must never take the dashboard down with it.
+    getJourneyData().catch(() => null),
   ]);
 
   const byCourse = groupGradesByCourse(grades);
@@ -168,8 +172,40 @@ export default async function DashboardPage() {
               xpToday: momentum.xpToday,
             }
       }
+      coach={
+        journey && profile?.momentum_enabled !== false
+          ? {
+              levelNumber: journey.level.level,
+              levelProgress: journey.level.progress,
+              momentum: journey.momentum.total,
+              recommendationLabel: journey.recommendationLabel,
+              recommendationReason: journey.recommendationReason,
+              recommendationMinutes: journey.recommendationMinutes,
+              recommendationHref: hrefForAction(journey.recommendationKind),
+              milestoneCode: journey.nextMilestone?.code ?? null,
+              milestoneCurrent: journey.nextMilestone?.current ?? 0,
+              milestoneTarget: journey.nextMilestone?.target ?? 1,
+              coachKey: journey.coachKey,
+              coachValues: journey.coachValues,
+            }
+          : null
+      }
+
     />
   );
+}
+
+/** Where the recommended action sends the student. Mirrors the Journey screen. */
+function hrefForAction(kind: string): string {
+  switch (kind) {
+    case 'add_first_course': return '/courses';
+    case 'log_grades':       return '/grades';
+    case 'prepare_exam':     return '/planner';
+    case 'practice_weak_topic':
+    case 'practice_session':
+    case 'review_flashcards': return '/study';
+    default:                 return '/tasks';
+  }
 }
 
 function toIso(d: Date): string {

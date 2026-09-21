@@ -417,7 +417,17 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
   50%      { opacity: 0.45; }
 }
 
+/* One short scale-and-settle for a reached milestone. Deliberately a single
+   transform on one element: it stays cheap on a phone, and the
+   prefers-reduced-motion rule below removes it for anyone who asked. */
+@keyframes unimate-celebrate {
+  0%   { opacity: 0; transform: scale(0.6); }
+  55%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 @utility animate-fade-up { animation: unimate-fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@utility animate-celebrate { animation: unimate-celebrate 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @utility animate-pulse-soft { animation: unimate-pulse-soft 1.6s ease-in-out infinite; }
 
 @keyframes unimate-pop {

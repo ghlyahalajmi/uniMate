@@ -9,6 +9,7 @@ export { taskPlanner, studyReminderAgent } from './task-planner';
 export { unimateAssistant, dashboardInsight } from './assistant';
 export { setupScanner } from './setup-scanner';
 export { syllabusCourseReader } from './syllabus-course-reader';
+export { dailyCoach } from './daily-coach';
 
 export type { AnalystInput, AnalystOutput } from './academic-analyst';
 export type { StudyInput, StudyOutput, GeneratedQuestion, PracticeMode, RequestedDifficulty } from './study-questions';
@@ -21,6 +22,7 @@ export type { ScannerInput, ScannerOutput, ScannedCourse } from './setup-scanner
 export type {
   SyllabusCourseInput, SyllabusCourseOutput, SyllabusPage, ReadCourse, ReadContact,
 } from './syllabus-course-reader';
+export type { DailyCoachInput, DailyCoachOutput } from './daily-coach';
 
 /**
  * The agent roster, for the documentation page and the activity log legend.
@@ -38,6 +40,7 @@ export const AGENT_REGISTRY = [
   { name: 'Setup Scanner',            trigger: 'timetable_uploaded',workflow: 'workflow_a_schedule_scan',       offline: null },
   { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null },
   { name: 'Dashboard Insight',        trigger: 'dashboard_opened',  workflow: 'dashboard_insight',              offline: 'Nearest recorded deadline plus a proportionate nudge' },
+  { name: 'Daily Coach',              trigger: 'dashboard_opened',  workflow: 'workflow_f_daily_coaching',      offline: 'Full coaching from the deterministic rules — the screen never needs the model' },
 ] as const;
 export { gradingScaleReader } from './grading-scale-reader';
 export type { ScaleRow as ReadScaleRow } from './grading-scale-reader';

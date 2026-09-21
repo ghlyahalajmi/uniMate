@@ -23,6 +23,8 @@
     "lib/notes/__tests__/**/*.ts",
     "lib/time/**/*.ts",
     "lib/hub/__tests__/**/*.ts",
+    "lib/coach/**/*.ts",
+    "lib/syllabus/**/*.ts",
     "types/**/*.ts"
   ]
 }

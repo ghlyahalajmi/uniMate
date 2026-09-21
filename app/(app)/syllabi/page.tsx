@@ -25,6 +25,7 @@ export default async function SyllabiPage({
       syllabi={syllabi.map((s) => ({
         id: s.id,
         fileName: s.file_name,
+        courseId: s.course_id,
         courseCode: s.course_id ? codes[s.course_id] ?? null : null,
         status: s.processing_status,
         errorMessage: s.error_message,

@@ -567,3 +567,105 @@ begin
 
   raise notice 'UniMate demo notes seeded';
 end $$;
+
+-- =============================================================================
+-- Demo study plan for Dana: a revision plan for the maths midterm she is
+-- behind on. Courses and assessments are looked up rather than hard-coded, so
+-- this block stays correct if the data above is edited.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_today    date := current_date;
+  c_math201  uuid;
+  a_math_mid uuid;
+  p_math     uuid;
+begin
+  select id into c_math201 from public.courses
+   where user_id = v_user and course_code = 'MATH201';
+
+  select id into a_math_mid from public.grades
+   where user_id = v_user and course_id = c_math201
+     and assessment_type = 'midterm'
+   order by due_date
+   limit 1;
+
+  insert into public.study_plans
+    (user_id, course_id, assessment_id, title, goal, status,
+     starts_on, ends_on, total_minutes, source, is_demo)
+  values
+    (v_user, c_math201, a_math_mid,
+     'MATH201 Midterm 1 revision',
+     'Lift the weakest three topics before the midterm, 45 minutes at a time.',
+     'active', v_today - 6, v_today + 18, 540, 'ai', true)
+  returning id into p_math;
+
+  insert into public.study_plan_items
+    (user_id, plan_id, topic, scheduled_on, minutes, position, completed_at, is_demo)
+  values
+    (v_user, p_math, 'Limits and continuity',       v_today - 6,  45, 1, now() - interval '6 days', true),
+    (v_user, p_math, 'Derivative rules',            v_today - 4,  45, 2, now() - interval '4 days', true),
+    (v_user, p_math, 'Implicit differentiation',    v_today - 1,  60, 3, now() - interval '1 day',  true),
+    (v_user, p_math, 'Related rates',               v_today + 2,  60, 4, null, true),
+    (v_user, p_math, 'Optimisation problems',       v_today + 5,  60, 5, null, true),
+    (v_user, p_math, 'Integration by substitution', v_today + 9,  90, 6, null, true),
+    (v_user, p_math, 'Mixed past-paper practice',   v_today + 14, 90, 7, null, true),
+    (v_user, p_math, 'Full timed past paper',       v_today + 17, 90, 8, null, true);
+
+  raise notice 'UniMate demo study plan seeded';
+end $$;
+
+-- =============================================================================
+-- Demo coach state.
+--
+-- Milestones are derived from the real seeded history rather than asserted:
+-- the counts below are read back from the tables the earlier blocks filled, so
+-- the demo cannot show a milestone its own data does not support.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_tasks    int;
+  v_sessions int;
+  v_streak   int;
+begin
+  select count(*) into v_tasks
+    from public.tasks where user_id = v_user and status = 'completed';
+  select count(*) into v_sessions
+    from public.study_sessions where user_id = v_user and total_questions > 0;
+  select coalesce(current_streak, 0) into v_streak
+    from public.streaks where user_id = v_user;
+
+  update public.profiles set degree_credits = 120 where user_id = v_user;
+
+  insert into public.milestones (user_id, code, target, current_progress, status, completed_at, celebrated_at, is_demo)
+  values
+    (v_user, 'first_task',    1,  least(v_tasks, 1),    case when v_tasks    >= 1 then 'completed' else 'active' end::public.milestone_status,
+     case when v_tasks    >= 1 then now() - interval '56 days' else null end,
+     case when v_tasks    >= 1 then now() - interval '56 days' else null end, true),
+    (v_user, 'first_session', 1,  least(v_sessions, 1), case when v_sessions >= 1 then 'completed' else 'active' end::public.milestone_status,
+     case when v_sessions >= 1 then now() - interval '55 days' else null end,
+     case when v_sessions >= 1 then now() - interval '55 days' else null end, true),
+    (v_user, 'tasks_10',      10, least(v_tasks, 10),   case when v_tasks    >= 10 then 'completed' else 'active' end::public.milestone_status,
+     case when v_tasks    >= 10 then now() - interval '20 days' else null end,
+     case when v_tasks    >= 10 then now() - interval '20 days' else null end, true),
+    (v_user, 'streak_7',      7,  least(v_streak, 7),   case when v_streak   >= 7 then 'completed' else 'active' end::public.milestone_status,
+     case when v_streak   >= 7 then now() - interval '25 days' else null end,
+     case when v_streak   >= 7 then now() - interval '25 days' else null end, true)
+  on conflict (user_id, code) do nothing;
+
+  insert into public.motivation_logs (user_id, message, trigger, tone, context, from_ai, is_demo, created_at)
+  values
+    (v_user, 'A strong week: tasks completed and steady study time. Keep the momentum going.',
+     'daily_coach', 'positive',
+     jsonb_build_object('tasksLast7', v_tasks, 'streak', v_streak), false, true, now() - interval '2 days'),
+    (v_user, 'Your quiz average improved. That is real progress — keep going.',
+     'daily_coach', 'positive',
+     jsonb_build_object('sessions', v_sessions), false, true, now() - interval '1 day'),
+    (v_user, 'Your MATH201 assessment is coming up. Let us focus on the highest-impact topics first.',
+     'daily_coach', 'steady',
+     jsonb_build_object('course', 'MATH201'), false, true, now() - interval '4 hours');
+
+  raise notice 'UniMate demo coach state seeded (% tasks, % sessions, % day streak)',
+    v_tasks, v_sessions, v_streak;
+end $$;
