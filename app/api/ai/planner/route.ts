@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   const result = await workflowPlanSemester(auth.ctx, {
     semester: parsed.data.semester,
     candidateIds: parsed.data.candidate_course_ids,
+    targetCourseCount: parsed.data.target_course_count ?? null,
   });
   if (!result.ok) return apiError('planning_failed', 200);
 

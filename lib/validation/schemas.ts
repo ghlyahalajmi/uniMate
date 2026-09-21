@@ -153,6 +153,8 @@ export const assistantRequestSchema = z.object({
 export const plannerRequestSchema = z.object({
   semester: z.string().trim().max(60).optional(),
   candidate_course_ids: z.array(z.string().uuid()).min(1, 'Add at least one course to consider').max(20),
+  /** How many courses the student wants to end up taking. */
+  target_course_count: z.number().int().min(1).max(12).nullish(),
 });
 
 export const syllabusAskSchema = z.object({

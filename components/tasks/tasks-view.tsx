@@ -19,12 +19,11 @@ const EMPTY: ActionState = {};
 type Filter = 'open' | 'completed' | 'all';
 
 export function TasksView({
-  tasks, courseOptions, courseCodes, aiEnabled,
+  tasks, courseOptions, courseCodes,
 }: {
   tasks: Task[];
   courseOptions: Array<{ value: string; label: string }>;
   courseCodes: Record<string, string>;
-  aiEnabled: boolean;
 }) {
   const { t, tf, formatDate } = useI18n();
   const router = useRouter();
@@ -34,7 +33,6 @@ export function TasksView({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState<Task | null>(null);
-  const [planning, setPlanning] = useState(false);
   const [, startTransition] = useTransition();
 
   const visible = tasks.filter((tk) =>
@@ -70,27 +68,17 @@ export function TasksView({
     return buckets.filter((b) => b.items.length > 0);
   }, [visible, t, todayIso, weekIso]);
 
-  async function generatePlan() {
-    setPlanning(true);
-    try {
-      const res = await fetch('/api/ai/tasks', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        toast.success(tf(t.tasks.generated, { n: data.created }));
-        router.refresh();
-      } else {
-        toast.error(data.error === 'ai_not_configured' ? t.ai.unavailableTitle : t.errors.generic);
-      }
-    } catch {
-      toast.error(t.errors.network);
-    } finally {
-      setPlanning(false);
-    }
-  }
-
+  /**
+   * The box in front of a task means done or not done.
+   *
+   * It used to cycle todo → in progress → completed, so the first tap on a
+   * fresh task marked it *started* rather than finished — which reads as a
+   * broken checkbox, because the one thing a tick is supposed to do is the one
+   * thing it did not do. In progress is still reachable from the task's own
+   * status field; it is just no longer in the way of ticking something off.
+   */
   function cycleStatus(tk: Task) {
-    const next: TaskStatus =
-      tk.status === 'todo' ? 'in_progress' : tk.status === 'in_progress' ? 'completed' : 'todo';
+    const next: TaskStatus = tk.status === 'completed' ? 'todo' : 'completed';
     startTransition(async () => {
       const result = await setTaskStatus(tk.id, next, new Date().getTimezoneOffset());
 
@@ -125,16 +113,6 @@ export function TasksView({
         subtitle={t.tasks.subtitle}
         action={
           <>
-            <Button
-              variant="secondary"
-              onClick={generatePlan}
-              loading={planning}
-              loadingLabel={t.tasks.generating}
-              disabled={!aiEnabled && false}
-            >
-              <Icon.sparkle size={16} />
-              <span className="hidden sm:inline">{t.tasks.generate}</span>
-            </Button>
             <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
               <Icon.plus size={17} />
               <span className="hidden sm:inline">{t.tasks.addTask}</span>
@@ -168,14 +146,9 @@ export function TasksView({
             title={t.tasks.title}
             body={filter === 'open' ? t.tasks.empty : t.tasks.emptyFiltered}
             action={
-              <div className="flex flex-wrap gap-2 justify-center">
-                <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-                  <Icon.plus size={17} />{t.tasks.addTask}
-                </Button>
-                <Button variant="secondary" onClick={generatePlan} loading={planning}>
-                  <Icon.sparkle size={16} />{t.tasks.generate}
-                </Button>
-              </div>
+              <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+                <Icon.plus size={17} />{t.tasks.addTask}
+              </Button>
             }
           />
         </Card>
@@ -193,10 +166,16 @@ export function TasksView({
                     <div className="flex items-start gap-3">
                       <button
                         type="button"
+                        role="checkbox"
+                        aria-checked={tk.status === 'completed'}
                         onClick={() => cycleStatus(tk)}
                         aria-label={tk.status === 'completed' ? t.tasks.markTodo : t.tasks.markComplete}
+                        // The visible box stays 20px; the tappable area around
+                        // it does not, because a 20px target on a phone is a
+                        // checkbox that misses more often than it lands.
+                        style={{ padding: '6px', margin: '-6px' }}
                         className={cx(
-                          'mt-0.5 w-5 h-5 shrink-0 rounded-[6px] border-2 grid place-items-center transition-colors',
+                          'mt-0.5 w-5 h-5 box-content shrink-0 rounded-[6px] border-2 grid place-items-center transition-colors',
                           tk.status === 'completed'
                             ? 'bg-[var(--positive)] border-[var(--positive)] text-white'
                             : tk.status === 'in_progress'

@@ -51,13 +51,6 @@ export function CoursesView({ rows, openNew }: { rows: CourseRow[]; openNew: boo
         action={
           <>
             <Link
-              href="/courses/scan"
-              className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
-            >
-              <Icon.camera size={17} />
-              <span className="hidden sm:inline">{t.courses.scanTimetable}</span>
-            </Link>
-            <Link
               href="/courses/from-syllabus"
               className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
             >

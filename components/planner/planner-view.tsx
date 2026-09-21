@@ -3,14 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader } from '@/components/ui/primitives';
+import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { AiThinking, EmptyState } from '@/components/ui/states';
 import { Checkbox, TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { deleteRecord } from '@/lib/data/actions';
+import { deleteRecord, addPlannerCandidate } from '@/lib/data/actions';
 import type { Weekday } from '@/types/database';
 
 interface Candidate {
@@ -26,7 +26,7 @@ interface Plan {
 }
 
 export function PlannerView({ candidates, plans }: { candidates: Candidate[]; plans: Plan[] }) {
-  const { t, formatNumber, formatDate } = useI18n();
+  const { t, tf, formatNumber, formatDate } = useI18n();
   const router = useRouter();
   const toast = useToast();
 
@@ -34,6 +34,38 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
   const [semester, setSemester] = useState('');
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState<Plan | null>(null);
+
+  // Adding a candidate, and how many of them the student actually wants.
+  const [adding, setAdding] = useState(false);
+  const [newCode, setNewCode] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newCredits, setNewCredits] = useState('3');
+  const [targetCount, setTargetCount] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<Candidate | null>(null);
+
+  async function addCandidate() {
+    const code = newCode.trim();
+    const name = newName.trim();
+    if (!code || !name) return;
+    setAdding(true);
+    try {
+      const result = await addPlannerCandidate({
+        code, name,
+        credits: Number(newCredits) || 0,
+        semester: semester.trim() || null,
+      });
+      if (result.ok) {
+        toast.success(tf(t.planner.candidateAdded, { code: code.toUpperCase() }));
+        setNewCode('');
+        setNewName('');
+        router.refresh();
+      } else {
+        toast.error(t.errors.generic);
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
 
   async function generate() {
     if (selected.length === 0) return;
@@ -45,6 +77,7 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
         body: JSON.stringify({
           candidate_course_ids: selected,
           semester: semester.trim() || undefined,
+          target_course_count: targetCount,
         }),
       });
       const data = await res.json();
@@ -72,6 +105,43 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
         </p>
       </div>
 
+      {/* Adding a candidate ------------------------------------------------
+          Outside the `candidates.length === 0` branch on purpose: the list
+          looked fixed precisely because the only way to change it was to
+          already have nothing in it. */}
+      <Card className="mb-5">
+        <CardHeader title={t.planner.newCourse} subtitle={t.planner.newCourseSub} />
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,6rem)_auto] sm:items-end">
+          <TextInput
+            label={t.planner.codeLabel}
+            value={newCode}
+            onChange={(e) => setNewCode(e.target.value)}
+            placeholder="CE401"
+          />
+          <TextInput
+            label={t.planner.nameLabel}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Control Systems"
+          />
+          <TextInput
+            label={t.common.credits}
+            type="number"
+            value={newCredits}
+            onChange={(e) => setNewCredits(e.target.value)}
+          />
+          <Button
+            onClick={addCandidate}
+            loading={adding}
+            loadingLabel={t.common.saving}
+            disabled={!newCode.trim() || !newName.trim()}
+          >
+            <Icon.plus size={17} />
+            {t.planner.addIt}
+          </Button>
+        </div>
+      </Card>
+
       <Card className="mb-5">
         <CardHeader title={t.planner.candidates} subtitle={t.planner.addCandidate} />
         {candidates.length === 0 ? (
@@ -80,7 +150,8 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
           <>
             <ul className="space-y-2.5">
               {candidates.map((c) => (
-                <li key={c.id}>
+                <li key={c.id} className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
                   <Checkbox
                     label={`${c.code} — ${c.name}`}
                     description={[
@@ -93,9 +164,57 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
                       setSelected((prev) => (on ? [...prev, c.id] : prev.filter((x) => x !== c.id)))
                     }
                   />
+                  </div>
+                  {/* Unticking keeps a course out of this run; removing takes
+                      it off the list for good, which is the other half of
+                      "add or remove courses". */}
+                  <button
+                    type="button"
+                    onClick={() => setRemoving(c)}
+                    aria-label={`${t.planner.removeCandidate}: ${c.code}`}
+                    className="w-9 h-9 shrink-0 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)]"
+                  >
+                    <Icon.trash size={15} />
+                  </button>
                 </li>
               ))}
             </ul>
+
+            <fieldset className="mt-5">
+              <legend className="text-[0.8125rem] font-medium">{t.planner.howMany}</legend>
+              <p className="text-xs text-[var(--text-muted)] mt-0.5 mb-2">{t.planner.howManySub}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  aria-pressed={targetCount === null}
+                  onClick={() => setTargetCount(null)}
+                  className={cx(
+                    'px-3 min-h-[36px] rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
+                    targetCount === null
+                      ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                  )}
+                >
+                  {t.planner.letItChoose}
+                </button>
+                {[3, 4, 5, 6, 7].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={targetCount === n}
+                    onClick={() => setTargetCount(n)}
+                    className={cx(
+                      'px-3 min-h-[36px] rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors tabular-nums',
+                      targetCount === n
+                        ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                    )}
+                  >
+                    {formatNumber(n)}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
             <div className="mt-5 grid sm:grid-cols-2 gap-4 items-end">
               <TextInput
@@ -211,6 +330,21 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
           })}
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={t.planner.removeCandidate}
+        body={removing ? `${removing.code} — ${removing.name}` : ''}
+        onConfirm={async () => {
+          if (!removing) return;
+          await deleteRecord('courses', removing.id);
+          setSelected((prev) => prev.filter((x) => x !== removing.id));
+          toast.success(t.planner.candidateRemoved);
+          setRemoving(null);
+          router.refresh();
+        }}
+      />
 
       <ConfirmDialog
         open={deleting !== null}

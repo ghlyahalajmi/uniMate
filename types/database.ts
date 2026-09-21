@@ -191,6 +191,8 @@ export interface Reminder {
   title: string;
   body: string | null;
   remind_on: string;
+  /** Time of day, when the student set one. */
+  remind_at: string | null;
   status: ReminderStatus;
   source: RecordSource;
   is_demo: boolean;

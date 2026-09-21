@@ -60,6 +60,26 @@ export function GpaCalculator({
     setDraft(null);
   }
 
+  /**
+   * A row being typed still counts.
+   *
+   * The form used to require OK before Calculate would do anything, so a
+   * student who filled the course in and pressed Calculate — the obvious
+   * move — got a disabled button and no number, which reads as a calculator
+   * that does not calculate. Anything complete enough to grade is folded in
+   * when they press Calculate.
+   */
+  const pendingDraft = draft && draft.letter ? { ...draft, courseName: draft.courseName.trim() } : null;
+  const rowsToCalculate = pendingDraft ? [...rows, pendingDraft] : rows;
+
+  function calculate() {
+    if (pendingDraft) {
+      setRows(rowsToCalculate);
+      setDraft(null);
+    }
+    setSubmitted(rowsToCalculate);
+  }
+
   return (
     <div className="space-y-4">
       {/* MY GPA — the headline box ---------------------------------------- */}
@@ -220,8 +240,8 @@ export function GpaCalculator({
           ) : null}
           <Button
             fullWidth size="lg"
-            onClick={() => setSubmitted(rows)}
-            disabled={rows.length === 0 || ungraded > 0}
+            onClick={calculate}
+            disabled={rowsToCalculate.length === 0 || ungraded > 0}
           >
             {t.grades.submit}
           </Button>

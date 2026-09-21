@@ -41,7 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/tasks',     icon: 'tasks',     label: (t) => t.nav.tasks,     primary: true, primaryMobile: true },
   { href: '/courses',   icon: 'courses',   label: (t) => t.nav.courses,   primary: true, primaryMobile: true },
   { href: '/calendar',  icon: 'calendar',  label: (t) => t.nav.schedule,  primary: true, primaryMobile: true },
-  { href: '/grades',    icon: 'grades',    label: (t) => t.grades.myGpa,  primary: true, primaryMobile: true },
+  { href: '/grades',    icon: 'grades',    label: (t) => t.nav.grades,    primary: true, primaryMobile: true },
   { href: '/notes',     icon: 'notes',     label: (t) => t.nav.notes,     primary: true },
   { href: '/settings',  icon: 'person',    label: (t) => t.nav.profile,   primary: true },
 

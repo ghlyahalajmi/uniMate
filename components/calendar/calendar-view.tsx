@@ -1,13 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { rebuildReminders } from '@/lib/data/actions';
+import { addReminder } from '@/lib/data/actions';
+import { TextInput } from '@/components/ui/form';
 import type { Weekday } from '@/types/database';
 
 const WEEK_ORDER: Weekday[] = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -27,6 +29,7 @@ interface DatedRow {
 export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: DatedRow[] }) {
   const { t, formatDate, formatTime, locale } = useI18n();
   const toast = useToast();
+  const router = useRouter();
 
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
@@ -35,6 +38,10 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
   const [selected, setSelected] = useState<string>(() => isoOf(new Date()));
   const [view, setView] = useState<'month' | 'agenda'>('month');
   const [rebuilding, setRebuilding] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState('');
+  const [reminderDay, setReminderDay] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [reminderTime, setReminderTime] = useState('');
 
   const byDate = useMemo(() => {
     const map = new Map<string, DatedRow[]>();
@@ -67,12 +74,34 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
 
   const hasAnything = classes.length > 0 || dated.length > 0;
 
-  async function rebuild() {
+  /**
+   * Write a reminder for a day.
+   *
+   * The button here used to run the AI reminder builder, which reads upcoming
+   * assessments and invents a revision ramp — a different feature wearing the
+   * same word, and one that simply failed with no model configured. What the
+   * button says it does is what it now does: pick a day, say what it is, set
+   * a time if you want one.
+   */
+  async function saveReminder() {
+    const title = reminderTitle.trim();
+    if (!title) return;
     setRebuilding(true);
     try {
-      const result = await rebuildReminders();
-      if (result.ok) toast.success(`${result.created ?? 0}`);
-      else toast.error(t.errors.generic);
+      const result = await addReminder({
+        title,
+        remindOn: reminderDay,
+        remindAt: reminderTime || null,
+      });
+      if (result.ok) {
+        toast.success(t.calendar.reminderSaved);
+        setReminderTitle('');
+        setReminderTime('');
+        setReminderOpen(false);
+        router.refresh();
+      } else {
+        toast.error(t.errors.generic);
+      }
     } finally {
       setRebuilding(false);
     }
@@ -84,12 +113,53 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
         title={t.calendar.title}
         subtitle={t.calendar.subtitle}
         action={
-          <Button variant="secondary" onClick={rebuild} loading={rebuilding}>
+          <Button variant="secondary" onClick={() => setReminderOpen((v) => !v)}>
             <Icon.bell size={16} />
-            <span className="hidden sm:inline">{t.calendar.reminderLabel}</span>
+            <span className="hidden sm:inline">{t.calendar.addReminder}</span>
           </Button>
         }
       />
+
+      {reminderOpen ? (
+        <Card className="mb-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <TextInput
+              label={t.calendar.reminderWhat}
+              placeholder={t.calendar.reminderWhatHint}
+              value={reminderTitle}
+              onChange={(e) => setReminderTitle(e.target.value)}
+              className="sm:col-span-2"
+            />
+            <TextInput
+              label={t.calendar.reminderDay}
+              type="date"
+              value={reminderDay}
+              onChange={(e) => setReminderDay(e.target.value)}
+            />
+            <TextInput
+              label={t.calendar.reminderTime}
+              type="time"
+              value={reminderTime}
+              onChange={(e) => setReminderTime(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-[var(--text-muted)] mt-2">{t.calendar.reminderTimeHint}</p>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+            <Button variant="secondary" onClick={() => setReminderOpen(false)}>
+              {t.common.cancel}
+            </Button>
+            <Button
+              onClick={saveReminder}
+              loading={rebuilding}
+              loadingLabel={t.common.saving}
+              disabled={!reminderTitle.trim()}
+            >
+              <Icon.check size={17} />
+              {t.calendar.addReminder}
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       {!hasAnything ? (
         <Card><EmptyState title={t.calendar.title} body={t.calendar.empty} /></Card>

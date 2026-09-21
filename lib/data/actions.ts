@@ -37,6 +37,59 @@ function formToObject(formData: FormData): Record<string, unknown> {
 
 // --- Courses -----------------------------------------------------------------
 
+/**
+ * Add a course to the planner's candidate list.
+ *
+ * The list was whatever the student already had recorded, so a course they
+ * were *considering* — the whole point of a planner — had nowhere to go, and
+ * the list looked fixed. This writes a `planned` course, which is the same
+ * record the rest of the app already understands rather than a second kind of
+ * thing that only the planner knows about.
+ */
+export async function addPlannerCandidate(input: {
+  code: string;
+  name: string;
+  credits: number;
+  difficulty?: number | null;
+  semester?: string | null;
+}): Promise<ActionState & { id?: string }> {
+  try {
+    const code = input.code.trim().slice(0, 20).toUpperCase();
+    const name = input.name.trim().slice(0, 200);
+    if (!code || !name) return { ok: false, messageKey: 'generic' };
+
+    const credits = Number(input.credits);
+    if (!Number.isFinite(credits) || credits < 0 || credits > 30) {
+      return { ok: false, messageKey: 'generic' };
+    }
+
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    const { data, error } = await supabase
+      .from('courses')
+      .insert({
+        user_id: userId,
+        course_code: code,
+        course_name: name,
+        credits,
+        difficulty: input.difficulty ?? null,
+        semester: input.semester?.trim().slice(0, 100) || null,
+        status: 'planned',
+        source: 'manual',
+      })
+      .select('id')
+      .single();
+
+    if (error || !data) return GENERIC;
+    revalidatePath('/planner');
+    revalidatePath('/courses');
+    return { ok: true, id: (data as { id: string }).id };
+  } catch {
+    return GENERIC;
+  }
+}
+
 export async function saveCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const raw = formToObject(formData);
   const id = formData.get('id') ? String(formData.get('id')) : null;
@@ -257,6 +310,84 @@ export async function deleteTask(id: string): Promise<ActionState> {
 }
 
 // --- Reminders ---------------------------------------------------------------
+
+/**
+ * A reminder the student wrote themselves: a day, a label, and a time.
+ *
+ * The calendar's button used to run the AI reminder builder, which reads
+ * upcoming assessments and invents a revision ramp. That is a different
+ * feature with the same word on it, and with no model configured it simply
+ * failed — so "remind me about this on Thursday at 6" had nowhere to go.
+ */
+export async function addReminder(input: {
+  title: string;
+  remindOn: string;
+  remindAt?: string | null;
+  courseId?: string | null;
+  body?: string | null;
+}): Promise<ActionState> {
+  try {
+    const title = input.title.trim().slice(0, 200);
+    if (!title) return { ok: false, messageKey: 'generic' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.remindOn)) return { ok: false, messageKey: 'generic' };
+
+    const at = input.remindAt?.trim();
+    if (at && !/^([01]\d|2[0-3]):[0-5]\d$/.test(at)) return { ok: false, messageKey: 'generic' };
+
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    const { error } = await supabase.from('reminders').insert({
+      user_id: userId,
+      course_id: input.courseId || null,
+      title,
+      body: input.body?.trim().slice(0, 1000) || null,
+      remind_on: input.remindOn,
+      remind_at: at || null,
+      status: 'scheduled',
+      source: 'manual',
+    });
+
+    if (error) return GENERIC;
+    revalidatePath('/calendar');
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+/** Move a reminder to another day or hour. */
+export async function updateReminder(
+  id: string,
+  patch: { title?: string; remindOn?: string; remindAt?: string | null },
+): Promise<ActionState> {
+  try {
+    const update: Record<string, unknown> = {};
+    if (typeof patch.title === 'string') {
+      const title = patch.title.trim().slice(0, 200);
+      if (!title) return { ok: false, messageKey: 'generic' };
+      update.title = title;
+    }
+    if (typeof patch.remindOn === 'string') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(patch.remindOn)) return { ok: false, messageKey: 'generic' };
+      update.remind_on = patch.remindOn;
+    }
+    if (patch.remindAt !== undefined) {
+      const at = patch.remindAt?.trim() ?? '';
+      if (at && !/^([01]\d|2[0-3]):[0-5]\d$/.test(at)) return { ok: false, messageKey: 'generic' };
+      update.remind_at = at || null;
+    }
+    if (Object.keys(update).length === 0) return { ok: true };
+
+    const supabase = await createClient();
+    const { error } = await supabase.from('reminders').update(update).eq('id', id);
+    if (error) return GENERIC;
+    revalidatePath('/calendar');
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
 
 export async function setReminderStatus(
   id: string,

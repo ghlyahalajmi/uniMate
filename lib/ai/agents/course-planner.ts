@@ -9,6 +9,14 @@ export interface PlannerInput {
   context: StudentContext;
   candidateIds: string[];
   semester?: string;
+  /**
+   * How many of the candidates the student wants to actually take.
+   *
+   * Without this the planner returns three plans of every size and leaves the
+   * choosing to them, which is fine when they have five candidates and useless
+   * when they have twelve and know they want six.
+   */
+  targetCourseCount?: number | null;
 }
 
 export interface PlanOption {
@@ -71,11 +79,15 @@ export const coursePlanner: AgentDefinition<PlannerInput, PlannerOutput> = {
 
     const raw = await callStructured<{ plans: Array<Omit<PlanOption, 'course_ids' | 'total_credits' | 'conflicts'> & { course_codes: string[] }> }>({
       system: systemFor(
-        'You are the Course Planner. Build two to four different semester plans from the candidate ' +
-        'courses only. Never label one plan as best — each should state what it trades away. Use the ' +
-        'student\'s past grades in related subjects to reason about load, and say so in the rationale. ' +
-        'Do not invent prerequisites: if the records do not state one, do not assume it. List anything ' +
-        'you are assuming in the assumptions array.',
+        'You are the Course Planner. Build two to four different semester plans from the candidate '
+        + 'courses only. Never label one plan as best — each should state what it trades away. Use '
+        + 'the student\'s past grades in related subjects to reason about load, and say so in the '
+        + 'rationale. Do not invent prerequisites: if the records do not state one, do not assume '
+        + 'it. List anything you are assuming in the assumptions array.\n\n'
+        + 'Choosing which courses to leave out is the work. A semester is not a list of everything '
+        + 'available — spread difficulty rather than stacking the hard subjects together, keep the '
+        + 'timetable survivable, and say in the rationale which candidate you dropped and why, '
+        + 'because that is the decision the student is actually asking you to help with.',
       ),
       prompt: [
         renderContext(input.context),
@@ -87,7 +99,11 @@ export const coursePlanner: AgentDefinition<PlannerInput, PlannerOutput> = {
           `${c.days.length ? `, ${c.days.join('/')} ${(c.start_time ?? '').slice(0, 5)}–${(c.end_time ?? '').slice(0, 5)}` : ''}`,
         ),
         '',
-        'Produce a light, a balanced and an intensive plan.',
+        input.targetCourseCount
+          ? `The student wants about ${input.targetCourseCount} courses this semester. Every plan `
+            + 'should hold close to that number; choose which candidates earn the places and drop '
+            + 'the rest rather than returning plans of every possible size.'
+          : 'Produce a light, a balanced and an intensive plan.',
       ].join('\n'),
       schema: SCHEMA,
       schemaName: 'semester_plans',
