@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { isAiConfigured } from '@/lib/ai/client';
 import { AppShell } from '@/components/shell/app-shell';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
+      aiEnabled={isAiConfigured()}
       user={{
         name: profile?.full_name ?? null,
         email: user.email ?? '',

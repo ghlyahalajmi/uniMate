@@ -14,9 +14,11 @@ import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 interface ShellProps {
   children: React.ReactNode;
   user: { name: string | null; email: string; isDemo: boolean };
+  /** Whether an API key is configured; Mate is hidden when it is not. */
+  aiEnabled: boolean;
 }
 
-export function AppShell({ children, user }: ShellProps) {
+export function AppShell({ children, user, aiEnabled }: ShellProps) {
   const { t } = useI18n();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -196,7 +198,7 @@ export function AppShell({ children, user }: ShellProps) {
         to a page the sidebar already lists, and nobody should have to tab past
         a floating button to reach the content.
       */}
-      <AssistantLauncher />
+      <AssistantLauncher aiEnabled={aiEnabled} />
     </div>
   );
 }

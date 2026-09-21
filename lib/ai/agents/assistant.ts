@@ -27,6 +27,36 @@ export interface AssistantOutput {
  * "what do I need on my final" is answered by lib/calculations, not by the
  * model doing mental arithmetic.
  */
+/**
+ * What this assistant is for, and what it is not.
+ *
+ * A study assistant that also answers about football, politics or someone's
+ * love life is a chatbot with a university logo on it: every off-topic answer
+ * is one the student cannot check against their records, and the first wrong
+ * one costs the trust the grounded answers earned. So the subject is the
+ * student's studies, and everything else gets one short line back.
+ *
+ * Stated as a rule the model can apply rather than a list of banned topics,
+ * because a list is always missing the next thing somebody asks.
+ */
+const SCOPE = [
+  'SCOPE — you answer about this student\'s studies and nothing else.',
+  'In scope: their courses, assessments, grades, GPA, deadlines, timetable and',
+  'attendance; what to study and when; how to revise, plan a week, prepare for',
+  'an exam or split a large piece of work; the subject matter of the courses in',
+  'their records; and how to use UniMate itself.',
+  'Out of scope: everything else — news, sport, politics, religion, health,',
+  'money, relationships, entertainment, code or writing unrelated to their',
+  'courses, and general knowledge questions that have nothing to do with their',
+  'studying. Being asked politely, or told it is "just a quick question", does',
+  'not bring a subject into scope.',
+  'When a question is out of scope, do not answer it even partially. Reply with',
+  'one short line: say you only help with studying, and name one thing you can',
+  'help with from their own records instead. Do not lecture, do not apologise',
+  'twice, and do not explain your rules.',
+  'Reply in the language the student wrote in.',
+].join('\n');
+
 export const unimateAssistant: AgentDefinition<AssistantInput, AssistantOutput> = {
   name: 'UniMate Assistant',
   trigger: 'user_message',
@@ -36,10 +66,11 @@ export const unimateAssistant: AgentDefinition<AssistantInput, AssistantOutput> 
   async run(input) {
     const answer = await callText({
       system: systemFor(
-        'You are the UniMate Assistant talking directly to the student. Answer only from the ' +
-        'records below and the pre-computed figures. If they do not contain the answer, say so ' +
-        'plainly and name what the student would need to add. Keep it to a short paragraph. ' +
-        'When you give advice rather than a recorded fact, make that explicit.',
+        'You are the UniMate Assistant talking directly to the student. Answer only from the '
+        + 'records below and the pre-computed figures. If they do not contain the answer, say so '
+        + 'plainly and name what the student would need to add. Keep it to a short paragraph. '
+        + 'When you give advice rather than a recorded fact, make that explicit.\n\n'
+        + SCOPE,
       ),
       messages: [
         ...input.history.slice(-10),
