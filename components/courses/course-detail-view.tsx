@@ -11,14 +11,17 @@ import { PageHeader } from '@/components/shell/page-header';
 import { GradeTargetPanel } from '@/components/grades/grade-target-panel';
 import { AssessmentTable } from '@/components/grades/assessment-table';
 import { CourseFormModal } from './course-form';
+import { CourseTile } from './course-tile';
+import { CourseContacts } from './course-contacts';
+import { CoursePractice } from './course-practice';
 import type { Course, Grade, Question, Syllabus, SyllabusEvent, Task } from '@/types/database';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 
-type Tab = 'overview' | 'assessments' | 'syllabus' | 'questions' | 'tasks';
+type Tab = 'overview' | 'assessments' | 'syllabus' | 'practice' | 'tasks';
 
 export function CourseDetailView({
   course, grades, tasks, syllabus, events, questions,
-  breakdown, target, bestReachable, scaleLetters,
+  breakdown, target, bestReachable, scaleLetters, deck, aiEnabled,
 }: {
   course: Course;
   grades: Grade[];
@@ -33,6 +36,9 @@ export function CourseDetailView({
   };
   bestReachable: string | null;
   scaleLetters: string[];
+  /** This course's flashcard deck, summarised for the practice panel. */
+  deck: { total: number; due: number };
+  aiEnabled: boolean;
 }) {
   const { t, tf, formatTime, formatDate, formatNumber } = useI18n();
   const router = useRouter();
@@ -49,7 +55,7 @@ export function CourseDetailView({
     { key: 'overview', label: t.courseDetail.overview },
     { key: 'assessments', label: t.courseDetail.assessments, count: grades.length },
     { key: 'syllabus', label: t.courseDetail.syllabus, count: events.length },
-    { key: 'questions', label: t.courseDetail.questions, count: questions.length },
+    { key: 'practice', label: t.practice.tab, count: deck.total + questions.length },
     { key: 'tasks', label: t.courseDetail.tasksTab, count: openTasks.length },
   ];
 
@@ -65,30 +71,41 @@ export function CourseDetailView({
         </Link>
       </div>
 
-      <PageHeader
-        title={`${course.course_code} — ${course.course_name}`}
-        subtitle={[
-          course.instructor,
-          `${formatNumber(course.credits)} ${t.common.credits}`,
-          course.semester,
-          course.room,
-        ].filter(Boolean).join(' · ')}
-        action={
-          <>
-            <Link
-              href={`/study?course=${course.id}`}
-              className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
-            >
-              <Icon.study size={17} />
-              <span className="hidden sm:inline">{t.courseDetail.practiceNow}</span>
-            </Link>
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
-              <Icon.edit size={16} />
-              <span className="hidden sm:inline">{t.common.edit}</span>
-            </Button>
-          </>
-        }
-      />
+      <div className="flex items-start gap-4">
+        <CourseTile
+          code={course.course_code}
+          name={course.course_name}
+          color={course.color}
+          size="lg"
+          className="hidden sm:grid mt-0.5"
+        />
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title={`${course.course_code} — ${course.course_name}`}
+            subtitle={[
+              course.instructor,
+              `${formatNumber(course.credits)} ${t.common.credits}`,
+              course.semester,
+              course.room,
+            ].filter(Boolean).join(' · ')}
+            action={
+              <>
+                <Link
+                  href={`/study?course=${course.id}`}
+                  className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+                >
+                  <Icon.study size={17} />
+                  <span className="hidden sm:inline">{t.courseDetail.practiceNow}</span>
+                </Link>
+                <Button variant="secondary" onClick={() => setEditOpen(true)}>
+                  <Icon.edit size={16} />
+                  <span className="hidden sm:inline">{t.common.edit}</span>
+                </Button>
+              </>
+            }
+          />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-1.5 mb-5">
         <Badge tone={course.status === 'active' ? 'accent' : 'neutral'}>{t.courses[course.status]}</Badge>
@@ -100,6 +117,12 @@ export function CourseDetailView({
         ) : null}
         {course.difficulty ? <Badge>{t.courses.difficulty} {course.difficulty}/5</Badge> : null}
         {course.is_demo ? <Badge tone="warning">{t.common.demoData}</Badge> : null}
+      </div>
+
+      {/* Who teaches it sits with the schedule rather than inside a tab: it is
+          read alongside the days and times, and wanted from every tab. */}
+      <div className="mb-5">
+        <CourseContacts course={course} />
       </div>
 
       {/* Tabs -------------------------------------------------------------- */}
@@ -163,6 +186,40 @@ export function CourseDetailView({
           </div>
 
           <div className="space-y-5">
+            <Card>
+              <CardHeader title={t.courseDetail.meets} />
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                    {t.courses.daysLabel}
+                  </dt>
+                  <dd className="mt-1">
+                    {course.days.length
+                      ? course.days.map((d) => t.weekdays[d]).join(' · ')
+                      : t.courses.noSchedule}
+                  </dd>
+                </div>
+                {course.start_time ? (
+                  <div>
+                    <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                      {t.courseDetail.time}
+                    </dt>
+                    <dd className="mt-1 tabular-nums">
+                      {formatTime(course.start_time)}–{formatTime(course.end_time)}
+                    </dd>
+                  </div>
+                ) : null}
+                {course.room ? (
+                  <div>
+                    <dt className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">
+                      {t.courses.room}
+                    </dt>
+                    <dd className="mt-1">{course.room}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </Card>
+
             <Card>
               <CardHeader title={t.courseDetail.topics} />
               {!syllabus?.topics?.length ? (
@@ -300,35 +357,67 @@ export function CourseDetailView({
         </div>
       ) : null}
 
-      {tab === 'questions' ? (
-        <Card>
-          <CardHeader
-            title={t.courseDetail.questions}
-            action={
-              <Link
-                href={`/study?course=${course.id}`}
-                className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
+      {tab === 'practice' ? (
+        <div className="space-y-4">
+          <CoursePractice courseId={course.id} deck={deck} aiEnabled={aiEnabled} />
+
+          {/* Studying it with other people is the same decision, one step out. */}
+          <Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="shrink-0 w-10 h-10 rounded-[var(--radius-md)] grid place-items-center
+                           bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
               >
-                {t.courseDetail.practiceNow}
+                <Icon.groups size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display text-base font-semibold">{t.groups.find}</h3>
+                <p className="text-[0.8125rem] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
+                  {t.groups.subtitle}
+                </p>
+              </div>
+              <Link
+                href={`/groups?course=${encodeURIComponent(course.course_code)}`}
+                className="inline-flex items-center gap-1.5 px-4 min-h-[42px] rounded-[var(--radius-sm)]
+                           text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)]
+                           hover:border-[var(--border-strong)] transition-colors"
+              >
+                {t.groups.openGroup}
+                <Icon.chevronEnd size={15} className="flip-rtl" />
               </Link>
-            }
-          />
-          {questions.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">{t.courseDetail.noQuestions}</p>
-          ) : (
-            <ul className="space-y-3">
-              {questions.map((q) => (
-                <li key={q.id} className="pb-3 border-b border-[var(--border-subtle)] last:border-0 last:pb-0">
-                  <p className="text-sm">{q.question_text}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {q.topic ? <Badge>{q.topic}</Badge> : null}
-                    <Badge tone={q.difficulty === 'hard' ? 'warning' : 'neutral'}>{t.study[q.difficulty]}</Badge>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title={t.courseDetail.questions}
+              action={
+                <Link
+                  href={`/study?course=${course.id}`}
+                  className="inline-flex items-center min-h-[32px] text-[0.8125rem] text-[var(--accent-soft-text)] hover:underline"
+                >
+                  {t.courseDetail.practiceNow}
+                </Link>
+              }
+            />
+            {questions.length === 0 ? (
+              <p className="text-sm text-[var(--text-secondary)]">{t.courseDetail.noQuestions}</p>
+            ) : (
+              <ul className="space-y-3">
+                {questions.map((q) => (
+                  <li key={q.id} className="pb-3 border-b border-[var(--border-subtle)] last:border-0 last:pb-0">
+                    <p className="text-sm">{q.question_text}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {q.topic ? <Badge>{q.topic}</Badge> : null}
+                      <Badge tone={q.difficulty === 'hard' ? 'warning' : 'neutral'}>{t.study[q.difficulty]}</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
       ) : null}
 
       {tab === 'tasks' ? (

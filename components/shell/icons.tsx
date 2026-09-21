@@ -113,6 +113,56 @@ export const Icon = {
   share: (p: IconProps) => (
     <Svg {...p}><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" /><path d="M12 15V4M8 8l4-4 4 4" /></Svg>
   ),
+  // Two cards, the front one offset — a stack you work through.
+  flashcards: (p: IconProps) => (
+    <Svg {...p}><rect x="3" y="6.5" width="13" height="11" rx="2" /><path d="M8 4.5h10a2 2 0 0 1 2 2v9" /></Svg>
+  ),
+  // A list with one option filled in: pick one of several.
+  options: (p: IconProps) => (
+    <Svg {...p}><circle cx="5.5" cy="7" r="2.5" /><circle cx="5.5" cy="17" r="2.5" fill="currentColor" stroke="none" /><path d="M11 7h9M11 17h9" /></Svg>
+  ),
+  // A tick and a cross: one statement, two possible answers.
+  trueFalse: (p: IconProps) => (
+    <Svg {...p}><path d="M2.5 12.2 5.2 15l4.8-6" /><path d="M14.5 9.5l6 6M20.5 9.5l-6 6" /></Svg>
+  ),
+  // Two figures: the shared, class-wide page rather than your own.
+  students: (p: IconProps) => (
+    <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" /><path d="M16 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.4a5.5 5.5 0 0 1 3 5.1" /></Svg>
+  ),
+  // A painter's palette: how a note is dressed, not what it says.
+  palette: (p: IconProps) => (
+    <Svg {...p}><path d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.9-.6-1.5-.6-2.2 0-.8.6-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.2-4-7.7-9-7.7Z" /><circle cx="8" cy="10" r="1.1" fill="currentColor" stroke="none" /><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none" /><circle cx="16" cy="10" r="1.1" fill="currentColor" stroke="none" /></Svg>
+  ),
+  // Three people joined into one shape: a group that meets, not a directory.
+  groups: (p: IconProps) => (
+    <Svg {...p}><circle cx="12" cy="5.6" r="2.4" /><circle cx="5.5" cy="17" r="2.4" /><circle cx="18.5" cy="17" r="2.4" /><path d="M10.3 7.1 7.2 14.7M13.7 7.1l3.1 7.6M8 17h8" /></Svg>
+  ),
+  // A grid of tiles: separate things gathered onto one page.
+  hub: (p: IconProps) => (
+    <Svg {...p}><rect x="4" y="4" width="7" height="7" rx="1.8" /><rect x="13" y="4" width="7" height="7" rx="1.8" /><rect x="4" y="13" width="7" height="7" rx="1.8" /><rect x="13" y="13" width="7" height="7" rx="1.8" /></Svg>
+  ),
+  // An arrow leaving a frame: this opens somewhere else.
+  external: (p: IconProps) => (
+    <Svg {...p}><path d="M13 5h6v6" /><path d="M19 5l-8 8" /><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></Svg>
+  ),
+  pin: (p: IconProps) => (
+    <Svg {...p}><path d="M9 3h6l-.7 5.2 3 3.3H6.7l3-3.3L9 3Z" /><path d="M12 11.5V21" /></Svg>
+  ),
+  // Nodes joined left to right: something happens, then something follows.
+  automation: (p: IconProps) => (
+    <Svg {...p}><circle cx="5.5" cy="12" r="2.5" /><circle cx="18.5" cy="6.5" r="2.5" /><circle cx="18.5" cy="17.5" r="2.5" /><path d="M8 11.2 16 7.3M8 12.8l8 3.9" /></Svg>
+  ),
+  mail: (p: IconProps) => (
+    <Svg {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3.5 7 8.5 6 8.5-6" /></Svg>
+  ),
+  // A map pin: where an office is. Distinct from `pin`, the thumbtack that
+  // pins a hub link to the top.
+  location: (p: IconProps) => (
+    <Svg {...p}><path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z" /><circle cx="12" cy="10" r="2.6" /></Svg>
+  ),
+  person: (p: IconProps) => (
+    <Svg {...p}><circle cx="12" cy="8" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></Svg>
+  ),
 };
 
 export type IconName = keyof typeof Icon;

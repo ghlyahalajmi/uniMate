@@ -92,6 +92,50 @@ export function CourseFormModal({
           />
         </div>
 
+        {/* Who teaches it, and how to reach them. Filled in automatically when
+            the course came from a syllabus; editable here either way. */}
+        <fieldset className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 space-y-4">
+          <legend className="px-1.5 text-[0.8125rem] font-medium">{t.contacts.instructor}</legend>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <TextInput
+              label={t.contacts.email} name="instructor_email" type="email"
+              defaultValue={course?.instructor_email ?? ''} placeholder="name@university.edu"
+              error={state.errors?.instructor_email}
+            />
+            <TextInput
+              label={t.contacts.office} name="instructor_office"
+              defaultValue={course?.instructor_office ?? ''} placeholder="Block 2, Room 114"
+            />
+            <TextInput
+              label={t.contacts.officeHours} name="instructor_office_hours"
+              defaultValue={course?.instructor_office_hours ?? ''} placeholder="Sun & Tue 10:00–11:30"
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 space-y-4">
+          <legend className="px-1.5 text-[0.8125rem] font-medium">{t.contacts.ta}</legend>
+          <TextInput
+            label={t.contacts.name} name="ta_name"
+            defaultValue={course?.ta_name ?? ''} hint={t.common.optional}
+          />
+          <div className="grid sm:grid-cols-3 gap-4">
+            <TextInput
+              label={t.contacts.email} name="ta_email" type="email"
+              defaultValue={course?.ta_email ?? ''} placeholder="name@university.edu"
+              error={state.errors?.ta_email}
+            />
+            <TextInput
+              label={t.contacts.office} name="ta_office"
+              defaultValue={course?.ta_office ?? ''}
+            />
+            <TextInput
+              label={t.contacts.officeHours} name="ta_office_hours"
+              defaultValue={course?.ta_office_hours ?? ''}
+            />
+          </div>
+        </fieldset>
+
         <Field label={t.courses.daysLabel}>
           {() => (
             <div className="flex flex-wrap gap-1.5">

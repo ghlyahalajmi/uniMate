@@ -22,6 +22,8 @@ export default async function SettingsPage() {
         availability: profile?.study_availability ?? '',
         remindersEnabled: profile?.reminders_enabled ?? true,
         momentumEnabled: profile?.momentum_enabled ?? true,
+        boardOptIn: profile?.leaderboard_opt_in ?? true,
+        boardShowName: profile?.leaderboard_show_name ?? false,
         language: profile?.preferred_language ?? locale,
         isDemo: Boolean(profile?.is_demo),
       }}

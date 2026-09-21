@@ -36,7 +36,16 @@ for (const locale of LOCALES) {
   for (const p of PAGES) {
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`${BASE}${p.path}`, { waitUntil: 'networkidle' });
+      const res = await page.goto(`${BASE}${p.path}`, { waitUntil: 'networkidle' });
+
+      // Without this, a 500 from middleware renders a near-empty error page
+      // that trivially satisfies every rule below — the suite would report all
+      // green while the app was completely broken.
+      if (!res || res.status() >= 400) {
+        console.log(`FAIL ${locale} ${p.name} @${width} — HTTP ${res ? res.status() : 'no response'}`);
+        failures += 1;
+        continue;
+      }
 
       const report = await page.evaluate(() => {
         const de = document.documentElement;
@@ -48,6 +57,10 @@ for (const locale of LOCALES) {
         for (const el of document.querySelectorAll('body *')) {
           const r = el.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
+          // A 1x1 box is the visually-hidden input pattern (sr-only file
+          // pickers): a visible button triggers it, and that button is the
+          // real target, measured on its own.
+          if (r.width <= 1 && r.height <= 1) continue;
           if (r.right > vw + 1 || r.left < -1) {
             offenders.push(`${el.tagName.toLowerCase()}.${(el.className || '').toString().slice(0, 40)} [${Math.round(r.left)}..${Math.round(r.right)}]`);
           }
@@ -65,10 +78,21 @@ for (const locale of LOCALES) {
         }
 
         // Interactive targets smaller than 32px in either axis.
+        //
+        // What counts is the area a finger can land on, not the painted
+        // control: a checkbox is drawn at 18px, but if it sits inside a label
+        // the whole row is clickable and that row is the real target. So a
+        // control wrapped in a label is measured by the label.
         const small = [];
         for (const el of document.querySelectorAll('a, button, input, select, textarea, [role="button"], [role="tab"], [role="radio"], [role="switch"]')) {
-          const r = el.getBoundingClientRect();
+          const wrapper = el.closest('label');
+          const target = wrapper ?? el;
+          const r = target.getBoundingClientRect();
           if (r.width === 0 || r.height === 0) continue;
+          // A 1x1 box is the visually-hidden input pattern (sr-only file
+          // pickers): a visible button triggers it, and that button is the
+          // real target, measured on its own.
+          if (r.width <= 1 && r.height <= 1) continue;
           if (getComputedStyle(el).position === 'absolute' && r.height < 2) continue;
           if (r.height < 32 || r.width < 20) {
             small.push(`${el.tagName.toLowerCase()} ${Math.round(r.width)}x${Math.round(r.height)}`);

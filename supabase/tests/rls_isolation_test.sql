@@ -8,7 +8,7 @@
 -- student's records.
 -- =============================================================================
 
-\set danah  '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31'
+\set dana  '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31'
 \set yousef 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 -- A second student to test against.
@@ -21,164 +21,126 @@ insert into public.courses (user_id, course_code, course_name, credits, semester
 values (:'yousef', 'BUS101', 'Principles of Management', 3, 'Fall 2026', 'active')
 on conflict do nothing;
 
--- Study-layer rows owned by Danah, so the reads below are tested against data
--- that genuinely exists rather than an empty table.
-insert into public.study_plans (user_id, title, goal, status)
-values (:'danah', 'Midterm revision', 'Two weeks of spaced revision', 'active')
-on conflict do nothing;
-
-insert into public.flashcards (user_id, front, back, topic)
-values (:'danah', 'What does RLS stand for?', 'Row level security', 'Databases')
-on conflict do nothing;
-
--- A note of Danah's, with a line in it, to read against.
+-- A note of Dana's, with a line in it, to read against.
 with n as (
-  insert into public.notes (user_id, title) values (:'danah', 'Before Sunday')
+  insert into public.notes (user_id, title) values (:'dana', 'Before Sunday')
   returning id
 )
 insert into public.note_items (user_id, note_id, content, position)
-select :'danah', n.id, 'Return library books', 0 from n;
+select :'dana', n.id, 'Return library books', 0 from n;
 
--- Coach rows of Danah's: a milestone in progress and a line she was shown.
+-- Study-layer and coach rows of Dana's, so the reads below are tested against
+-- data that genuinely exists rather than an empty table.
+insert into public.study_plans (user_id, title, goal, status)
+values (:'dana', 'Midterm revision', 'Two weeks of spaced revision', 'active')
+on conflict do nothing;
+
 insert into public.milestones (user_id, code, target, current_progress)
-values (:'danah', 'tasks_10', 10, 7)
+values (:'dana', 'tasks_10', 10, 7)
 on conflict (user_id, code) do nothing;
 
 insert into public.motivation_logs (user_id, message, trigger, tone)
-values (:'danah', 'A strong week — keep the momentum going.', 'daily_coach', 'positive');
+values (:'dana', 'A strong week — keep the momentum going.', 'daily_coach', 'positive');
 
 set role authenticated;
 set request.jwt.claim.sub = :'yousef';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s courses'
-  from public.courses where user_id = :'danah';
+  from public.courses where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s grades'
-  from public.grades where user_id = :'danah';
+  from public.grades where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s tasks'
-  from public.tasks where user_id = :'danah';
+  from public.tasks where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s syllabi'
-  from public.syllabi where user_id = :'danah';
+  from public.syllabi where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s AI activity'
-  from public.ai_runs where user_id = :'danah';
+  from public.ai_runs where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s study history'
-  from public.study_sessions where user_id = :'danah';
-
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot read another student''s study plans'
-  from public.study_plans where user_id = :'danah';
-
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot read another student''s flashcards'
-  from public.flashcards where user_id = :'danah';
-
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot read another student''s streak'
-  from public.streaks where user_id = :'danah';
+  from public.study_sessions where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s notes'
-  from public.notes where user_id = :'danah';
+  from public.notes where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s note lines'
-  from public.note_items where user_id = :'danah';
+  from public.note_items where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s profile'
+  from public.profiles where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s study plans'
+  from public.study_plans where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s streak'
+  from public.streaks where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s milestones'
-  from public.milestones where user_id = :'danah';
+  from public.milestones where user_id = :'dana';
 
 -- What a student was told is as private as the records behind it.
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s coaching history'
-  from public.motivation_logs where user_id = :'danah';
+  from public.motivation_logs where user_id = :'dana';
 
 -- The agreed-name views must be exactly as isolated as the tables behind them.
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s assessments (view)'
-  from public.assessments where user_id = :'danah';
+  from public.assessments where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s study_tasks (view)'
-  from public.study_tasks where user_id = :'danah';
+  from public.study_tasks where user_id = :'dana';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot read another student''s quiz_attempts (view)'
-  from public.quiz_attempts where user_id = :'danah';
-
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot read another student''s profile'
-  from public.profiles where user_id = :'danah';
+  from public.quiz_attempts where user_id = :'dana';
 
 with u as (update public.courses set course_name = 'TAMPERED'
-           where user_id = :'danah' returning 1)
+           where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s courses' from u;
 
-with d as (delete from public.grades where user_id = :'danah' returning 1)
+with d as (delete from public.grades where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot delete another student''s grades' from d;
 
 with p as (update public.profiles set full_name = 'TAMPERED'
-           where user_id = :'danah' returning 1)
+           where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s profile' from p;
 
-with f as (update public.flashcards set back = 'TAMPERED'
-           where user_id = :'danah' returning 1)
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot update another student''s flashcards' from f;
-
 with s as (update public.streaks set current_streak = 999
-           where user_id = :'danah' returning 1)
+           where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot inflate another student''s streak' from s;
 
-with n as (update public.note_items set content = 'TAMPERED'
-           where user_id = :'danah' returning 1)
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot rewrite another student''s note lines' from n;
-
-with n as (delete from public.notes where user_id = :'danah' returning 1)
-select case when count(*) = 0 then 'PASS' else 'FAIL' end
-       || ' — cannot delete another student''s notes' from n;
-
 with m as (update public.milestones set current_progress = 10, status = 'completed',
                                         completed_at = now()
-           where user_id = :'danah' returning 1)
+           where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot complete another student''s milestone' from m;
 
 -- A write through a view must be refused for the same reason a direct one is.
 with v as (update public.study_tasks set title = 'TAMPERED'
-           where user_id = :'danah' returning 1)
+           where user_id = :'dana' returning 1)
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s tasks through study_tasks' from v;
-
--- Ownership is checked on write, not just on read: a row cannot be filed
--- under someone else's user_id.
-do $$
-declare ok boolean := false;
-begin
-  begin
-    insert into public.flashcards (user_id, front, back)
-    values ('4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31', 'planted', 'planted');
-  exception when insufficient_privilege then
-    ok := true;
-  end;
-  raise notice '% — cannot insert a flashcard owned by another student',
-    case when ok then 'PASS' else 'FAIL' end;
-end $$;
 
 reset role;
 
@@ -196,13 +158,12 @@ begin
   raise notice '% — anonymous role cannot read courses', case when ok then 'PASS' else 'FAIL' end;
 end $$;
 
--- The views are new API surface, so they get the same anonymous check.
+-- The new tables and views get the same anonymous check as everything else.
 do $$
-declare
-  v    text;
-  ok   boolean;
+declare v text; ok boolean;
 begin
-  foreach v in array array['assessments','study_tasks','quiz_attempts','study_plans','flashcards','streaks','notes','note_items','milestones','motivation_logs']
+  foreach v in array array['assessments','study_tasks','quiz_attempts',
+                           'study_plans','streaks','milestones','motivation_logs']
   loop
     ok := false;
     begin

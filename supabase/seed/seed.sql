@@ -1,12 +1,12 @@
 -- =============================================================================
 -- UniMate — demonstration data
 --
--- Creates one signed-in-able demo student, Danah Hamad, with a coherent
+-- Creates one signed-in-able demo student, Dana Hamad, with a coherent
 -- academic history: strong in programming and digital-systems courses, weaker
 -- in pure maths. Every row is flagged is_demo = true so the UI can label it as
 -- demonstration data rather than real university records.
 --
--- Demo sign-in:  danah.hamad@demo.unimate.app  /  UniMateDemo2026!
+-- Demo sign-in:  dana.hamad@demo.unimate.app  /  UniMateDemo2026!
 --
 -- Dates are anchored to current_date so the data still reads as a live
 -- semester whenever you seed it.
@@ -37,11 +37,11 @@ begin
     confirmation_token, email_change, email_change_token_new, recovery_token
   ) values (
     '00000000-0000-0000-0000-000000000000', v_user, 'authenticated', 'authenticated',
-    'danah.hamad@demo.unimate.app',
+    'dana.hamad@demo.unimate.app',
     extensions.crypt('UniMateDemo2026!', extensions.gen_salt('bf')),
     now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Danah Hamad","preferred_language":"en"}'::jsonb,
+    '{"full_name":"Dana Hamad","preferred_language":"en"}'::jsonb,
     now() - interval '8 months', now(),
     '', '', '', ''
   );
@@ -50,14 +50,14 @@ begin
     id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
   ) values (
     gen_random_uuid(), v_user::text, v_user,
-    jsonb_build_object('sub', v_user::text, 'email', 'danah.hamad@demo.unimate.app', 'email_verified', true),
+    jsonb_build_object('sub', v_user::text, 'email', 'dana.hamad@demo.unimate.app', 'email_verified', true),
     'email', now(), now() - interval '8 months', now()
   );
 
   -- The on_auth_user_created trigger already made the profile and the default
-  -- 4.0 grade scale; fill in the rest of Danah's details.
+  -- 4.0 grade scale; fill in the rest of Dana's details.
   update public.profiles set
-    full_name            = 'Danah Hamad',
+    full_name            = 'Dana Hamad',
     university           = 'Kuwait University',
     major                = 'Computer Engineering',
     academic_year        = 'Year 3',
@@ -66,6 +66,11 @@ begin
     preferred_study_minutes = 45,
     study_availability   = 'Weekday evenings 19:00–22:00, Saturday mornings',
     onboarding_completed = true,
+    -- The demo account shows its name on the streak board so the board
+    -- demonstrates itself. A real student appears anonymously until they
+    -- choose otherwise in Settings.
+    leaderboard_opt_in   = true,
+    leaderboard_show_name = true,
     is_demo              = true
   where user_id = v_user;
 
@@ -335,11 +340,11 @@ begin
     (v_user,'grades',null,      'weight','25 %','25','Stripped the percent sign so the weight stores as a number.', now() - interval '11 days'),
     (v_user,'courses',c_engl220,'credits','2 cr','2','Extracted the numeric credit value from the scanned text.', now() - interval '16 days');
 
-  raise notice 'UniMate demo data seeded for danah.hamad@demo.unimate.app';
+  raise notice 'UniMate demo data seeded for dana.hamad@demo.unimate.app';
 end $$;
 
 -- =============================================================================
--- Demo momentum history for Danah Hamad.
+-- Demo momentum history for Dana Hamad.
 --
 -- A believable term rather than a perfect one: a live 6-day run, an 11-day
 -- best earlier in the semester, and real gaps where life got in the way.
@@ -416,99 +421,122 @@ begin
 end $$;
 
 -- =============================================================================
--- Demo study layer for Danah Hamad: a revision plan for the maths midterm she
--- is behind on, and the flashcards she has been drilling for it.
+-- Demo flashcards.
 --
--- Courses and assessments are looked up rather than hard-coded, so this block
--- stays correct if the data above is edited.
+-- Spread across boxes and due dates on purpose: a deck where everything is due
+-- at once, or nothing is, shows neither the queue nor the distribution. This
+-- gives the demo a handful due today and the rest scheduled ahead.
 -- =============================================================================
 do $$
 declare
   v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
   v_today    date := current_date;
-  c_math201  uuid;
   c_ce301    uuid;
-  a_math_mid uuid;
-  p_math     uuid;
+  c_ce315    uuid;
+  c_math201  uuid;
 begin
-  select id into c_math201 from public.courses
-   where user_id = v_user and course_code = 'MATH201';
-  select id into c_ce301 from public.courses
-   where user_id = v_user and course_code = 'CE301';
+  select id into c_ce301   from public.courses where user_id = v_user and course_code = 'CE301';
+  select id into c_ce315   from public.courses where user_id = v_user and course_code = 'CE315';
+  select id into c_math201 from public.courses where user_id = v_user and course_code = 'MATH201';
 
-  -- The midterm the plan is built around.
-  select id into a_math_mid from public.grades
-   where user_id = v_user and course_id = c_math201
-     and assessment_type = 'midterm'
-   order by due_date
-   limit 1;
+  delete from public.flashcards where user_id = v_user and is_demo;
 
-  -- A plan she is partway through: the first three sittings are done.
-  insert into public.study_plans
-    (user_id, course_id, assessment_id, title, goal, status,
-     starts_on, ends_on, total_minutes, source, is_demo)
-  values
-    (v_user, c_math201, a_math_mid,
-     'MATH201 Midterm 1 revision',
-     'Lift the weakest three topics before the midterm, 45 minutes at a time.',
-     'active', v_today - 6, v_today + 18, 540, 'ai', true)
-  returning id into p_math;
-
-  insert into public.study_plan_items
-    (user_id, plan_id, topic, scheduled_on, minutes, position, completed_at, is_demo)
-  values
-    (v_user, p_math, 'Limits and continuity',      v_today - 6,  45, 1, now() - interval '6 days', true),
-    (v_user, p_math, 'Derivative rules',           v_today - 4,  45, 2, now() - interval '4 days', true),
-    (v_user, p_math, 'Implicit differentiation',   v_today - 1,  60, 3, now() - interval '1 day',  true),
-    (v_user, p_math, 'Related rates',              v_today + 2,  60, 4, null, true),
-    (v_user, p_math, 'Optimisation problems',      v_today + 5,  60, 5, null, true),
-    (v_user, p_math, 'Integration by substitution',v_today + 9,  90, 6, null, true),
-    (v_user, p_math, 'Mixed past-paper practice',  v_today + 14, 90, 7, null, true),
-    (v_user, p_math, 'Full timed past paper',      v_today + 17, 90, 8, null, true);
-
-  -- Flashcards. The review state is uneven on purpose: cards she keeps getting
-  -- wrong have sunk to a short interval and come back sooner.
   insert into public.flashcards
-    (user_id, course_id, deck, topic, front, back, difficulty,
-     repetitions, interval_days, ease, due_on, last_reviewed_at,
-     times_seen, times_correct, source, is_demo)
+    (user_id, course_id, front, back, topic, source, box, due_on, reviews, lapses, is_demo)
   values
-    (v_user, c_math201, 'MATH201 Midterm 1', 'Derivative rules',
-     'State the product rule.', 'd/dx[f·g] = f''·g + f·g''', 'easy',
-     4, 9, 2.60, v_today + 3, now() - interval '6 days', 6, 6, 'ai', true),
-    (v_user, c_math201, 'MATH201 Midterm 1', 'Derivative rules',
-     'State the quotient rule.', 'd/dx[f/g] = (f''·g - f·g'') / g²', 'medium',
-     2, 3, 2.30, v_today, now() - interval '3 days', 5, 3, 'ai', true),
-    (v_user, c_math201, 'MATH201 Midterm 1', 'Limits',
-     'When does a limit fail to exist?',
-     'When the one-sided limits disagree, the value grows without bound, or the function oscillates near the point.',
-     'medium', 3, 6, 2.50, v_today + 1, now() - interval '5 days', 4, 3, 'ai', true),
-    (v_user, c_math201, 'MATH201 Midterm 1', 'Related rates',
-     'First step in a related-rates problem?',
-     'Write the equation relating the quantities, then differentiate both sides with respect to time.',
-     'hard', 1, 1, 1.90, v_today, now() - interval '1 day', 4, 1, 'ai', true),
-    (v_user, c_math201, 'MATH201 Midterm 1', 'Implicit differentiation',
-     'Why does dy/dx appear when differentiating y²?',
-     'The chain rule: d/dx[y²] = 2y·(dy/dx), because y is itself a function of x.',
-     'hard', 1, 1, 1.80, v_today, now() - interval '1 day', 3, 1, 'ai', true),
-    (v_user, c_ce301, 'CE301 Data Structures', 'Complexity',
-     'Average-case lookup cost of a hash table?',
-     'O(1), degrading to O(n) when every key collides.', 'easy',
-     5, 14, 2.70, v_today + 8, now() - interval '2 days', 7, 7, 'ai', true),
-    (v_user, c_ce301, 'CE301 Data Structures', 'Trees',
-     'Why balance a binary search tree?',
-     'An unbalanced tree degenerates to a linked list, taking lookup from O(log n) to O(n).',
-     'medium', 3, 5, 2.40, v_today + 2, now() - interval '3 days', 5, 4, 'ai', true),
-    (v_user, c_ce301, 'CE301 Data Structures', 'Sorting',
-     'When is merge sort preferred over quicksort?',
-     'When worst-case O(n log n) or a stable sort is required, and the extra O(n) memory is acceptable.',
-     'medium', 2, 4, 2.40, v_today + 1, now() - interval '4 days', 4, 3, 'ai', true);
+    -- Due today: the queue the student lands on.
+    (v_user, c_ce301, 'What does the convolution theorem let you replace?',
+     'Convolution in the time domain with multiplication in the frequency domain — and the other way round.',
+     'Fourier transforms', 'manual', 1, v_today, 2, 1, true),
+    (v_user, c_ce301, 'State the Nyquist–Shannon sampling condition.',
+     'Sample at more than twice the highest frequency present, or the spectrum folds back on itself and the signal cannot be recovered.',
+     'Sampling', 'manual', 2, v_today, 4, 1, true),
+    (v_user, c_ce315, 'Why is an FIR filter always stable?',
+     'It has no feedback path, so the impulse response is finite and no pole can sit outside the unit circle.',
+     'Filters', 'manual', 1, v_today, 1, 0, true),
+    (v_user, c_math201, 'When is a first-order ODE exact?',
+     'When ∂M/∂y = ∂N/∂x for M dx + N dy = 0 — then a potential function exists.',
+     'Exact equations', 'manual', 1, v_today, 3, 2, true),
+    (v_user, c_math201, 'What does the Wronskian being non-zero tell you?',
+     'The solutions are linearly independent, so together they span the solution space.',
+     'Linear independence', 'manual', 2, v_today, 2, 0, true),
 
-  raise notice 'UniMate demo study plan and flashcards seeded';
+    -- Scheduled ahead: these fill out the box distribution.
+    (v_user, c_ce301, 'What is aliasing, in one sentence?',
+     'A frequency above half the sampling rate reappearing as a lower one, indistinguishable from a real signal at that frequency.',
+     'Sampling', 'manual', 3, v_today + 2, 6, 1, true),
+    (v_user, c_ce301, 'What does the region of convergence of a z-transform decide?',
+     'Whether the system is causal, stable, or neither — the transform alone does not say.',
+     'z-transform', 'manual', 3, v_today + 3, 5, 0, true),
+    (v_user, c_ce315, 'What is the point of a pipeline in a processor?',
+     'Throughput, not latency: one instruction still takes the same time, but one finishes every cycle.',
+     'Pipelining', 'manual', 4, v_today + 6, 8, 1, true),
+    (v_user, c_ce315, 'What causes a structural hazard?',
+     'Two instructions needing the same hardware in the same cycle.',
+     'Hazards', 'manual', 4, v_today + 8, 7, 0, true),
+    (v_user, c_ce315, 'Write the formula for average memory access time.',
+     'Hit time + miss rate × miss penalty.',
+     'Caches', 'manual', 5, v_today + 15, 11, 0, true),
+    (v_user, c_math201, 'What does the Laplace transform turn differentiation into?',
+     'Multiplication by s, minus the initial conditions — which is why it turns an ODE into algebra.',
+     'Laplace transforms', 'manual', 5, v_today + 19, 12, 1, true),
+    (v_user, c_math201, 'When does the method of undetermined coefficients fail?',
+     'When the guess already solves the homogeneous equation — multiply by t until it does not.',
+     'Non-homogeneous equations', 'manual', 2, v_today + 1, 3, 1, true);
+
+  raise notice 'Demo flashcards seeded: % cards',
+    (select count(*) from public.flashcards where user_id = v_user and is_demo);
 end $$;
 
 -- =============================================================================
--- Demo notes for Danah Hamad: the quick checklist she keeps outside her course
+-- Demo hub links.
+--
+-- Real destinations, so the page demonstrates itself rather than showing
+-- placeholder rows that go nowhere.
+-- =============================================================================
+do $$
+declare v_user uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+begin
+  delete from public.hub_links where user_id = v_user and is_demo;
+
+  insert into public.hub_links (user_id, title, url, description, kind, position, is_pinned, is_demo)
+  values
+    (v_user, 'UniMate', 'https://unimate-pied.vercel.app',
+     'This app, live.', 'project', 1, true, true),
+    (v_user, 'UniMate on GitHub', 'https://github.com/ghlyahalajmi/uniMate',
+     'Source, issues and pull requests.', 'project', 2, false, true),
+    (v_user, 'Plana — Digital Planner Studio', 'https://github.com/ghlyahalajmi/plana-digital-planner-studio',
+     null, 'project', 3, false, true),
+    (v_user, 'Day 6', 'https://github.com/ghlyahalajmi/day6', null, 'project', 4, false, true),
+    (v_user, 'Day 5', 'https://github.com/ghlyahalajmi/day5', null, 'project', 5, false, true),
+
+    (v_user, 'Kuwait University', 'https://kuweb.ku.edu.kw',
+     'Registration, transcripts and the academic calendar.', 'university', 1, true, true),
+    (v_user, 'College of Engineering', 'https://eng.ku.edu.kw',
+     'Department pages and announcements.', 'university', 2, false, true),
+
+    (v_user, 'Supabase dashboard', 'https://supabase.com/dashboard',
+     'The database behind this app.', 'resource', 1, false, true),
+    (v_user, 'Vercel dashboard', 'https://vercel.com/dashboard',
+     'Deployments and logs.', 'resource', 2, false, true),
+    -- Shown on the Student Hub page. A preview URL, so it will need updating
+    -- when the class hub gets a production domain.
+    (v_user, 'Class hub',
+     'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub',
+     'The hub the class published.', 'class', 1, true, true),
+    (v_user, 'uniMate repository', 'https://github.com/ghlyahalajmi/uniMate',
+     'Where the team works: issues, branches and pull requests.', 'class', 2, false, true),
+    (v_user, 'Pull requests', 'https://github.com/ghlyahalajmi/uniMate/pulls',
+     'What is waiting for review.', 'class', 3, false, true),
+    (v_user, 'CI runs', 'https://github.com/ghlyahalajmi/uniMate/actions',
+     'Whether the last push is green.', 'class', 4, false, true);
+
+  raise notice 'Demo hub links seeded: %',
+    (select count(*) from public.hub_links where user_id = v_user and is_demo);
+end $$;
+
+-- =============================================================================
+-- Demo notes for Dana Hamad: the quick checklist she keeps outside her course
 -- work, with a couple of lines already ticked off and two reminders set.
 -- =============================================================================
 do $$
@@ -541,11 +569,58 @@ begin
 end $$;
 
 -- =============================================================================
--- Demo coach state for Danah Hamad.
+-- Demo study plan for Dana: a revision plan for the maths midterm she is
+-- behind on. Courses and assessments are looked up rather than hard-coded, so
+-- this block stays correct if the data above is edited.
+-- =============================================================================
+do $$
+declare
+  v_user     uuid := '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31';
+  v_today    date := current_date;
+  c_math201  uuid;
+  a_math_mid uuid;
+  p_math     uuid;
+begin
+  select id into c_math201 from public.courses
+   where user_id = v_user and course_code = 'MATH201';
+
+  select id into a_math_mid from public.grades
+   where user_id = v_user and course_id = c_math201
+     and assessment_type = 'midterm'
+   order by due_date
+   limit 1;
+
+  insert into public.study_plans
+    (user_id, course_id, assessment_id, title, goal, status,
+     starts_on, ends_on, total_minutes, source, is_demo)
+  values
+    (v_user, c_math201, a_math_mid,
+     'MATH201 Midterm 1 revision',
+     'Lift the weakest three topics before the midterm, 45 minutes at a time.',
+     'active', v_today - 6, v_today + 18, 540, 'ai', true)
+  returning id into p_math;
+
+  insert into public.study_plan_items
+    (user_id, plan_id, topic, scheduled_on, minutes, position, completed_at, is_demo)
+  values
+    (v_user, p_math, 'Limits and continuity',       v_today - 6,  45, 1, now() - interval '6 days', true),
+    (v_user, p_math, 'Derivative rules',            v_today - 4,  45, 2, now() - interval '4 days', true),
+    (v_user, p_math, 'Implicit differentiation',    v_today - 1,  60, 3, now() - interval '1 day',  true),
+    (v_user, p_math, 'Related rates',               v_today + 2,  60, 4, null, true),
+    (v_user, p_math, 'Optimisation problems',       v_today + 5,  60, 5, null, true),
+    (v_user, p_math, 'Integration by substitution', v_today + 9,  90, 6, null, true),
+    (v_user, p_math, 'Mixed past-paper practice',   v_today + 14, 90, 7, null, true),
+    (v_user, p_math, 'Full timed past paper',       v_today + 17, 90, 8, null, true);
+
+  raise notice 'UniMate demo study plan seeded';
+end $$;
+
+-- =============================================================================
+-- Demo coach state.
 --
--- Milestones are derived from her real seeded history rather than asserted:
+-- Milestones are derived from the real seeded history rather than asserted:
 -- the counts below are read back from the tables the earlier blocks filled, so
--- the demo cannot show a milestone the demo data does not support.
+-- the demo cannot show a milestone its own data does not support.
 -- =============================================================================
 do $$
 declare
@@ -553,7 +628,6 @@ declare
   v_tasks    int;
   v_sessions int;
   v_streak   int;
-  v_degree   int := 120;
 begin
   select count(*) into v_tasks
     from public.tasks where user_id = v_user and status = 'completed';
@@ -562,9 +636,8 @@ begin
   select coalesce(current_streak, 0) into v_streak
     from public.streaks where user_id = v_user;
 
-  update public.profiles set degree_credits = v_degree where user_id = v_user;
+  update public.profiles set degree_credits = 120 where user_id = v_user;
 
-  -- Only the milestones her records actually support.
   insert into public.milestones (user_id, code, target, current_progress, status, completed_at, celebrated_at, is_demo)
   values
     (v_user, 'first_task',    1,  least(v_tasks, 1),    case when v_tasks    >= 1 then 'completed' else 'active' end::public.milestone_status,
@@ -581,7 +654,6 @@ begin
      case when v_streak   >= 7 then now() - interval '25 days' else null end, true)
   on conflict (user_id, code) do nothing;
 
-  -- A short coaching history, each line stored with the figures behind it.
   insert into public.motivation_logs (user_id, message, trigger, tone, context, from_ai, is_demo, created_at)
   values
     (v_user, 'A strong week: tasks completed and steady study time. Keep the momentum going.',

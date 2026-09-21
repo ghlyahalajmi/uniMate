@@ -109,6 +109,11 @@
   --accent-hover: var(--color-violet-700);
   --accent-soft-text: var(--color-violet-700);
 
+  /* The wordmark's two stops — the same gradient the logo tile is painted
+     with, so the name reads as part of the mark rather than as text near it. */
+  --wordmark-from: var(--color-violet-600);
+  --wordmark-to: var(--color-violet-800);
+
   --positive: var(--color-sage-600);
   --positive-soft: var(--color-sage-50);
   --positive-border: var(--color-sage-200);
@@ -123,6 +128,16 @@
 
   --grid-line: var(--color-ink-200);
   --focus-ring: var(--color-violet-500);
+
+  /* Note paper. Keys in the database, colours here: a note stores "yellow",
+     and what yellow means is decided once, per theme, where contrast can be
+     checked. */
+  --paper-yellow-bg: #fdf6d8;  --paper-yellow-line: #e3d49a;  --paper-yellow-ink: #3d3719;
+  --paper-mint-bg:   #e4f6ec;  --paper-mint-line:   #a9d8bf;  --paper-mint-ink:   #1d3a2c;
+  --paper-sky-bg:    #e5f0fb;  --paper-sky-line:    #a8c7e6;  --paper-sky-ink:    #1d3147;
+  --paper-rose-bg:   #fdeaf0;  --paper-rose-line:   #e9b6c7;  --paper-rose-ink:   #45202d;
+  --paper-lilac-bg:  #efecfd;  --paper-lilac-line:  #c3b9f2;  --paper-lilac-ink:  #2a2350;
+  --paper-kraft-bg:  #f6ecdd;  --paper-kraft-line:  #d8bf9c;  --paper-kraft-ink:  #402f1c;
 
   color-scheme: light;
 }
@@ -147,6 +162,10 @@
     --accent-hover: #a49bf4;
     --accent-soft-text: #b3abf6;
 
+    /* Re-stepped for the dark surface: violet-600 disappears into it. */
+    --wordmark-from: #cdc7fa;
+    --wordmark-to: #8b80f0;
+
     --positive: #4cc39c;
     --positive-soft: #10281f;
     --positive-border: #1d4d3c;
@@ -161,6 +180,15 @@
 
     --grid-line: #273049;
     --focus-ring: #8b80f0;
+
+    /* Dimmer papers with light ink: a note that glows white in a dark room is
+       the reason people stop using dark mode. */
+    --paper-yellow-bg: #322d16;  --paper-yellow-line: #554b28;  --paper-yellow-ink: #f3ead0;
+    --paper-mint-bg:   #142c22;  --paper-mint-line:   #2c5544;  --paper-mint-ink:   #d8f0e3;
+    --paper-sky-bg:    #15263a;  --paper-sky-line:    #2c4767;  --paper-sky-ink:    #dcebfb;
+    --paper-rose-bg:   #331a24;  --paper-rose-line:   #5a2f40;  --paper-rose-ink:   #fadfe8;
+    --paper-lilac-bg:  #221d47;  --paper-lilac-line:  #3f3673;  --paper-lilac-ink:  #e6e1fb;
+    --paper-kraft-bg:  #2e2418;  --paper-kraft-line:  #55442c;  --paper-kraft-ink:  #f0e3cf;
 
     /* Same six hues, re-stepped for the dark surface and validated against it. */
     --color-series-1: #7d6cf0;
@@ -193,6 +221,9 @@
   --accent-hover: #a49bf4;
   --accent-soft-text: #b3abf6;
 
+  --wordmark-from: #cdc7fa;
+  --wordmark-to: #8b80f0;
+
   --positive: #4cc39c;
   --positive-soft: #10281f;
   --positive-border: #1d4d3c;
@@ -207,6 +238,15 @@
 
   --grid-line: #273049;
   --focus-ring: #8b80f0;
+
+  /* Dimmer papers with light ink: a note that glows white in a dark room is
+     the reason people stop using dark mode. */
+  --paper-yellow-bg: #322d16;  --paper-yellow-line: #554b28;  --paper-yellow-ink: #f3ead0;
+  --paper-mint-bg:   #142c22;  --paper-mint-line:   #2c5544;  --paper-mint-ink:   #d8f0e3;
+  --paper-sky-bg:    #15263a;  --paper-sky-line:    #2c4767;  --paper-sky-ink:    #dcebfb;
+  --paper-rose-bg:   #331a24;  --paper-rose-line:   #5a2f40;  --paper-rose-ink:   #fadfe8;
+  --paper-lilac-bg:  #221d47;  --paper-lilac-line:  #3f3673;  --paper-lilac-ink:  #e6e1fb;
+  --paper-kraft-bg:  #2e2418;  --paper-kraft-line:  #55442c;  --paper-kraft-ink:  #f0e3cf;
 
   /* Same six hues, re-stepped for the dark surface and validated against it. */
   --color-series-1: #7d6cf0;
@@ -245,6 +285,14 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
   letter-spacing: 0;
 }
 
+/* Negative tracking pulls Arabic letterforms into each other; the name is set
+   at its natural spacing there, and the gradient runs the way the name is read
+   so it starts on brand violet in both directions. */
+[dir="rtl"] .wordmark {
+  letter-spacing: 0;
+  background-image: linear-gradient(-100deg, var(--wordmark-from), var(--wordmark-to));
+}
+
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
@@ -252,6 +300,54 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 }
 
 ::selection { background: var(--color-violet-200); color: var(--color-violet-900); }
+
+
+/* Note paper ---------------------------------------------------------------- */
+
+/**
+ * A note's surface: a tint and a ruling, both chosen from fixed keys. The
+ * pattern is drawn as a background image on the surface itself rather than an
+ * extra element, so the lines scroll with the note and nothing has to be kept
+ * in sync with its height.
+ */
+.paper {
+  --paper-bg: var(--bg-surface);
+  --paper-line: var(--border-subtle);
+  --paper-ink: var(--text-primary);
+  background-color: var(--paper-bg);
+  color: var(--paper-ink);
+}
+
+.paper[data-tint="yellow"] { --paper-bg: var(--paper-yellow-bg); --paper-line: var(--paper-yellow-line); --paper-ink: var(--paper-yellow-ink); }
+.paper[data-tint="mint"]   { --paper-bg: var(--paper-mint-bg);   --paper-line: var(--paper-mint-line);   --paper-ink: var(--paper-mint-ink); }
+.paper[data-tint="sky"]    { --paper-bg: var(--paper-sky-bg);    --paper-line: var(--paper-sky-line);    --paper-ink: var(--paper-sky-ink); }
+.paper[data-tint="rose"]   { --paper-bg: var(--paper-rose-bg);   --paper-line: var(--paper-rose-line);   --paper-ink: var(--paper-rose-ink); }
+.paper[data-tint="lilac"]  { --paper-bg: var(--paper-lilac-bg);  --paper-line: var(--paper-lilac-line);  --paper-ink: var(--paper-lilac-ink); }
+.paper[data-tint="kraft"]  { --paper-bg: var(--paper-kraft-bg);  --paper-line: var(--paper-kraft-line);  --paper-ink: var(--paper-kraft-ink); }
+
+/* The ruling sits under the text at low contrast: it should be felt, not read. */
+.paper[data-pattern="lined"] {
+  background-image: repeating-linear-gradient(
+    to bottom, transparent 0 27px, color-mix(in srgb, var(--paper-line) 70%, transparent) 27px 28px
+  );
+  background-position: 0 6px;
+}
+
+.paper[data-pattern="grid"] {
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--paper-line) 40%, transparent) 27px 28px),
+    repeating-linear-gradient(to right,  transparent 0 27px, color-mix(in srgb, var(--paper-line) 40%, transparent) 27px 28px);
+}
+
+.paper[data-pattern="dots"] {
+  background-image: radial-gradient(color-mix(in srgb, var(--paper-line) 60%, transparent) 1.3px, transparent 1.4px);
+  background-size: 20px 20px;
+  background-position: 6px 8px;
+}
+
+/* Inputs on a tinted note borrow its ink rather than the app's. */
+.paper input, .paper textarea { color: inherit; }
+.paper ::placeholder { color: color-mix(in srgb, var(--paper-ink) 45%, transparent); }
 
 /* Utilities ----------------------------------------------------------------- */
 
@@ -277,6 +373,29 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 }
 
 @utility text-balance-title { text-wrap: balance; }
+
+/**
+ * The app's name, wherever it is written out.
+ *
+ * It carries the logo's own gradient so the name and the mark are one thing,
+ * and the flat `color` is set first: a browser without `background-clip: text`
+ * gets a violet name rather than an invisible one.
+ */
+@utility wordmark {
+  color: var(--accent);
+  letter-spacing: -0.03em;
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    background-image: linear-gradient(100deg, var(--wordmark-from), var(--wordmark-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* The gradient is clipped to the box, so leave room below the baseline —
+       Arabic descends further than the line box allows for. */
+    padding-block-end: 0.14em;
+    margin-block-end: -0.14em;
+  }
+}
 
 /* Direction-aware helpers: `ms`/`me` already flip, these cover the rest. */
 @utility flip-rtl {
@@ -311,6 +430,97 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 @utility animate-celebrate { animation: unimate-celebrate 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @utility animate-pulse-soft { animation: unimate-pulse-soft 1.6s ease-in-out infinite; }
 
+@keyframes unimate-pop {
+  0%   { transform: scale(0.82); opacity: 0; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+/* Draws a progress ring from empty to its dash offset. The distance is set
+   per-instance through --ring-from, so one keyframe serves every value. */
+@keyframes unimate-ring {
+  from { stroke-dashoffset: var(--ring-from); }
+}
+
+@utility animate-pop { animation: unimate-pop 0.26s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+@utility animate-ring { animation: unimate-ring 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Landing hero: scattered elements drifting together, played once on load.
+   Each chip supplies its own --gather-x/--gather-y, so one keyframe converges
+   all of them instead of sliding them as a block. */
+@keyframes unimate-gather {
+  from {
+    opacity: 0;
+    transform: translate(var(--gather-x, 0), var(--gather-y, 0)) scale(0.94);
+  }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes unimate-settle {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@utility animate-gather {
+  animation: unimate-gather 1.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-settle {
+  animation: unimate-settle 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+}
+
+/* The mark assembling itself. Staged in the order the shape is read. */
+@keyframes unimate-mark-tile {
+  from { opacity: 0; transform: scale(0.72) rotate(-8deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes unimate-mark-drop {
+  0%   { opacity: 0; transform: translateY(-10px) scale(0.9); }
+  70%  { opacity: 1; transform: translateY(1px) scale(1.01); }
+  100% { opacity: 1; transform: none; }
+}
+/* Against pathLength="1", so the timing does not depend on the path's length. */
+@keyframes unimate-mark-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to   { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+@keyframes unimate-mark-node {
+  0%   { opacity: 0; transform: scale(0); }
+  70%  { opacity: 1; transform: scale(1.35); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes unimate-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@utility animate-mark-tile { animation: unimate-mark-tile 0.62s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@utility animate-mark-drop { animation: unimate-mark-drop 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) 0.3s both; }
+@utility animate-mark-draw { animation: unimate-mark-draw 0.5s cubic-bezier(0.65, 0, 0.35, 1) both; }
+@utility animate-mark-node { animation: unimate-mark-node 0.34s cubic-bezier(0.34, 1.5, 0.64, 1) both; }
+@utility animate-rise { animation: unimate-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Mate, the bot. He idles rather than performs: a slow rise and fall, an
+   occasional blink, and the tassel node breathing. Every one of them ends on
+   its resting frame, so `prefers-reduced-motion` — which collapses duration
+   and clamps to a single iteration globally — leaves him standing still and
+   correct rather than frozen mid-blink. */
+@keyframes unimate-bot-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+/* Almost all of the cycle is spent open; the blink itself is the last 6%. */
+@keyframes unimate-bot-blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  97%           { transform: scaleY(0.1); }
+}
+@keyframes unimate-bot-tassel {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.85; }
+}
+
+@utility animate-bot-float { animation: unimate-bot-float 5s ease-in-out infinite; }
+@utility animate-bot-blink { animation: unimate-bot-blink 5.5s ease-in-out infinite; }
+@utility animate-bot-tassel { animation: unimate-bot-tassel 3.2s ease-in-out infinite; }
+
 @utility skeleton {
   background-image: linear-gradient(
     90deg,
@@ -330,6 +540,45 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Course tiles -------------------------------------------------------------
+   The soft angled square that stands for a course. CourseTile sets the four
+   custom properties; these rules decide which pair a given theme reads, so a
+   tile follows the manual toggle and not only the OS setting. */
+[data-course-tile] {
+  background: var(--tile-face);
+  color: var(--tile-ink);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 1px 2px rgb(16 24 40 / 0.06);
+  transition: transform 200ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-course-tile] {
+    background: var(--tile-face-dark);
+    color: var(--tile-ink-dark);
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 1px 2px rgb(0 0 0 / 0.3);
+  }
+}
+
+:root[data-theme="dark"] [data-course-tile] {
+  background: var(--tile-face-dark);
+  color: var(--tile-ink-dark);
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+/* A lift only where the whole card is already a link. */
+a:hover [data-course-tile],
+li:hover [data-course-tile] {
+  transform: translateY(-1px);
 }
 
 /* Scrollbars — unobtrusive, matched to the surface */

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { CourseFormModal } from './course-form';
+import { CourseTile } from './course-tile';
 import { deleteCourse } from '@/lib/data/actions';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { Course } from '@/types/database';
@@ -56,6 +57,13 @@ export function CoursesView({ rows, openNew }: { rows: CourseRow[]; openNew: boo
               <Icon.camera size={17} />
               <span className="hidden sm:inline">{t.courses.scanTimetable}</span>
             </Link>
+            <Link
+              href="/courses/from-syllabus"
+              className="inline-flex items-center gap-2 px-3.5 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
+            >
+              <Icon.syllabi size={17} />
+              <span className="hidden sm:inline">{t.courses.addBySyllabus}</span>
+            </Link>
             <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
               <Icon.plus size={17} />
               <span className="hidden sm:inline">{t.courses.addCourse}</span>
@@ -93,10 +101,19 @@ export function CoursesView({ rows, openNew }: { rows: CourseRow[]; openNew: boo
             title={t.courses.title}
             body={filter === 'completed' ? t.courses.emptyCompleted : t.courses.empty}
             action={
-              <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-                <Icon.plus size={17} />
-                {t.courses.addCourse}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+                  <Icon.plus size={17} />
+                  {t.courses.addCourse}
+                </Button>
+                <Link
+                  href="/courses/from-syllabus"
+                  className="inline-flex items-center justify-center gap-2 px-4 min-h-[42px] rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
+                >
+                  <Icon.syllabi size={17} />
+                  {t.courses.addBySyllabus}
+                </Link>
+              </div>
             }
           />
         </Card>
@@ -105,14 +122,17 @@ export function CoursesView({ rows, openNew }: { rows: CourseRow[]; openNew: boo
           {filtered.map((c) => (
             <Card as="li" key={c.id} interactive className="flex flex-col">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <Link
-                    href={`/courses/${c.id}`}
-                    className="font-display text-lg font-semibold hover:underline block truncate"
-                  >
-                    {c.course_code}
-                  </Link>
-                  <p className="text-sm text-[var(--text-secondary)] truncate">{c.course_name}</p>
+                <div className="flex items-start gap-3 min-w-0">
+                  <CourseTile code={c.course_code} name={c.course_name} color={c.color} />
+                  <div className="min-w-0">
+                    <Link
+                      href={`/courses/${c.id}`}
+                      className="font-display text-lg font-semibold hover:underline block truncate"
+                    >
+                      {c.course_code}
+                    </Link>
+                    <p className="text-sm text-[var(--text-secondary)] truncate">{c.course_name}</p>
+                  </div>
                 </div>
                 <div className="flex gap-0.5 shrink-0 -me-1.5 -mt-1">
                   <button

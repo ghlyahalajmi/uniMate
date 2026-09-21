@@ -48,6 +48,8 @@ export interface Profile {
   degree_credits: number | null;
   streak_freezes: number;
   momentum_enabled: boolean;
+  leaderboard_opt_in: boolean;
+  leaderboard_show_name: boolean;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -69,6 +71,13 @@ export interface Course {
   course_code: string;
   course_name: string;
   instructor: string | null;
+  instructor_email: string | null;
+  instructor_office: string | null;
+  instructor_office_hours: string | null;
+  ta_name: string | null;
+  ta_email: string | null;
+  ta_office: string | null;
+  ta_office_hours: string | null;
   credits: number;
   semester: string | null;
   difficulty: number | null;
@@ -184,6 +193,42 @@ export interface StudySession {
   is_demo: boolean;
   started_at: string;
   completed_at: string | null;
+}
+
+export type HubLinkKind = 'project' | 'university' | 'resource' | 'class';
+
+export interface HubLink {
+  id: string;
+  user_id: string;
+  title: string;
+  url: string;
+  description: string | null;
+  kind: HubLinkKind;
+  position: number;
+  is_pinned: boolean;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FlashcardSource = 'manual' | 'generated';
+
+export interface Flashcard {
+  id: string;
+  user_id: string;
+  course_id: string | null;
+  front: string;
+  back: string;
+  topic: string | null;
+  source: FlashcardSource;
+  box: number;
+  due_on: string;
+  reviews: number;
+  lapses: number;
+  last_reviewed_at: string | null;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Question {
@@ -318,29 +363,6 @@ export interface StudyPlanItem {
   created_at: string;
 }
 
-export interface Flashcard {
-  id: string;
-  user_id: string;
-  course_id: string | null;
-  deck: string | null;
-  topic: string | null;
-  front: string;
-  back: string;
-  difficulty: DifficultyLevel;
-  /** SM-2 review state. `ease` floors at 1.30 for a card that keeps going wrong. */
-  repetitions: number;
-  interval_days: number;
-  ease: number;
-  due_on: string;
-  last_reviewed_at: string | null;
-  times_seen: number;
-  times_correct: number;
-  source: RecordSource;
-  is_demo: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 /**
  * Derived from activity_days by a database trigger — read it, never write it.
  * The rules match lib/momentum/engine.ts: a day counts when it earned XP, and
@@ -375,7 +397,12 @@ export interface Note {
   id: string;
   user_id: string;
   title: string;
+  /** The paper tint key — 'yellow', 'mint'… — never a colour value. */
   color: string | null;
+  /** The paper pattern key: plain, lined, grid or dots. */
+  theme: string;
+  /** Placed stickers, as stored: validated on read by lib/notes/design. */
+  stickers: unknown;
   position: number;
   is_archived: boolean;
   is_demo: boolean;

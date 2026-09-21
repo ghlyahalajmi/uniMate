@@ -3,6 +3,8 @@ import {
   getCourse, getGrades, getTasks, getSyllabi, getSyllabusEvents,
   getQuestions, getGradeScale,
 } from '@/lib/data/queries';
+import { getDeck } from '@/lib/flashcards/queries';
+import { isAiConfigured } from '@/lib/ai/client';
 import { computeCourseGrade, requiredForTarget, bestReachableLetter } from '@/lib/calculations/grades';
 import { CourseDetailView } from '@/components/courses/course-detail-view';
 
@@ -25,8 +27,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   const course = await getCourse(id);
   if (!course) notFound();
 
-  const [grades, tasks, syllabi, events, questions, scale] = await Promise.all([
+  // The server's day for the due count; the flashcards screen itself re-checks
+  // against the browser's, which is the one the student is living in.
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [grades, tasks, syllabi, events, questions, scale, deck] = await Promise.all([
     getGrades(id), getTasks(id), getSyllabi(id), getSyllabusEvents(id), getQuestions(id, 12), getGradeScale(),
+    getDeck(today, id),
   ]);
 
   const breakdown = computeCourseGrade(grades, scale);
@@ -48,6 +55,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         requiredAveragePercent: target.requiredAveragePercent,
         assumptions: target.assumptions,
       }}
+      deck={{ total: deck.total, due: deck.due }}
+      aiEnabled={isAiConfigured()}
       bestReachable={bestReachableLetter(grades, scale)}
       scaleLetters={scale.map((s) => s.letter)}
     />

@@ -4,19 +4,20 @@ import { callStructured } from '../client';
 import { systemFor } from '../prompts';
 import { renderContext, weakTopics, type StudentContext } from '../context';
 import type { DifficultyLevel, QuestionType } from '@/types/database';
+import {
+  MODE_SIZES, type PracticeFormat, type PracticeMode, type RequestedDifficulty,
+} from '@/lib/study/modes';
 
-export type PracticeMode = 'quick_5' | 'standard_10' | 'deep_20' | 'exam_mode';
-export type RequestedDifficulty = 'easy' | 'medium' | 'hard' | 'adaptive';
-
-export const MODE_SIZES: Record<PracticeMode, number> = {
-  quick_5: 5, standard_10: 10, deep_20: 20, exam_mode: 15,
-};
+export type { PracticeMode, RequestedDifficulty, PracticeFormat } from '@/lib/study/modes';
+export { MODE_SIZES } from '@/lib/study/modes';
 
 export interface StudyInput {
   context: StudentContext;
   courseId: string;
   mode: PracticeMode;
   difficulty: RequestedDifficulty;
+  /** The shape every question takes. Defaults to letting the model choose. */
+  format?: PracticeFormat;
   topic?: string;
 }
 
@@ -38,7 +39,17 @@ export interface StudyOutput {
   resolvedDifficulty: DifficultyLevel | 'mixed';
 }
 
-const SCHEMA = {
+const ALL_TYPES = [
+  'multiple_choice', 'true_false', 'short_answer', 'calculation', 'conceptual', 'scenario',
+] as const;
+
+/**
+ * The schema is built per request rather than declared once: when the student
+ * asks for true/false only, `question_type` is an enum of one, so a set that
+ * drifts back to short answers is rejected by the API rather than caught in
+ * the UI.
+ */
+const schemaFor = (format: PracticeFormat) => ({
   type: 'object',
   additionalProperties: false,
   required: ['questions', 'rationale'],
@@ -52,7 +63,10 @@ const SCHEMA = {
         properties: {
           topic: { type: 'string' },
           difficulty: { type: 'string', enum: ['easy','medium','hard'] },
-          question_type: { type: 'string', enum: ['multiple_choice','true_false','short_answer','calculation','conceptual','scenario'] },
+          question_type: {
+            type: 'string',
+            enum: format === 'mixed' ? [...ALL_TYPES] : [format],
+          },
           question_text: { type: 'string' },
           options: {
             type: ['array','null'],
@@ -66,7 +80,7 @@ const SCHEMA = {
       },
     },
   },
-} as const;
+});
 
 /**
  * Agent 2 — Study Question Generator.
@@ -83,6 +97,7 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
 
   async run(input) {
     const { context, courseId, mode, difficulty, topic } = input;
+    const format = input.format ?? 'mixed';
     const course = context.courses.find((c) => c.id === courseId);
     if (!course) throw new Error('That course is not in your records.');
 
@@ -121,9 +136,9 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
         focusLine,
         difficultyLine,
         syllabus?.topics.length ? `Syllabus topics on file: ${syllabus.topics.join(', ')}.` : '',
-        'Vary the question types. Include calculation questions where the subject supports them.',
+        FORMAT_LINES[format],
       ].filter(Boolean).join('\n'),
-      schema: SCHEMA,
+      schema: schemaFor(format),
       schemaName: 'question_set',
       maxTokens: 24000,
       effort: 'high',
@@ -139,14 +154,36 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
   // Writing subject-matter questions is not something we can fake offline.
   fallback: () => null,
 
-  summariseInput: ({ context, courseId, mode, difficulty }) => {
+  summariseInput: ({ context, courseId, mode, difficulty, format }) => {
     const c = context.courses.find((x) => x.id === courseId);
-    return `${c?.course_code ?? courseId} · ${mode} · ${difficulty}`;
+    return `${c?.course_code ?? courseId} · ${mode} · ${difficulty} · ${format ?? 'mixed'}`;
   },
   summariseOutput: (o) => {
     const topics = new Set(o.questions.map((q) => q.topic));
     return `${o.questions.length} questions generated across ${topics.size} topics`;
   },
+};
+
+/**
+ * What each format asks of the model.
+ *
+ * The wrong options carry the teaching in a multiple-choice set, and a
+ * true/false set is worthless if every false statement is absurd — so each
+ * line says how to be wrong, not just what shape to return.
+ */
+const FORMAT_LINES: Record<PracticeFormat, string> = {
+  mixed:
+    'Vary the question types. Include calculation questions where the subject supports them.',
+  multiple_choice:
+    'Every question must be multiple choice with exactly four options, one of them correct, and '
+    + '"answer" character-for-character equal to that option. Each wrong option must be a mistake '
+    + 'a student of this course would actually make — never filler, never obviously absurd, and '
+    + 'never "all of the above".',
+  true_false:
+    'Every question must be one statement the student judges, with options exactly ["True","False"] '
+    + 'and "answer" exactly "True" or "False". Make roughly half of them false, and make a false '
+    + 'statement false by one specific detail — a swapped term, a wrong condition, a reversed '
+    + 'direction — so that judging it requires knowing the material rather than spotting nonsense.',
 };
 
 function resolveDifficulty(
@@ -172,8 +209,13 @@ function normalise(q: GeneratedQuestion): GeneratedQuestion {
       return { ...q, answer: loose ?? q.options[0] };
     }
   }
-  if (q.question_type === 'true_false' && (!q.options || q.options.length !== 2)) {
-    return { ...q, options: ['True', 'False'] };
+  if (q.question_type === 'true_false') {
+    const options = q.options?.length === 2 ? q.options : ['True', 'False'];
+    // The answer is compared to the option the student clicked, so a "T" or a
+    // "true" coming back would mark every correct answer wrong.
+    const match = options.find((o) => o.trim().toLowerCase() === q.answer.trim().toLowerCase());
+    const starts = options.find((o) => o.trim().toLowerCase().startsWith(q.answer.trim().toLowerCase()[0] ?? ''));
+    return { ...q, options, answer: match ?? starts ?? options[0] };
   }
   return q;
 }

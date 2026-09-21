@@ -67,8 +67,8 @@ export function UniMateLogo({
       <UniMateMark size={size} />
       {showWordmark ? (
         <span
-          className="font-display font-semibold tracking-tight"
-          style={{ fontSize: size * 0.62, color: 'var(--text-primary)' }}
+          className="font-display font-semibold wordmark"
+          style={{ fontSize: size * 0.62 }}
         >
           {name}
         </span>

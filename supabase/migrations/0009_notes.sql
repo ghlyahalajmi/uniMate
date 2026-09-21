@@ -1,5 +1,8 @@
 -- =============================================================================
--- UniMate — 0006 notes
+-- UniMate — 0009 notes
+--
+-- Renumbered from 0006 on merge: 0006 was already the hub links table on the
+-- branch this landed on. Migrations are append-only, so the file moves.
 --
 -- A quick checklist the student writes themselves: a note holds lines, a line
 -- is ticked off when it is done, and a line can carry a reminder time.

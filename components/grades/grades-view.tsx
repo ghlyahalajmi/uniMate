@@ -1,17 +1,21 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/provider';
 import { Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
+import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { GradeTargetPanel } from './grade-target-panel';
 import { AssessmentFormModal } from './assessment-table';
 import { GradeScaleEditor } from './grade-scale-editor';
 import { GpaCalculator } from './gpa-calculator';
+import { ScalePicture } from './scale-picture';
+import { saveGradeScale } from '@/lib/data/actions';
+import { actionMessage } from '@/lib/i18n/action-messages';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 import type { GpaResult } from '@/lib/calculations/gpa';
 
@@ -28,7 +32,7 @@ interface CourseCard {
 type Tab = 'need' | 'calculator' | 'scale';
 
 export function GradesView({
-  courseCards, cumulative, semester, scale, courseOptions, targetGpa,
+  courseCards, cumulative, semester, scale, courseOptions, targetGpa, aiEnabled,
 }: {
   courseCards: CourseCard[];
   cumulative: GpaResult;
@@ -36,9 +40,12 @@ export function GradesView({
   scale: Array<{ letter: string; min_percent: number; points: number }>;
   courseOptions: Array<{ value: string; label: string }>;
   targetGpa: number | null;
+  aiEnabled: boolean;
 }) {
   const { t, formatNumber } = useI18n();
   const router = useRouter();
+  const toast = useToast();
+  const [, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>('need');
   const [addOpen, setAddOpen] = useState(false);
 
@@ -145,7 +152,23 @@ export function GradesView({
         )
       ) : null}
 
-      {tab === 'calculator' ? <GpaCalculator scale={scale} cumulative={cumulative} /> : null}
+      {tab === 'calculator' ? (
+        <div className="space-y-4">
+          {/* Top of the section, as in the reference: the scale the GPA below
+              is measured against, photographed rather than typed. */}
+          <ScalePicture
+            aiEnabled={aiEnabled}
+            onApply={(rows) => {
+              startTransition(async () => {
+                const res = await saveGradeScale(rows);
+                if (res.ok) { toast.success(actionMessage(t, res.messageKey)); router.refresh(); }
+                else toast.error(actionMessage(t, res.messageKey));
+              });
+            }}
+          />
+          <GpaCalculator scale={scale} cumulative={cumulative} />
+        </div>
+      ) : null}
 
       {tab === 'scale' ? (
         <GradeScaleEditor scale={scale} onSaved={() => router.refresh()} />

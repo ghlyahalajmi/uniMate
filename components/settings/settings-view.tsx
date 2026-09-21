@@ -25,6 +25,7 @@ export function SettingsView({
     fullName: string; university: string; major: string; academicYear: string;
     targetGpa: number | null; studyMinutes: number; availability: string;
     remindersEnabled: boolean; momentumEnabled: boolean;
+    boardOptIn: boolean; boardShowName: boolean;
     language: AppLanguage; isDemo: boolean;
   };
   ai: { configured: boolean; model: string | null; agents: AgentInfo[] };
@@ -35,6 +36,8 @@ export function SettingsView({
 
   const [reminders, setReminders] = useState(profile.remindersEnabled);
   const [momentum, setMomentum] = useState(profile.momentumEnabled);
+  const [boardOptIn, setBoardOptIn] = useState(profile.boardOptIn);
+  const [boardName, setBoardName] = useState(profile.boardShowName);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
     if (typeof window === 'undefined') return 'system';
     const stored = localStorage.getItem('unimate-theme');
@@ -188,6 +191,28 @@ export function SettingsView({
               onChange={setMomentum}
             />
             {momentum ? <input type="hidden" name="momentum_enabled" value="on" /> : null}
+
+            <Toggle
+              label={t.momentum.boardOn}
+              description={t.momentum.boardOnSub}
+              checked={boardOptIn}
+              onChange={setBoardOptIn}
+            />
+            {boardOptIn ? <input type="hidden" name="leaderboard_opt_in" value="on" /> : null}
+
+            {/* Only offered once they are on the board at all — a name toggle
+                for a board you are not on would be a control with no effect. */}
+            {boardOptIn ? (
+              <>
+                <Toggle
+                  label={t.momentum.boardName}
+                  description={t.momentum.boardNameSub}
+                  checked={boardName}
+                  onChange={setBoardName}
+                />
+                {boardName ? <input type="hidden" name="leaderboard_show_name" value="on" /> : null}
+              </>
+            ) : null}
           </div>
         </Card>
 

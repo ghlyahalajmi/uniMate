@@ -1,5 +1,6 @@
 import { getCourses, getStudySessions } from '@/lib/data/queries';
 import { isAiConfigured } from '@/lib/ai/client';
+import { toPracticeFormat } from '@/lib/study/modes';
 import { StudyView } from '@/components/study/study-view';
 
 export const metadata = { title: 'Study AI' };
@@ -8,9 +9,9 @@ export const dynamic = 'force-dynamic';
 export default async function StudyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course?: string }>;
+  searchParams: Promise<{ course?: string; format?: string }>;
 }) {
-  const { course } = await searchParams;
+  const { course, format } = await searchParams;
   const [courses, sessions] = await Promise.all([getCourses(), getStudySessions(12)]);
   const active = courses.filter((c) => c.status === 'active');
 
@@ -19,6 +20,7 @@ export default async function StudyPage({
       aiEnabled={isAiConfigured()}
       courses={active.map((c) => ({ id: c.id, code: c.course_code, name: c.course_name }))}
       initialCourseId={course ?? active[0]?.id ?? ''}
+      initialFormat={toPracticeFormat(format)}
       history={sessions
         .filter((s) => s.completed_at)
         .map((s) => ({

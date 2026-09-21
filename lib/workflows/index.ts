@@ -102,6 +102,92 @@ export async function confirmScannedCourses(
   return { ok: true, data: { inserted: data?.length ?? 0 }, runId: null };
 }
 
+// --- Workflow F — course from a syllabus -------------------------------------
+// pages → vision → extraction → normalisation → preview → (student confirms)
+// → insertion → ai_runs + cleaning_log
+
+export interface SyllabusCourseDraft {
+  course_code: string;
+  course_name: string;
+  credits: number | null;
+  semester: string | null;
+  days: Weekday[];
+  start_time: string | null;
+  end_time: string | null;
+  room: string | null;
+  instructor: string | null;
+  instructor_email: string | null;
+  instructor_office: string | null;
+  instructor_office_hours: string | null;
+  ta_name: string | null;
+  ta_email: string | null;
+  ta_office: string | null;
+  ta_office_hours: string | null;
+  color: string | null;
+}
+
+/**
+ * The student-confirmed half of Workflow F. One course, written once.
+ *
+ * A duplicate course code in the same semester is a unique-constraint
+ * violation, which is reported as such rather than swallowed — the student
+ * already has that course and should be told, not given a silent no-op.
+ */
+export async function confirmSyllabusCourse(
+  ctx: AgentRunContext,
+  draft: SyllabusCourseDraft,
+  cleaning: Array<{ field: string; original: string; cleaned: string; reason: string }> = [],
+): Promise<WorkflowResult<{ courseId: string; duplicate?: boolean }>> {
+  const { data, error } = await ctx.supabase
+    .from('courses')
+    .insert({
+      user_id: ctx.userId,
+      course_code: draft.course_code,
+      course_name: draft.course_name,
+      credits: draft.credits ?? 3,
+      semester: draft.semester,
+      days: draft.days,
+      start_time: draft.start_time,
+      end_time: draft.end_time,
+      room: draft.room,
+      color: draft.color,
+      instructor: draft.instructor,
+      instructor_email: draft.instructor_email,
+      instructor_office: draft.instructor_office,
+      instructor_office_hours: draft.instructor_office_hours,
+      ta_name: draft.ta_name,
+      ta_email: draft.ta_email,
+      ta_office: draft.ta_office,
+      ta_office_hours: draft.ta_office_hours,
+      status: 'active' as const,
+      source: 'ai' as const,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    // 23505 is unique_violation — the course code already exists this semester.
+    const duplicate = error.code === '23505';
+    return { ok: false, error: duplicate ? 'duplicate_course' : error.message, runId: null };
+  }
+
+  if (cleaning.length) {
+    await ctx.supabase.from('cleaning_log').insert(
+      cleaning.map((d) => ({
+        user_id: ctx.userId,
+        table_name: 'courses',
+        record_id: data.id,
+        field_name: d.field,
+        original_value: d.original,
+        cleaned_value: d.cleaned,
+        reason: d.reason,
+      })),
+    );
+  }
+
+  return { ok: true, data: { courseId: data.id }, runId: null };
+}
+
 // --- Workflow B — syllabus processing ----------------------------------------
 // upload → extract → analyse → identify dates and weights → store → reminders
 // → ai_runs

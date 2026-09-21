@@ -6,11 +6,23 @@ const WEEKDAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','s
 const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Use a 24-hour time such as 10:00');
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date such as 2026-10-22');
 const optionalText = z.string().trim().max(500).optional().or(z.literal('')).transform((v) => (v ? v : null));
+/** Empty stays empty; anything present must look like an address we can mailto:. */
+const optionalEmail = z
+  .string().trim().max(254)
+  .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Enter an email such as name@university.edu')
+  .optional().or(z.literal('')).transform((v) => (v ? v.toLowerCase() : null));
 
 export const courseSchema = z.object({
   course_code: z.string().trim().min(2, 'Enter a course code, for example CE301').max(20),
   course_name: z.string().trim().min(2, 'Enter the course name').max(200),
   instructor: optionalText,
+  instructor_email: optionalEmail,
+  instructor_office: optionalText,
+  instructor_office_hours: optionalText,
+  ta_name: optionalText,
+  ta_email: optionalEmail,
+  ta_office: optionalText,
+  ta_office_hours: optionalText,
   credits: z.coerce.number().min(0).max(24),
   semester: optionalText,
   difficulty: z.coerce.number().int().min(1).max(5).nullable().optional(),
@@ -51,6 +63,24 @@ export const taskSchema = z.object({
   status: z.enum(['todo','in_progress','completed']).default('todo'),
 });
 
+export const hubLinkSchema = z.object({
+  title: z.string().trim().min(1, 'Enter a name').max(120),
+  // https only, matching the database check. These become anchors on the
+  // student's own page, so a `javascript:` URL would be a script injection.
+  url: z.string().trim().url('Enter a full https:// address').max(2000)
+    .refine((v) => v.toLowerCase().startsWith('https://'), 'The address must start with https://'),
+  description: z.string().trim().max(300).optional().or(z.literal('')).transform((v) => (v ? v : null)),
+  kind: z.enum(['project', 'university', 'resource', 'class']).default('resource'),
+  is_pinned: z.coerce.boolean().optional().default(false),
+});
+
+export const flashcardSchema = z.object({
+  course_id: z.string().uuid().nullable().optional().or(z.literal('')).transform((v) => (v ? v : null)),
+  front: z.string().trim().min(1, 'Enter the prompt').max(500),
+  back: z.string().trim().min(1, 'Enter the answer').max(2000),
+  topic: z.string().trim().max(120).optional().or(z.literal('')).transform((v) => (v ? v : null)),
+});
+
 export const noteSchema = z.object({
   title: z.string().trim().max(200).optional().or(z.literal('')).transform((v) => v ?? ''),
 });
@@ -73,6 +103,10 @@ export const profileSchema = z.object({
   theme: z.enum(['light','dark','system']).default('light'),
   reminders_enabled: z.coerce.boolean().default(true),
   momentum_enabled: z.coerce.boolean().default(true),
+  leaderboard_opt_in: z.coerce.boolean().default(true),
+  // Off unless the student turns it on: publishing a name to classmates
+  // should be a choice, not a default they failed to notice.
+  leaderboard_show_name: z.coerce.boolean().default(false),
 });
 
 export const gradeScaleSchema = z.object({
@@ -100,6 +134,7 @@ export const studyRequestSchema = z.object({
   course_id: z.string().uuid('Choose a course'),
   mode: z.enum(['quick_5','standard_10','deep_20','exam_mode']).default('standard_10'),
   difficulty: z.enum(['easy','medium','hard','adaptive']).default('adaptive'),
+  format: z.enum(['mixed','multiple_choice','true_false']).default('mixed'),
   topic: z.string().trim().max(200).optional(),
 });
 

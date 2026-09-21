@@ -63,7 +63,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {loading ? <Spinner size={15} /> : null}
-      <span>{loading && loadingLabel ? loadingLabel : children}</span>
+      {/* Preflight sets `svg { display: block }`, so an icon passed alongside
+          label text would drop onto its own line inside a plain span. */}
+      <span className="inline-flex items-center gap-2">
+        {loading && loadingLabel ? loadingLabel : children}
+      </span>
     </button>
   );
 });
@@ -83,16 +87,19 @@ export function Spinner({ size = 16, className }: { size?: number; className?: s
 // --- Card --------------------------------------------------------------------
 
 export function Card({
-  children, className, as: Tag = 'div', padded = true, interactive = false,
+  children, className, as: Tag = 'div', padded = true, interactive = false, ...rest
 }: {
   children: React.ReactNode;
   className?: string;
   as?: 'div' | 'section' | 'article' | 'li';
   padded?: boolean;
   interactive?: boolean;
-}) {
+  // Anything else a plain element takes — notably the `data-` attributes the
+  // notes screen styles its paper with, which were silently dropped before.
+} & React.HTMLAttributes<HTMLElement>) {
   return (
     <Tag
+      {...rest}
       className={cx(
         'bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--radius-lg)]',
         'shadow-[var(--shadow-card)]',

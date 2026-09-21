@@ -9,6 +9,7 @@ import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-config';
 import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
+import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -189,6 +190,13 @@ export function AppShell({ children, user }: ShellProps) {
           <span>{t.nav.menu}</span>
         </button>
       </nav>
+
+      {/*
+        Mate, last in the tree so he is last in the tab order: he is a shortcut
+        to a page the sidebar already lists, and nobody should have to tab past
+        a floating button to reach the content.
+      */}
+      <AssistantLauncher />
     </div>
   );
 }
@@ -203,21 +211,46 @@ function NavLink({
 }) {
   const { t } = useI18n();
   const Glyph = Icon[item.icon];
-  return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      aria-current={active ? 'page' : undefined}
-      className={cx(
-        'flex items-center gap-3 px-3 min-h-[40px] rounded-[var(--radius-sm)]',
-        'text-sm font-medium transition-colors duration-150',
-        active
-          ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]'
-          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-inset)] hover:text-[var(--text-primary)]',
-      )}
-    >
+
+  const className = cx(
+    'flex items-center gap-3 px-3 min-h-[40px] rounded-[var(--radius-sm)]',
+    'text-sm font-medium transition-colors duration-150',
+    active
+      ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]'
+      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-inset)] hover:text-[var(--text-primary)]',
+  );
+
+  const body = (
+    <>
       <Glyph size={19} />
       <span className="truncate">{item.label(t)}</span>
+      {item.external ? (
+        <Icon.external size={13} className="ms-auto shrink-0 text-[var(--text-muted)]" />
+      ) : null}
+    </>
+  );
+
+  // An item that leaves UniMate is a plain anchor, not a client-side route:
+  // it opens in its own tab, and rel keeps the opened page from reaching back
+  // through window.opener or reading where it came from.
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onNavigate}
+        className={className}
+      >
+        {body}
+        <span className="sr-only">{t.hub.opensNewTab}</span>
+      </a>
+    );
+  }
+
+  return (
+    <Link href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={className}>
+      {body}
     </Link>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
+import { useBrowserNow } from '@/lib/time/clock';
 import { Badge, Button, Card, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { useToast } from '@/components/ui/toast';
@@ -10,18 +11,28 @@ import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import {
   addNoteItem, createNote, deleteNote, deleteNoteItem,
-  renameNote, setNoteItemDone, updateNoteItem,
+  renameNote, setNoteDesign, setNoteItemDone, updateNoteItem,
 } from '@/lib/data/actions';
+import {
+  clampSticker, MAX_STICKERS, parseDesign, tiltFor,
+  type NoteDesign, type Pattern, type StickerKey, type Tint,
+} from '@/lib/notes/design';
+import { NoteDesignBar } from './note-design';
+import { StickerLayer } from './sticker-layer';
 import type { NoteItem, NoteWithItems } from '@/types/database';
 
 /** How long to sit on a keystroke before writing it. Long enough that normal
  *  typing is one write, short enough that a tab-away never loses a word. */
 const SAVE_DELAY_MS = 700;
 
+/** Half a minute is fine for "overdue" and keeps re-renders rare. */
+const CLOCK_MS = 30_000;
+
 type ReminderState = 'none' | 'soon' | 'overdue';
 
 function reminderState(item: NoteItem, now: number): ReminderState {
-  if (!item.remind_at || item.is_done) return 'none';
+  // now === 0 is the server: it has no business deciding a local deadline.
+  if (now === 0 || !item.remind_at || item.is_done) return 'none';
   const at = new Date(item.remind_at).getTime();
   if (Number.isNaN(at)) return 'none';
   if (at <= now) return 'overdue';
@@ -59,11 +70,13 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
 
   // Re-read the clock every half minute so "Overdue" appears on its own rather
   // than waiting for the next interaction.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  //
+  // Through an external store, not state: reading Date.now() during render
+  // meant the server decided whether a reminder was overdue, and the browser
+  // then hydrated a different answer — React error #418. The server snapshot
+  // is 0, meaning "no clock yet", and the reminder line stays quiet until the
+  // browser supplies one.
+  const now = useBrowserNow(CLOCK_MS);
 
   // Pending debounced writes, keyed by line. The callback is kept alongside the
   // timer so that unmounting runs the write rather than dropping it — closing
@@ -93,6 +106,21 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
       const res = await createNote();
       if (!res.ok || !res.note) return failed();
       setNotes((prev) => [{ ...res.note!, items: [] }, ...prev]);
+    });
+  }
+
+  /**
+   * The look of a note is saved the same way its text is: on screen at once,
+   * written after a pause. Dragging a sticker fires a change per frame, and
+   * one write per frame would be absurd.
+   */
+  function onDesignNote(noteId: string, design: NoteDesign) {
+    setNotes((prev) => prev.map((n) => (n.id !== noteId ? n : {
+      ...n, theme: design.pattern, color: design.tint, stickers: design.stickers,
+    })));
+    scheduleSave(`design:${noteId}`, async () => {
+      const res = await setNoteDesign(noteId, design);
+      if (!res.ok) failed();
     });
   }
 
@@ -232,9 +260,12 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
                   {item.content || t.notes.linePlaceholder}
                 </span>
                 <span className="text-xs text-[var(--text-muted)]">
-                  {note} · {formatDate(item.remind_at, {
-                    weekday: 'short', hour: 'numeric', minute: '2-digit',
-                  })}
+                  {note}
+                  {now === 0 ? null : (
+                    <> · {formatDate(item.remind_at, {
+                      weekday: 'short', hour: 'numeric', minute: '2-digit',
+                    })}</>
+                  )}
                 </span>
               </li>
             ))}
@@ -251,7 +282,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
           action={<Button onClick={onCreateNote} loading={creating}>{t.notes.newNote}</Button>}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 items-start">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 items-start [&>*]:min-w-0">
           {notes.map((note) => (
             <NoteCard
               key={note.id}
@@ -268,6 +299,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
               onSetReminder={(item, value) => onSetReminder(note.id, item, value)}
               onDeleteLine={(item) => onDeleteLine(note.id, item)}
               onDelete={() => setDeleting(note)}
+              onDesign={(design) => onDesignNote(note.id, design)}
             />
           ))}
         </div>
@@ -288,7 +320,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
 function NoteCard({
   note, now, focusId, onFocused,
   onRename, onRenameBlur, onAddLine, onEditLine, onEditBlur,
-  onToggleLine, onSetReminder, onDeleteLine, onDelete,
+  onToggleLine, onSetReminder, onDeleteLine, onDelete, onDesign,
 }: {
   note: NoteWithItems;
   now: number;
@@ -303,13 +335,50 @@ function NoteCard({
   onSetReminder: (item: NoteItem, value: string) => void;
   onDeleteLine: (item: NoteItem) => void;
   onDelete: () => void;
+  onDesign: (design: NoteDesign) => void;
 }) {
   const { t, tf } = useI18n();
   const done = note.items.filter((i) => i.is_done).length;
 
+  // The stored design, read defensively: an unknown key from an older row (or
+  // a hand-edited one) falls back rather than reaching the page.
+  const design = useMemo(() => parseDesign(note), [note]);
+  const [designing, setDesigning] = useState(false);
+
+  function change(next: Partial<NoteDesign>) {
+    onDesign({ ...design, ...next });
+  }
+
+  function addSticker(k: StickerKey) {
+    if (design.stickers.length >= MAX_STICKERS) return;
+    // Dropped into the body of the note rather than on the title row, spread
+    // so a second sticker does not land on the first, and tilted by where it
+    // landed so the same sticker twice is not the same picture twice.
+    const x = 74 - (design.stickers.length % 3) * 16;
+    const y = 30 + Math.floor(design.stickers.length / 3) * 18;
+    change({ stickers: [...design.stickers, clampSticker({ k, x, y, r: tiltFor(x, y) })] });
+  }
+
   return (
-    <Card className="p-4 flex flex-col gap-3">
-      <div className="flex items-start gap-2">
+    // The bar sits under the paper rather than on it: a panel laid over the
+    // note covers the very stickers it is placing, and they in turn cover its
+    // buttons. Below it, both stay reachable at once.
+    <div className="flex flex-col gap-2">
+    <Card
+      className="paper relative p-4 flex flex-col gap-3"
+      data-tint={design.tint}
+      data-pattern={design.pattern}
+    >
+      <StickerLayer
+        stickers={design.stickers}
+        editing={designing}
+        onMove={(i, x, y) => change({
+          stickers: design.stickers.map((s, at) => (at === i ? clampSticker({ ...s, x, y }) : s)),
+        })}
+        onRemove={(i) => change({ stickers: design.stickers.filter((_, at) => at !== i) })}
+      />
+
+      <div className="relative z-[2] flex items-start gap-2">
         <input
           value={note.title}
           onChange={(e) => onRename(e.target.value)}
@@ -324,6 +393,21 @@ function NoteCard({
             'focus:outline-none py-1'
           }
         />
+        <button
+          type="button"
+          onClick={() => setDesigning((open) => !open)}
+          aria-label={designing ? t.notes.closeDesign : t.notes.design}
+          aria-pressed={designing}
+          title={t.notes.design}
+          className={cx(
+            'shrink-0 grid place-items-center w-9 h-9 rounded-md focus-visible:outline-2',
+            designing
+              ? 'bg-[var(--accent)] text-[var(--text-on-accent)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]',
+          )}
+        >
+          <Icon.palette size={16} />
+        </button>
         <button
           type="button"
           onClick={onDelete}
@@ -372,6 +456,16 @@ function NoteCard({
         <Icon.plus size={15} /> {t.notes.addLine}
       </Button>
     </Card>
+
+    {designing ? (
+      <NoteDesignBar
+        design={design}
+        onPattern={(pattern: Pattern) => change({ pattern })}
+        onTint={(tint: Tint) => change({ tint })}
+        onAddSticker={addSticker}
+      />
+    ) : null}
+    </div>
   );
 }
 
@@ -408,14 +502,22 @@ function NoteLine({
           aria-checked={item.is_done}
           aria-label={item.is_done ? t.notes.markNotDone : t.notes.markDone}
           onClick={onToggle}
-          className={cx(
-            'shrink-0 grid place-items-center w-[22px] h-[22px] rounded-[6px] border-2 transition-colors',
-            item.is_done
-              ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--text-on-accent)]'
-              : 'border-[var(--border-strong)] text-transparent hover:border-[var(--accent)]',
-          )}
+          // 32px of button around a 22px box: the tick stays the size it was
+          // drawn, but a thumb has something to land on. The negative margin
+          // keeps the box sitting where the row's layout expects it.
+          className="shrink-0 grid place-items-center w-8 h-8 -m-[5px] rounded-[var(--radius-sm)]"
         >
-          <Icon.check size={13} />
+          <span
+            aria-hidden="true"
+            className={cx(
+              'grid place-items-center w-[22px] h-[22px] rounded-[6px] border-2 transition-colors',
+              item.is_done
+                ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--text-on-accent)]'
+                : 'border-[var(--border-strong)] text-transparent hover:border-[var(--accent)]',
+            )}
+          >
+            <Icon.check size={13} />
+          </span>
         </button>
 
         <input
@@ -484,10 +586,12 @@ function NoteLine({
               : 'text-[var(--text-muted)]',
             item.is_done && 'text-[var(--text-muted)] line-through',
           )}>
-            {formatDate(item.remind_at, {
-              weekday: 'short', day: 'numeric', month: 'short',
-              hour: 'numeric', minute: '2-digit',
-            })}
+            {now === 0
+              ? <span className="inline-block w-28 h-3 rounded skeleton" aria-hidden="true" />
+              : formatDate(item.remind_at, {
+                  weekday: 'short', day: 'numeric', month: 'short',
+                  hour: 'numeric', minute: '2-digit',
+                })}
           </span>
         </p>
       ) : null}

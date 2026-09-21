@@ -12,7 +12,7 @@ It is built on Next.js 15, Supabase (PostgreSQL, Auth, Storage, row level
 security) and the Anthropic API, in English and Arabic with full RTL.
 
 **Live:** https://unimate-pied.vercel.app
-**Demo sign-in:** `danah.hamad@demo.unimate.app` / `UniMateDemo2026!`
+**Demo sign-in:** `dana.hamad@demo.unimate.app` / `UniMateDemo2026!`
 
 The deployment runs against a Supabase project seeded with the demo data
 below. AI features are off there until an `ANTHROPIC_API_KEY` is added — the
@@ -46,7 +46,10 @@ rest of the app works without one.
 | **Timetable scanner** | Photograph or upload a schedule. The courses read out of it appear as editable cards with per-field confidence flags. Nothing is saved until you confirm. |
 | **Courses** | Full CRUD. A detail page that walks course → assessments → tasks → syllabus → syllabus events on one screen. |
 | **Grades** | Live weighted grade, the exact average needed on what remains, and a plain statement when a target is out of reach plus what is still achievable. GPA calculator with row-by-row working. Editable grading scale. |
-| **Study AI** | Practice questions written from your own course and syllabus topics, in four modes and four difficulty settings, including adaptive. Every answer is recorded and feeds the next set's difficulty. |
+| **Study groups** | Matching, not a noticeboard. UniMate already holds every student's timetable, so it computes the hours a group is *all* free — an interval intersection over the members' classes, unit-tested, ranked by how full and how long each window is — and books one as a meeting. Attendance is recorded per person, and each member's turn-up rate is derived from it. Discovery is scoped to your own university; timetables cross between students as anonymous blocks through a security-definer function, never as rows. |
+| **Study AI** | Practice questions written from your own course and syllabus topics, in four modes and four difficulty settings, including adaptive, and in the question style you pick — multiple choice, true/false, or mixed. Every answer is recorded and feeds the next set's difficulty. |
+| **Flashcards** | Reached from a course's Practice tab, alongside the two written question styles. Cards you write, scheduled by Leitner boxes: recall one and it climbs a box and waits 1, 2, 4, 9 then 21 days; miss it and it drops to box 1 and returns the same day. A finished deck run counts as a practice session, so it feeds the streak. |
+| **Notes** | Checklists with reminders, and a note you would want to open: four paper patterns, seven tints tuned separately for light and dark, and twelve drawn stickers you drag anywhere on the page (or nudge with the arrow keys). Paper and stickers are stored as keys, never CSS, and validated on the way in and the way out. |
 | **Syllabus centre** | Upload a PDF, Word file or photo. Topics, assessment weights and dated deadlines are extracted, and you can ask the document questions. |
 | **Planner** | Light, balanced and intensive semester plans side by side, each stating its trade-off. Timetable conflicts are computed, not guessed. |
 | **Tasks** | Manual and AI-generated tasks, grouped by urgency. |
@@ -55,6 +58,8 @@ rest of the app works without one.
 | **Records** | Every table UniMate holds, with real delete, plus the AI activity log and the data cleaning log. |
 | **Momentum** | A daily streak, XP and levels, an activity heatmap, 18 achievements and a Pomodoro focus timer — all earned from work that leaves a record. Plus a Semester Wrapped card you can save as an image. |
 | **Assistant** | A chat that answers from your records, and says so when the answer is not in them. |
+| **Hub** | Your own launch page: projects, university pages and anything else you keep hunting for, grouped and pinnable. Rows in your database, so you edit it in the app rather than in a deploy. Addresses are constrained to https by the database, not only the form. |
+| **Automation** | The five workflows laid out in the order they happen, each showing what triggers it, what it produces, and its real run history from `ai_runs`. Plus the webhook endpoints and whether they are switched on. |
 
 ### Two rules the whole product is built around
 
@@ -121,10 +126,12 @@ Run in this order if applying by hand:
 | `supabase/migrations/0001_schema.sql` | 15 tables, enums, foreign keys, indexes, the new-user trigger |
 | `supabase/migrations/0002_rls.sql` | Row level security on every table, forced, with anon grants revoked |
 | `supabase/migrations/0003_storage.sql` | Two private buckets with per-user folder policies |
-| `supabase/migrations/0004_momentum.sql` | Activity days and achievements, for streaks and XP |
-| `supabase/migrations/0005_study_layer.sql` | Study plans, flashcards, the streak roll-up, and the `assessments` / `study_tasks` / `quiz_attempts` views |
-| `supabase/migrations/0006_notes.sql` | Notes and their checklist lines, with per-line reminders |
-| `supabase/migrations/0007_coach.sql` | Milestones and the coaching log, plus the degree length on the profile |
+| `supabase/migrations/0004_momentum.sql` | Activity days, achievements and the streak columns on `profiles` |
+| `supabase/migrations/0005_flashcards.sql` | The flashcards table, its Leitner columns, and the same forced RLS |
+| `supabase/migrations/0006_hub.sql` | The hub links table, an https-only check on the address, and the same forced RLS |
+| `supabase/migrations/0009_notes.sql` | Notes and their checklist lines, with per-line reminders |
+| `supabase/migrations/0014_study_layer.sql` | Study plans, the streak roll-up, and the `assessments` / `study_tasks` / `quiz_attempts` views |
+| `supabase/migrations/0015_coach.sql` | Milestones and the coaching log, plus the degree length on the profile |
 
 ### The data model
 
@@ -140,7 +147,7 @@ auth.users
         │           └── study_plan_items ──► study_tasks / study_sessions
         ├── study_tasks        to-dos, optionally tied to a course
         ├── syllabi ──► syllabus_events ──► reminders
-        ├── flashcards         spaced-repetition recall practice
+        ├── flashcards         Leitner-box recall practice
         └── study_sessions
               └── questions ──► quiz_attempts
   └── notes ──► note_items         free checklist lines, each with a reminder
@@ -181,7 +188,7 @@ worked.
 psql "$DATABASE_URL" -f supabase/seed/seed.sql
 ```
 
-This creates Danah Hamad's account and a full semester of coherent records.
+This creates Dana Hamad's account and a full semester of coherent records.
 It is safe to re-run — it deletes the demo user first. Every row it writes is
 flagged `is_demo = true`, and the interface labels it as demonstration data.
 
@@ -442,12 +449,12 @@ There is a full manual checklist in [`docs/TESTING.md`](docs/TESTING.md).
 
 If you ran the seed:
 
-- **Email** `danah.hamad@demo.unimate.app`
+- **Email** `dana.hamad@demo.unimate.app`
 - **Password** `UniMateDemo2026!`
 
 This account is already seeded on the live deployment above.
 
-Danah Hamad, Computer Engineering at Kuwait University, year 3. Eight
+Dana Hamad, Computer Engineering at Kuwait University, year 3. Eight
 completed courses, five active, 22 assessments, two syllabi, seven logged AI
 runs and seven cleaning decisions. Her record has a deliberate shape — strong
 in programming and digital-systems courses, weaker in pure maths — so the

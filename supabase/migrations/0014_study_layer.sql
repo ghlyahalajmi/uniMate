@@ -1,8 +1,8 @@
 -- =============================================================================
--- UniMate — 0005 study layer
+-- UniMate — 0014 study layer
 --
 -- Completes the backend contract with the three tables the earlier migrations
--- never had — study_plans, flashcards and streaks — and publishes the agreed
+-- never had — study_plans and streaks — and publishes the agreed
 -- names for the three that already exist under different ones.
 --
 -- Nothing here renames or drops an existing table: `grades`, `tasks` and
@@ -10,6 +10,9 @@
 -- the agreed names are exposed as updatable views over them instead. A view
 -- declared `security_invoker` runs the base table's own policies as the caller,
 -- so reading `assessments` is exactly as isolated as reading `grades`.
+--
+-- Flashcards are deliberately not here: main already defines them in
+-- 0005_flashcards.sql with Leitner boxes, and that is the one the app uses.
 -- =============================================================================
 
 create type public.study_plan_status as enum ('active','completed','archived');
@@ -68,41 +71,6 @@ create table public.study_plan_items (
 );
 create index study_plan_items_plan_idx on public.study_plan_items (plan_id, position);
 create index study_plan_items_user_idx  on public.study_plan_items (user_id, scheduled_on);
-
--- ---------------------------------------------------------------------------
--- flashcards — self-contained recall practice, scheduled by SM-2 style review.
---
--- The scheduling state lives on the card rather than in a separate review log:
--- a student only ever needs the next due date, and one row per card keeps the
--- "what is due today" query a single indexed scan.
--- ---------------------------------------------------------------------------
-create table public.flashcards (
-  id               uuid primary key default gen_random_uuid(),
-  user_id          uuid not null references auth.users (id) on delete cascade,
-  course_id        uuid references public.courses (id) on delete cascade,
-  deck             text,
-  topic            text,
-  front            text not null,
-  back             text not null,
-  difficulty       public.difficulty_level not null default 'medium',
-  -- Review state. `ease` follows SM-2: 1.30 is the floor a hard card sinks to.
-  repetitions      int  not null default 0 check (repetitions >= 0),
-  interval_days    int  not null default 0 check (interval_days >= 0),
-  ease             numeric(4,2) not null default 2.50 check (ease >= 1.30 and ease <= 3.00),
-  due_on           date not null default current_date,
-  last_reviewed_at timestamptz,
-  times_seen       int not null default 0 check (times_seen >= 0),
-  times_correct    int not null default 0 check (times_correct >= 0),
-  source           public.record_source not null default 'manual',
-  is_demo          boolean not null default false,
-  created_at       timestamptz not null default now(),
-  updated_at       timestamptz not null default now(),
-  constraint flashcards_correct_within_seen check (times_correct <= times_seen)
-);
-create index flashcards_user_due_idx on public.flashcards (user_id, due_on);
-create index flashcards_course_idx   on public.flashcards (course_id);
-create trigger flashcards_touch before update on public.flashcards
-  for each row execute function public.touch_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- streaks — one row per student, derived from activity_days.
@@ -276,7 +244,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['study_plans','study_plan_items','flashcards','streaks']
+  foreach t in array array['study_plans','study_plan_items','streaks']
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('alter table public.%I force row level security', t);
@@ -296,7 +264,7 @@ begin
   end loop;
 end $$;
 
-revoke all on public.study_plans, public.study_plan_items, public.flashcards, public.streaks from anon;
+revoke all on public.study_plans, public.study_plan_items, public.streaks from anon;
 
 -- ---------------------------------------------------------------------------
 -- Agreed names for the tables that already existed under different names.
@@ -319,3 +287,7 @@ grant select, insert, update, delete
   on public.assessments, public.study_tasks, public.quiz_attempts
   to authenticated;
 revoke all on public.assessments, public.study_tasks, public.quiz_attempts from anon;
+
+-- 0012 revoked these; this migration replaces the function, so they are
+-- restated rather than left to CREATE OR REPLACE's grant-preserving behaviour.
+revoke all on function public.handle_new_user() from public, anon, authenticated;
