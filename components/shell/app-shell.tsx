@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { UniMateLogo } from '@/components/brand/logo';
+import { MateBotFace } from '@/components/brand/mate-bot';
 import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, type NavItem } from './nav-config';
@@ -75,11 +75,27 @@ export function AppShell({ children, user }: ShellProps) {
           </span>
         </button>
 
+        {/*
+          Mate himself in the bar, the same character the landing page opens
+          with — not the mortarboard mark, which is the logo he was drawn out
+          of. The head alone rather than the whole figure: he is built in two
+          shapes precisely because a character drawn for a 220px hero turns to
+          mud at 26, and this bar is 56 tall.
+        */}
         <Link
           href="/dashboard"
-          className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]"
+          aria-label={t.brand.name}
+          className="group inline-flex items-center gap-2 min-h-[40px] rounded-[var(--radius-sm)]"
         >
-          <UniMateLogo size={26} name={t.brand.name} />
+          <span
+            aria-hidden="true"
+            className="grid place-items-center transition-transform duration-200 ease-out group-hover:scale-110 group-active:scale-95"
+          >
+            <MateBotFace size={28} />
+          </span>
+          <span className="font-display font-semibold wordmark text-[1.05rem]">
+            {t.brand.name}
+          </span>
         </Link>
 
         <div className="ms-auto flex items-center gap-1">
@@ -171,7 +187,14 @@ export function AppShell({ children, user }: ShellProps) {
             )}
           >
             <div className="flex items-center justify-between px-4 h-14 border-b border-[var(--border-subtle)]">
-              <UniMateLogo size={26} name={t.brand.name} />
+              {/* The same face as the bar behind it, so opening the menu does
+                  not change who is standing at the top of the app. */}
+              <span className="inline-flex items-center gap-2">
+                <MateBotFace size={26} />
+                <span className="font-display font-semibold wordmark text-[1.05rem]">
+                  {t.brand.name}
+                </span>
+              </span>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
