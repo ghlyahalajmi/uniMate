@@ -18,7 +18,7 @@ console.log('\nreading a saved avatar');
 
 check('keeps every choice it recognises', () => {
   const saved = {
-    figure: 'boy', skin: 'olive', hair: 'curly', hairColour: 'auburn',
+    figure: 'male', skin: 'olive', hair: 'curly', hairColour: 'auburn',
     face: 'wink', extra: 'glasses', outfit: 'dishdasha', backdrop: 'mint',
   };
   assert.deepEqual(parseAvatar(saved), saved);
@@ -38,6 +38,15 @@ check('a design saved before figure and outfit existed still reads', () => {
   assert.equal(out.backdrop, 'mint');
   assert.equal(out.figure, DEFAULT_AVATAR.figure);
   assert.equal(out.outfit, DEFAULT_AVATAR.outfit);
+});
+
+check('the old girl/boy figures are no longer accepted', () => {
+  // Renamed to female/male and migrated in 0022. A design still carrying the
+  // old word must fall back rather than draw something arbitrary.
+  assert.equal(parseAvatar({ figure: 'girl' }).figure, DEFAULT_AVATAR.figure);
+  assert.equal(parseAvatar({ figure: 'boy' }).figure, DEFAULT_AVATAR.figure);
+  assert.equal(parseAvatar({ figure: 'female' }).figure, 'female');
+  assert.equal(parseAvatar({ figure: 'male' }).figure, 'male');
 });
 
 check('the Kuwaiti options are ordinary values, not special cases', () => {

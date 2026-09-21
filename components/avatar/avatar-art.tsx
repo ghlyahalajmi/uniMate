@@ -193,10 +193,10 @@ export function AvatarArt({
  * white rectangle behind a head.
  */
 function Body({ figure, outfit }: { figure: Figure; outfit: Outfit }) {
-  const girl = figure === 'girl';
-  const rx = girl ? 18 : 21;
-  const ry = girl ? 13 : 14;
-  const cy = girl ? 64 : 63;
+  const narrow = figure === 'female';
+  const rx = narrow ? 18 : 21;
+  const ry = narrow ? 13 : 14;
+  const cy = narrow ? 64 : 63;
 
   switch (outfit) {
     case 'dishdasha':
@@ -253,12 +253,61 @@ function Body({ figure, outfit }: { figure: Figure; outfit: Outfit }) {
 
 function BackHair({ hair, colour }: { hair: Hair; colour: string }) {
   switch (hair) {
-    case 'long':   return <ellipse cx="32" cy="34" rx="17" ry="20" fill={colour} />;
-    case 'wavy':   return <ellipse cx="32" cy="32" rx="16" ry="17" fill={colour} />;
+    // Straight: a centre panel and two lengths falling either side of the
+    // face, ending flat. It was an ellipse before, which is a round blob —
+    // it had neither length nor a straight edge, so nothing about it read as
+    // straight hair.
+    case 'long':
+      return (
+        <path
+          d="M15 33 C15 16 22 10 32 10 C42 10 49 16 49 33 L49 58 L41 58 L41 31
+             C41 22 37 18 32 18 C27 18 23 22 23 31 L23 58 L15 58 Z"
+          fill={colour}
+        />
+      );
+
+    // Wavy: the same lengths, ending in scallops instead of a straight cut.
+    // The waves are discs along the hem rather than a curved path — a curve
+    // that subtle disappears at 28px, three bumps do not.
+    // Waves run *down* the hair, so the silhouette of each fall has to bend
+    // in and out along its length. Bobbles hung on a straight cut — which is
+    // what this was — read as beads, not as waves.
+    case 'wavy':
+      return (
+        <path
+          d="M32 10 C42 10 49 16 49 33
+             C49 38 45 40 49 45 C53 50 47 52 49 57
+             L41 57 C39 52 44 50 41 45 C38 40 41 38 41 31
+             C41 22 37 18 32 18 C27 18 23 22 23 31
+             C23 38 26 40 23 45 C20 50 25 52 23 57
+             L15 57 C17 52 11 50 15 45 C19 40 15 38 15 33
+             C15 16 22 10 32 10 Z"
+          fill={colour}
+        />
+      );
     case 'curly':  return <ellipse cx="32" cy="27" rx="16.5" ry="16" fill={colour} />;
-    case 'hijab':  return <ellipse cx="32" cy="34" rx="18" ry="21" fill={colour} />;
+    // Down past the shoulders and round under the chin. A short ellipse left
+    // the jaw and the sides of the neck bare, which is not what a hijab does.
+    case 'hijab':
+      return (
+        <path
+          d="M32 9 C44 9 51 18 51 32 C51 44 49 52 47 60 L17 60
+             C15 52 13 44 13 32 C13 18 20 9 32 9 Z"
+          fill={colour}
+        />
+      );
     case 'ghutra': return <ellipse cx="32" cy="34" rx="18" ry="21" fill="#f2efe7" />;
-    case 'shmagh': return <ellipse cx="32" cy="34" rx="18" ry="21" fill="#f0dcd8" />;
+    // A shmagh drapes: it falls to the shoulders either side of the face, and
+    // that fall is where the check lives. An ellipse the size of the head left
+    // no cloth to put a pattern on.
+    case 'shmagh':
+      return (
+        <path
+          d="M32 9 C44 9 51 18 51 32 C51 44 49 52 47 60 L17 60
+             C15 52 13 44 13 32 C13 18 20 9 32 9 Z"
+          fill="#f6efe9"
+        />
+      );
     default:       return null;
   }
 }
@@ -282,45 +331,97 @@ function FrontHair({ hair, colour }: { hair: Hair; colour: string }) {
     case 'bun':
       return (
         <g fill={colour}>
-          <circle cx="32" cy="10" r="5.5" />
+          {/* Sitting on the crown, not hovering over it. At cy=10 it cleared
+              the top of the head entirely and read as a balloon on a string. */}
+          <circle cx="32" cy="13.5" r="5" />
           <path d="M19 28c0-9 6-13 13-13s13 4 13 13c0-5-5-7-13-7s-13 2-13 7Z" />
         </g>
       );
+    // A centre parting, which is what makes long hair look deliberate rather
+    // than like a helmet with a face cut out of it.
     case 'long':
-      return <path d="M19 28c0-10 6-14 13-14s13 4 13 14c0-6-5-8-13-8s-13 2-13 8Z" fill={colour} />;
+      return (
+        <path
+          d="M19 29c0-10 6-15 13-15s13 5 13 15c-1-7-4-10-7-11l-6 4l-6-4c-3 1-6 4-7 11Z"
+          fill={colour}
+        />
+      );
+
+    // Swept to one side and back, so the wave is visible on the face rather
+    // than only along the hem.
     case 'wavy':
-      return <path d="M19 28c0-9 6-14 13-14s13 5 13 14c-2-4-5-6-13-6s-11 2-13 6Z" fill={colour} />;
+      return (
+        <path
+          d="M19 29 C19 19 25 14 32 14 C39 14 45 19 45 29
+             C43 24 40 22 37 22 C34 25 30 25 27 23 C24 24 21 26 19 29 Z"
+          fill={colour}
+        />
+      );
     case 'hijab':
-      // A frame around the face, not a fringe: the covering *is* the hairline,
-      // so no hair shows through it.
-      return <path d="M32 12c-11 0-17 8-17 18h6c0-8 4-13 11-13s11 5 11 13h6c0-10-6-18-17-18Z" fill={colour} />;
+      // The opening is an oval around the face itself, so the cloth meets the
+      // cheeks and the chin rather than stopping at the temples. Drawn as one
+      // shape with the face cut out of it, using evenodd.
+      return (
+        <path
+          fillRule="evenodd"
+          d="M32 9 C44 9 51 18 51 32 C51 44 49 52 47 60 L17 60
+             C15 52 13 44 13 32 C13 18 20 9 32 9 Z
+             M32 17 C25 17 21 23 21 30 C21 38 26 44 32 44 C38 44 43 38 43 30
+             C43 23 39 17 32 17 Z"
+          fill={colour}
+        />
+      );
     case 'ghutra':
       return (
         <g>
           <path d="M32 12c-11 0-17 8-17 18h6c0-8 4-13 11-13s11 5 11 13h6c0-10-6-18-17-18Z" fill="#f2efe7" />
           {/* The agal: two black cords, not one band. That doubling is what
               makes it an agal rather than a headband, and it reads even at
-              28px because the gap between the cords is the shape. */}
-          <rect x="15" y="10.5" width="34" height="3" rx="1.5" fill="#15130f" />
-          <rect x="15" y="15" width="34" height="3" rx="1.5" fill="#15130f" />
+              28px because the gap between the cords is the shape.
+              Sat at y=10 it floated clear above the cloth; it belongs on the
+              crown, and narrower than the cloth so the ends do not stick out. */}
+          <rect x="17" y="14.5" width="30" height="2.8" rx="1.4" fill="#15130f" />
+          <rect x="17" y="18.4" width="30" height="2.8" rx="1.4" fill="#15130f" />
         </g>
       );
 
     case 'shmagh':
       return (
         <g>
-          <path d="M32 12c-11 0-17 8-17 18h6c0-8 4-13 11-13s11 5 11 13h6c0-10-6-18-17-18Z" fill="#f0dcd8" />
-          {/* The red check, suggested rather than drawn thread by thread —
-              a lattice at this size is mud, a few crossings is a shmagh. */}
-          <g stroke="#b4342c" strokeWidth="1.1" opacity="0.9">
-            <path d="M18 18 L24 12" /><path d="M24 22 L32 12" /><path d="M32 22 L40 12" />
-            <path d="M40 22 L46 15" />
-            <path d="M16 20 H48" /><path d="M17 25 H47" />
+          {/*
+            A shmagh is a red-and-white check, and the check has to sit on
+            cloth. The drape is cut out around the face the same way the hijab
+            is, so the pattern can be drawn on the two falls and across the
+            crown without a single line landing on a cheek — no clip to slip,
+            no lattice generated at render time.
+          */}
+          <path
+            fillRule="evenodd"
+            d="M32 9 C44 9 51 18 51 32 C51 44 49 52 47 60 L17 60
+               C15 52 13 44 13 32 C13 18 20 9 32 9 Z
+               M32 17 C25 17 21 23 21 30 C21 38 26 44 32 44 C38 44 43 38 43 30
+               C43 23 39 17 32 17 Z"
+            fill="#f6efe9"
+          />
+
+          <g stroke="#b4342c" strokeWidth="0.9" opacity="0.9" strokeLinecap="round">
+            {/* The left fall */}
+            <path d="M14 22 L21 29" /><path d="M14 27 L21 34" /><path d="M14 32 L21 39" /><path d="M14 37 L21 44" /><path d="M14 42 L21 49" /><path d="M14 47 L21 54" />
+            <path d="M14 29 L21 22" /><path d="M14 34 L21 27" /><path d="M14 39 L21 32" /><path d="M14 44 L21 37" /><path d="M14 49 L21 42" /><path d="M14 54 L21 47" />
+            {/* The right fall */}
+            <path d="M43 22 L50 29" /><path d="M43 27 L50 34" /><path d="M43 32 L50 39" /><path d="M43 37 L50 44" /><path d="M43 42 L50 49" /><path d="M43 47 L50 54" />
+            <path d="M43 29 L50 22" /><path d="M43 34 L50 27" /><path d="M43 39 L50 32" /><path d="M43 44 L50 37" /><path d="M43 49 L50 42" /><path d="M43 54 L50 47" />
+            {/* Across the crown, above the agal */}
+            <path d="M24 14.2 L28 11" /><path d="M28 14.2 L32 11" /><path d="M32 14.2 L36 11" /><path d="M36 14.2 L40 11" />
+            <path d="M24 11 L28 14.2" /><path d="M28 11 L32 14.2" /><path d="M32 11 L36 14.2" /><path d="M36 11 L40 14.2" />
           </g>
-          <rect x="15" y="10.5" width="34" height="3" rx="1.5" fill="#15130f" />
-          <rect x="15" y="15" width="34" height="3" rx="1.5" fill="#15130f" />
+
+          {/* The agal, over the cloth and over the check. */}
+          <rect x="17" y="14.5" width="30" height="2.8" rx="1.4" fill="#15130f" />
+          <rect x="17" y="18.4" width="30" height="2.8" rx="1.4" fill="#15130f" />
         </g>
       );
+
     default:
       return null;
   }

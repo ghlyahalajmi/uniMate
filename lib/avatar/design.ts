@@ -30,7 +30,7 @@ export type Hair = (typeof HAIRS)[number];
  * Nobody is required to match it to anything — a student can pick either and
  * put whatever they like on top.
  */
-export const FIGURES = ['girl', 'boy'] as const;
+export const FIGURES = ['female', 'male'] as const;
 export type Figure = (typeof FIGURES)[number];
 
 /**
@@ -74,7 +74,7 @@ export interface AvatarDesign {
 }
 
 export const DEFAULT_AVATAR: AvatarDesign = {
-  figure: 'girl',
+  figure: 'female',
   skin: 'sand',
   hair: 'short',
   hairColour: 'black',
@@ -121,30 +121,30 @@ export function parseAvatar(raw: unknown): AvatarDesign {
  */
 export const PRESETS: ReadonlyArray<{ key: string; design: AvatarDesign }> = [
   {
-    key: 'kuwaitiGirl',
+    key: 'kuwaitiFemale',
     design: {
-      figure: 'girl', skin: 'sand', hair: 'hijab', hairColour: 'black',
+      figure: 'female', skin: 'sand', hair: 'hijab', hairColour: 'black',
       face: 'smile', extra: 'none', outfit: 'abaya', backdrop: 'sadu',
     },
   },
   {
-    key: 'kuwaitiBoy',
+    key: 'kuwaitiMale',
     design: {
-      figure: 'boy', skin: 'tan', hair: 'ghutra', hairColour: 'black',
+      figure: 'male', skin: 'tan', hair: 'ghutra', hairColour: 'black',
       face: 'calm', extra: 'none', outfit: 'dishdasha', backdrop: 'towers',
     },
   },
   {
     key: 'darraa',
     design: {
-      figure: 'girl', skin: 'olive', hair: 'long', hairColour: 'black',
+      figure: 'female', skin: 'olive', hair: 'long', hairColour: 'black',
       face: 'grin', extra: 'earrings', outfit: 'darraa', backdrop: 'dhow',
     },
   },
   {
     key: 'graduate',
     design: {
-      figure: 'girl', skin: 'bronze', hair: 'curly', hairColour: 'black',
+      figure: 'female', skin: 'bronze', hair: 'curly', hairColour: 'black',
       face: 'grin', extra: 'glasses', outfit: 'graduation', backdrop: 'violet',
     },
   },
