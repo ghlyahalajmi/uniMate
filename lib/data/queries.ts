@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type {
-  AiRun, CleaningLogEntry, Course, Grade, GradeScaleEntry, Profile,
+  AiRun, CleaningLogEntry, Course, CourseMaterial, Grade, GradeScaleEntry, Profile,
   Note, NoteItem, NoteWithItems,
   Question, Reminder, Schedule, ScheduleCourse, StudySession, Syllabus,
   SyllabusEvent, Task, Weekday,
@@ -49,6 +49,21 @@ export async function getCourses(): Promise<Course[]> {
     .order('status')
     .order('course_code');
   return (data as Course[]) ?? [];
+}
+
+/**
+ * The files uploaded against one course, in the student's own order.
+ *
+ * Study AI reads these, so the order matters: chapters should come back in
+ * teaching order, not upload order.
+ */
+export async function getCourseMaterials(courseId?: string): Promise<CourseMaterial[]> {
+  const supabase = await createClient();
+  const userId = await requireUserId();
+  let q = supabase.from('course_materials').select('*').eq('user_id', userId);
+  if (courseId) q = q.eq('course_id', courseId);
+  const { data } = await q.order('position').order('created_at');
+  return (data as CourseMaterial[]) ?? [];
 }
 
 export async function getCourse(id: string): Promise<Course | null> {

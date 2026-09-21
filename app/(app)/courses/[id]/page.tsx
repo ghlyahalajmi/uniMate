@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import {
-  getCourse, getGrades, getTasks, getSyllabi, getSyllabusEvents,
+  getCourse, getCourseMaterials, getGrades, getTasks, getSyllabi, getSyllabusEvents,
   getQuestions, getGradeScale,
 } from '@/lib/data/queries';
 import { getDeck } from '@/lib/flashcards/queries';
@@ -31,9 +31,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   // against the browser's, which is the one the student is living in.
   const today = new Date().toISOString().slice(0, 10);
 
-  const [grades, tasks, syllabi, events, questions, scale, deck] = await Promise.all([
+  const [grades, tasks, syllabi, events, questions, scale, deck, materials] = await Promise.all([
     getGrades(id), getTasks(id), getSyllabi(id), getSyllabusEvents(id), getQuestions(id, 12), getGradeScale(),
-    getDeck(today, id),
+    getDeck(today, id), getCourseMaterials(id),
   ]);
 
   const breakdown = computeCourseGrade(grades, scale);
@@ -47,6 +47,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       syllabus={syllabi[0] ?? null}
       events={events}
       questions={questions}
+      materials={materials}
       breakdown={breakdown}
       target={{
         verdict: target.verdict as string,

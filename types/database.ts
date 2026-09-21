@@ -113,6 +113,23 @@ export interface Grade {
   updated_at: string;
 }
 
+/** A slide deck, chapter handout or set of notes uploaded against a course. */
+export interface CourseMaterial {
+  id: string;
+  user_id: string;
+  course_id: string;
+  /** What the student calls this chapter. Defaults to the filename. */
+  title: string;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  size_bytes: number | null;
+  position: number;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Syllabus {
   id: string;
   user_id: string;

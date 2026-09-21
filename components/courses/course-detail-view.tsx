@@ -14,13 +14,16 @@ import { CourseFormModal } from './course-form';
 import { CourseTile } from './course-tile';
 import { CourseContacts } from './course-contacts';
 import { CoursePractice } from './course-practice';
-import type { Course, Grade, Question, Syllabus, SyllabusEvent, Task } from '@/types/database';
+import type {
+  Course, CourseMaterial, Grade, Question, Syllabus, SyllabusEvent, Task,
+} from '@/types/database';
+import { CourseMaterials } from './course-materials';
 import type { CourseGradeBreakdown } from '@/lib/calculations/grades';
 
-type Tab = 'overview' | 'assessments' | 'syllabus' | 'practice' | 'tasks';
+type Tab = 'overview' | 'assessments' | 'materials' | 'syllabus' | 'practice' | 'tasks';
 
 export function CourseDetailView({
-  course, grades, tasks, syllabus, events, questions,
+  course, grades, tasks, syllabus, events, questions, materials,
   breakdown, target, bestReachable, scaleLetters, deck, aiEnabled,
 }: {
   course: Course;
@@ -29,6 +32,8 @@ export function CourseDetailView({
   syllabus: Syllabus | null;
   events: SyllabusEvent[];
   questions: Question[];
+  /** The slides and handouts this course is taught from. */
+  materials: CourseMaterial[];
   breakdown: CourseGradeBreakdown;
   target: {
     verdict: string; targetLetter: string | null; targetPercent: number | null;
@@ -54,6 +59,7 @@ export function CourseDetailView({
   const tabs: Array<{ key: Tab; label: string; count?: number }> = [
     { key: 'overview', label: t.courseDetail.overview },
     { key: 'assessments', label: t.courseDetail.assessments, count: grades.length },
+    { key: 'materials', label: t.materials.tab, count: materials.length },
     { key: 'syllabus', label: t.courseDetail.syllabus, count: events.length },
     { key: 'practice', label: t.practice.tab, count: deck.total + questions.length },
     { key: 'tasks', label: t.courseDetail.tasksTab, count: openTasks.length },
@@ -281,6 +287,10 @@ export function CourseDetailView({
           weightTotal={breakdown.totalDefinedWeight}
           onChanged={() => router.refresh()}
         />
+      ) : null}
+
+      {tab === 'materials' ? (
+        <CourseMaterials courseId={course.id} materials={materials} />
       ) : null}
 
       {tab === 'syllabus' ? (
