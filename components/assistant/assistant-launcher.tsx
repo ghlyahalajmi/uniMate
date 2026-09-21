@@ -27,15 +27,14 @@ import { MateBotFace } from '@/components/brand/mate-bot';
  * He hides himself on `/assistant` — a button that takes you to the page you
  * are already reading is noise, and there he would sit over the composer.
  */
-export function AssistantLauncher({ aiEnabled }: { aiEnabled: boolean }) {
+export function AssistantLauncher() {
   const { t } = useI18n();
   const pathname = usePathname();
 
-  // With no API key there is nothing behind him: a floating button that opens
-  // a page saying the feature is switched off is worse than no button. The
-  // assistant keeps its sidebar entry, which explains the state in words.
-  if (!aiEnabled) return null;
-
+  // Shown whether or not an API key is configured. Without one the page he
+  // opens says so in a sentence, which is a better answer than a corner that
+  // is sometimes empty: the way to the assistant should be in the same place
+  // every time you look for it.
   if (pathname === '/assistant' || pathname.startsWith('/assistant/')) return null;
 
   return (
