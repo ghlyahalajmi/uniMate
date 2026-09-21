@@ -6,6 +6,8 @@ import {
 import { cumulativeGpa, semesterGpa } from '@/lib/calculations/gpa';
 import { computeCourseGrade, requiredForTarget } from '@/lib/calculations/grades';
 import { getMomentum } from '@/lib/momentum/queries';
+import { getNotes } from '@/lib/data/queries';
+import { WEEKDAYS } from '@/lib/groups/availability';
 import { getJourneyData } from '@/lib/coach/view';
 import { DashboardView } from '@/components/dashboard/dashboard-view';
 
@@ -16,14 +18,54 @@ export default async function DashboardPage() {
   const profile = await getProfile();
   if (profile && !profile.onboarding_completed) redirect('/onboarding');
 
-  const [courses, grades, tasks, events, scale, momentum, journey] = await Promise.all([
+  const [courses, grades, tasks, events, scale, momentum, journey, notes] = await Promise.all([
     getCourses(), getGrades(), getTasks(), getSyllabusEvents(), getGradeScale(), getMomentum(4),
     // The coaching loop starts on the screen students land on, not only on
     // /journey. A failure here must never take the dashboard down with it.
     getJourneyData().catch(() => null),
+    getNotes(),
   ]);
 
   const byCourse = groupGradesByCourse(grades);
+
+  /**
+   * The last seven days as the streak board draws them, read straight from
+   * activity_days: a day is lit when it earned XP, which is the same rule the
+   * momentum engine counts a streak by.
+   *
+   * Built from the server's date and corrected in the browser is not worth it
+   * here — a day either has a row or it does not, and the row is keyed by the
+   * date the activity was recorded under.
+   */
+  const earned = new Set(momentum.days.filter((d) => d.xp > 0).map((d) => d.day));
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    const iso = toIso(d);
+    return {
+      day: WEEKDAYS[d.getDay()],
+      active: earned.has(iso),
+      isToday: iso === todayIso,
+      isFuture: iso > todayIso,
+    };
+  });
+
+  /** The next round run worth aiming at: 3, 7, 14, 30, 60, 100 days. */
+  const nextTarget = [3, 7, 14, 30, 60, 100].find((n) => n > momentum.streak.current) ?? null;
+
+  // Only the notes the student pinned. Nothing here decides for them.
+  const homeNotes = notes
+    .filter((n) => n.show_on_home)
+    .slice(0, 4)
+    .map((n) => ({
+      id: n.id,
+      title: n.title,
+      preview: n.items.filter((i) => !i.is_done).slice(0, 3).map((i) => i.content).filter(Boolean),
+      done: n.items.filter((i) => i.is_done).length,
+      total: n.items.length,
+      theme: typeof n.theme === 'string' ? n.theme : 'plain',
+      tint: typeof n.color === 'string' ? n.color : 'default',
+    }));
   const active = courses.filter((c) => c.status === 'active');
   const today = new Date();
   const todayKey = weekdayOf(today);
@@ -161,15 +203,23 @@ export default async function DashboardPage() {
         activeCourses: active.length,
       }}
       progress={progress}
-      momentum={
+      homeNotes={homeNotes}
+      streak={
         profile?.momentum_enabled === false
           ? null
           : {
               current: momentum.streak.current,
+              longest: momentum.streak.longest,
               atRisk: momentum.streak.atRisk,
               activeToday: momentum.streak.activeToday,
               level: momentum.level.level,
-              xpToday: momentum.xpToday,
+              week,
+              tasksCompleted: momentum.totals.tasksCompleted,
+              studyMinutes: momentum.totals.focusMinutes,
+              activeDays: momentum.totals.activeDays,
+              milestone: nextTarget === null
+                ? null
+                : { target: nextTarget, toGo: nextTarget - momentum.streak.current },
             }
       }
       coach={

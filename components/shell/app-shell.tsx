@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n/provider';
 import { UniMateLogo } from '@/components/brand/logo';
 import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
-import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-config';
+import { NAV_ITEMS, type NavItem } from './nav-config';
 import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
 import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 
@@ -29,6 +29,8 @@ export function AppShell({ children, user }: ShellProps) {
   }, [drawerOpen]);
 
   const mobilePrimary = NAV_ITEMS.filter((i) => i.primaryMobile);
+  const primary = NAV_ITEMS.filter((i) => i.primary);
+  const secondary = NAV_ITEMS.filter((i) => !i.primary);
 
   return (
     <div className="min-h-dvh">
@@ -50,7 +52,18 @@ export function AppShell({ children, user }: ShellProps) {
 
         <nav className="flex-1 overflow-y-auto px-3 pb-3">
           <ul className="space-y-0.5">
-            {NAV_ITEMS.map((item) => (
+            {primary.map((item) => (
+              <li key={item.href}>
+                <NavLink item={item} active={isActive(pathname, item.href)} />
+              </li>
+            ))}
+          </ul>
+
+          <p className="px-3 pt-5 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            {t.nav.more}
+          </p>
+          <ul className="space-y-0.5">
+            {secondary.map((item) => (
               <li key={item.href}>
                 <NavLink item={item} active={isActive(pathname, item.href)} />
               </li>
@@ -59,7 +72,6 @@ export function AppShell({ children, user }: ShellProps) {
         </nav>
 
         <div className="px-3 py-3 border-t border-[var(--border-subtle)] space-y-0.5">
-          <NavLink item={SETTINGS_ITEM} active={isActive(pathname, SETTINGS_ITEM.href)} />
           <LanguageSwitcher />
           <ThemeToggle />
           <UserChip user={user} />
@@ -120,7 +132,21 @@ export function AppShell({ children, user }: ShellProps) {
             </div>
             <nav className="flex-1 overflow-y-auto p-3">
               <ul className="space-y-0.5">
-                {NAV_ITEMS.map((item) => (
+                {primary.map((item) => (
+                  <li key={item.href}>
+                    <NavLink
+                      item={item}
+                      active={isActive(pathname, item.href)}
+                      onNavigate={() => setDrawerOpen(false)}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p className="px-3 pt-5 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {t.nav.more}
+              </p>
+              <ul className="space-y-0.5">
+                {secondary.map((item) => (
                   <li key={item.href}>
                     <NavLink
                       item={item}
@@ -132,11 +158,6 @@ export function AppShell({ children, user }: ShellProps) {
               </ul>
             </nav>
             <div className="p-3 border-t border-[var(--border-subtle)] space-y-0.5">
-              <NavLink
-                item={SETTINGS_ITEM}
-                active={isActive(pathname, SETTINGS_ITEM.href)}
-                onNavigate={() => setDrawerOpen(false)}
-              />
               <LanguageSwitcher />
               <UserChip user={user} />
             </div>
@@ -171,24 +192,31 @@ export function AppShell({ children, user }: ShellProps) {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cx(
-                'flex flex-col items-center justify-center gap-0.5 min-h-[58px] px-1',
-                'text-xs font-medium transition-colors',
+                'group flex flex-col items-center justify-center gap-1 min-h-[58px] px-1',
+                'text-xs font-medium transition-colors duration-200',
                 active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]',
               )}
             >
-              <Glyph size={21} />
-              <span className="truncate max-w-full">{item.label(t)}</span>
+              {/*
+                The pill is what carries the selection on a phone: a 12px label
+                in a tint nobody asked them to compare is not a state, and the
+                icon alone moving is too subtle at arm's length.
+              */}
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'grid place-items-center w-12 h-7 rounded-full',
+                  'transition-[background,transform] duration-200 ease-out',
+                  'group-active:scale-90',
+                  active ? 'bg-[var(--bg-accent-soft)] scale-105' : 'scale-100',
+                )}
+              >
+                <Glyph size={20} />
+              </span>
+              <span className="truncate max-w-full leading-none">{item.label(t)}</span>
             </Link>
           );
         })}
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 min-h-[58px] px-1 text-xs font-medium text-[var(--text-muted)]"
-        >
-          <Icon.menu size={21} />
-          <span>{t.nav.menu}</span>
-        </button>
       </nav>
 
       {/*
@@ -213,8 +241,8 @@ function NavLink({
   const Glyph = Icon[item.icon];
 
   const className = cx(
-    'flex items-center gap-3 px-3 min-h-[40px] rounded-[var(--radius-sm)]',
-    'text-sm font-medium transition-colors duration-150',
+    'group relative flex items-center gap-3 px-3 min-h-[42px] rounded-[var(--radius-sm)]',
+    'text-sm font-medium transition-[background,color] duration-200',
     active
       ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]'
       : 'text-[var(--text-secondary)] hover:bg-[var(--bg-inset)] hover:text-[var(--text-primary)]',
@@ -222,7 +250,34 @@ function NavLink({
 
   const body = (
     <>
-      <Glyph size={19} />
+      {/*
+        The marker on the start edge, not a colour change alone: it survives a
+        colour-blind reading and it is the thing the eye tracks as the page
+        changes. It scales from nothing rather than sliding, so there is no
+        direction to get wrong when the page flips to Arabic.
+      */}
+      <span
+        aria-hidden="true"
+        className={cx(
+          'absolute inset-y-1.5 -start-3 w-[3px] rounded-full bg-[var(--accent)]',
+          'origin-center transition-transform duration-200',
+          active ? 'scale-y-100' : 'scale-y-0',
+        )}
+      />
+      {/*
+        The icon grows a little on hover and a little more once the page is
+        the current one — enough to feel answered, not enough to move the row.
+      */}
+      <span
+        aria-hidden="true"
+        className={cx(
+          'grid place-items-center transition-transform duration-200 ease-out',
+          'group-hover:scale-110 group-active:scale-95',
+          active && 'scale-110',
+        )}
+      >
+        <Glyph size={19} />
+      </span>
       <span className="truncate">{item.label(t)}</span>
       {item.external ? (
         <Icon.external size={13} className="ms-auto shrink-0 text-[var(--text-muted)]" />

@@ -466,6 +466,30 @@ export async function setNoteDesign(
   }
 }
 
+/**
+ * Pin a note to the home screen, or unpin it.
+ *
+ * Its own action rather than a field on the design one: this is the student
+ * saying where a note belongs, and it should not travel with a debounced
+ * write that exists to batch up typing.
+ */
+export async function setNoteOnHome(id: string, onHome: boolean): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('notes')
+      .update({ show_on_home: onHome, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return { ok: false, messageKey: 'noteSaveError' };
+
+    revalidatePath('/notes');
+    revalidatePath('/dashboard');
+    return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
 export async function deleteNote(id: string): Promise<ActionState> {
   try {
     const supabase = await createClient();

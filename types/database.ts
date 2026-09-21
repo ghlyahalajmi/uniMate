@@ -403,6 +403,8 @@ export interface Note {
   theme: string;
   /** Placed stickers, as stored: validated on read by lib/notes/design. */
   stickers: unknown;
+  /** The student pinned this note to the home screen. Never set for them. */
+  show_on_home: boolean;
   position: number;
   is_archived: boolean;
   is_demo: boolean;

@@ -304,7 +304,22 @@ export function CourseDetailView({
           ) : (
             <>
               <Card>
-                <CardHeader title={syllabus.file_name ?? t.courseDetail.syllabus} subtitle={syllabus.summary ?? undefined} />
+                <CardHeader
+                  title={syllabus.file_name ?? t.courseDetail.syllabus}
+                  subtitle={syllabus.summary ?? undefined}
+                  action={
+                    // The syllabus workspace has no sidebar entry any more: a
+                    // syllabus describes one course, so the way in is the
+                    // course it belongs to.
+                    <Link
+                      href={`/syllabi?course=${course.id}`}
+                      className="inline-flex items-center gap-1.5 min-h-[32px] text-[0.8125rem] font-medium text-[var(--accent-soft-text)] hover:underline"
+                    >
+                      {t.syllabi.title}
+                      <Icon.chevronEnd size={14} className="flip-rtl" />
+                    </Link>
+                  }
+                />
                 <dl className="grid sm:grid-cols-2 gap-4 text-sm">
                   {syllabus.office_hours ? (
                     <div>

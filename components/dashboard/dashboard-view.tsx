@@ -6,10 +6,10 @@ import { Badge, Card, CardHeader, ProgressBar, cx } from '@/components/ui/primit
 import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { InsightPanel } from './insight-panel';
-import { StreakStrip } from './streak-strip';
+import { StreakBoard, type StreakBoardData } from './streak-board';
+import { HomeNotes, type HomeNote } from './home-notes';
 import { TimeGreeting } from './time-greeting';
 import { DaypartGlow } from './daypart-glow';
-import { XP_RULES } from '@/lib/momentum/engine';
 import { CoachStrip, type CoachStripData } from './coach-strip';
 
 interface ClassRow { id: string; code: string; name: string; start: string | null; end: string | null; room: string | null }
@@ -23,7 +23,7 @@ interface ProgressRow {
 
 export function DashboardView({
   name, isDemo, hasAnyCourse, todayClasses, todayTasks, openTaskCount,
-  upcoming, snapshot, progress, momentum, focus, coach,
+  upcoming, snapshot, progress, streak, focus, coach, homeNotes,
 }: {
   name: string | null;
   isDemo: boolean;
@@ -41,8 +41,10 @@ export function DashboardView({
     reason: 'overdue' | 'today' | 'class' | 'exam'; days: number | null;
   } | null;
   progress: ProgressRow[];
-  momentum: { current: number; atRisk: boolean; activeToday: boolean; level: number; xpToday: number } | null;
+  streak: StreakBoardData | null;
   coach: CoachStripData | null;
+  /** Only the notes the student pinned to this screen. */
+  homeNotes: HomeNote[];
 }) {
   const { t, tf, formatTime, formatNumber } = useI18n();
 
@@ -102,13 +104,20 @@ export function DashboardView({
         ) : null}
       </div>
 
-      {momentum ? (
+      {streak ? (
         <div className="mb-5">
-          <StreakStrip {...momentum} dailyCap={XP_RULES.dailyCap} />
+          <StreakBoard data={streak} />
         </div>
       ) : null}
 
       {coach ? <CoachStrip data={coach} /> : null}
+
+      {/* Only what the student pinned from Notes — never every note. */}
+      {homeNotes.length > 0 ? (
+        <div className="mb-5">
+          <HomeNotes notes={homeNotes} />
+        </div>
+      ) : null}
 
       {/* Snapshot ---------------------------------------------------------- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">

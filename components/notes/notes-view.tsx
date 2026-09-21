@@ -11,7 +11,7 @@ import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import {
   addNoteItem, createNote, deleteNote, deleteNoteItem,
-  renameNote, setNoteDesign, setNoteItemDone, updateNoteItem,
+  renameNote, setNoteDesign, setNoteItemDone, setNoteOnHome, updateNoteItem,
 } from '@/lib/data/actions';
 import {
   clampSticker, MAX_STICKERS, parseDesign, tiltFor,
@@ -62,6 +62,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
   const [notes, setNotes] = useState<NoteWithItems[]>(initial);
   const [deleting, setDeleting] = useState<NoteWithItems | null>(null);
   const [creating, startCreate] = useTransition();
+  const [, startWrite] = useTransition();
 
   // Which line to focus once it has been rendered. Set when a line is added so
   // that pressing Enter lands the cursor on the new line, as it would in a
@@ -121,6 +122,17 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
     scheduleSave(`design:${noteId}`, async () => {
       const res = await setNoteDesign(noteId, design);
       if (!res.ok) failed();
+    });
+  }
+
+  function onToggleHome(noteId: string, onHome: boolean) {
+    setNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, show_on_home: onHome } : n)));
+    startWrite(async () => {
+      const res = await setNoteOnHome(noteId, onHome);
+      if (!res.ok) {
+        setNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, show_on_home: !onHome } : n)));
+        failed();
+      }
     });
   }
 
@@ -300,6 +312,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
               onDeleteLine={(item) => onDeleteLine(note.id, item)}
               onDelete={() => setDeleting(note)}
               onDesign={(design) => onDesignNote(note.id, design)}
+              onToggleHome={(onHome) => onToggleHome(note.id, onHome)}
             />
           ))}
         </div>
@@ -320,7 +333,7 @@ export function NotesView({ notes: initial }: { notes: NoteWithItems[] }) {
 function NoteCard({
   note, now, focusId, onFocused,
   onRename, onRenameBlur, onAddLine, onEditLine, onEditBlur,
-  onToggleLine, onSetReminder, onDeleteLine, onDelete, onDesign,
+  onToggleLine, onSetReminder, onDeleteLine, onDelete, onDesign, onToggleHome,
 }: {
   note: NoteWithItems;
   now: number;
@@ -336,6 +349,7 @@ function NoteCard({
   onDeleteLine: (item: NoteItem) => void;
   onDelete: () => void;
   onDesign: (design: NoteDesign) => void;
+  onToggleHome: (onHome: boolean) => void;
 }) {
   const { t, tf } = useI18n();
   const done = note.items.filter((i) => i.is_done).length;
@@ -452,9 +466,48 @@ function NoteCard({
         <p className="text-sm text-[var(--text-muted)]">{t.notes.emptyLines}</p>
       ) : null}
 
-      <Button variant="ghost" size="sm" onClick={() => onAddLine()} className="self-start">
-        <Icon.plus size={15} /> {t.notes.addLine}
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={() => onAddLine()}>
+          <Icon.plus size={15} /> {t.notes.addLine}
+        </Button>
+
+        {/*
+          Pinning is the student's call, so it is a switch on the note itself
+          rather than a rule the home screen applies to them. It says what it
+          does in words, because a pin glyph alone does not distinguish "pinned
+          here" from "pinned to the home screen".
+        */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={note.show_on_home}
+          onClick={() => onToggleHome(!note.show_on_home)}
+          className={cx(
+            'group inline-flex items-center gap-2 px-2.5 min-h-[36px] rounded-full',
+            'text-xs font-medium transition-colors duration-200',
+            note.show_on_home
+              ? 'text-[var(--accent-soft-text)] bg-[var(--bg-accent-soft)]'
+              : 'text-[var(--text-muted)] hover:bg-[var(--bg-inset)]',
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={cx(
+              'relative w-8 h-[18px] rounded-full transition-colors duration-200',
+              note.show_on_home ? 'bg-[var(--accent)]' : 'bg-[var(--border-strong)]',
+            )}
+          >
+            <span
+              className={cx(
+                'absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-[var(--shadow-card)]',
+                'transition-[inset-inline-start] duration-200 ease-out',
+                note.show_on_home ? 'start-[16px]' : 'start-[2px]',
+              )}
+            />
+          </span>
+          {t.notes.showOnHome}
+        </button>
+      </div>
     </Card>
 
     {designing ? (
