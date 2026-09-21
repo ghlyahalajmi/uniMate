@@ -35,9 +35,32 @@ export function TasksView({
   const [deleting, setDeleting] = useState<Task | null>(null);
   const [, startTransition] = useTransition();
 
-  const visible = tasks.filter((tk) =>
-    filter === 'all' ? true : filter === 'open' ? tk.status !== 'completed' : tk.status === 'completed',
-  );
+  /**
+   * What the student has just ticked, before the server has caught up.
+   *
+   * The box used to wait for a round trip and a page refresh before it changed
+   * at all, and it never checked whether the write succeeded — so a slow
+   * connection looked exactly like a dead button, and a genuine failure looked
+   * the same again. It now flips at once and is corrected only if the server
+   * disagrees.
+   *
+   * Each override remembers the status it was based on, which is what lets it
+   * expire by itself: the moment the server stops showing that old value the
+   * override is spent and the row falls back to the truth. No effect, no
+   * cleanup pass, and no way for a stale override to freeze a row against a
+   * change made somewhere else.
+   */
+  const [optimistic, setOptimistic] = useState<Record<string, { from: TaskStatus; to: TaskStatus }>>({});
+
+  const statusOf = (tk: Task): TaskStatus => {
+    const pending = optimistic[tk.id];
+    return pending && tk.status === pending.from ? pending.to : tk.status;
+  };
+
+  const visible = tasks.filter((tk) => {
+    const status = statusOf(tk);
+    return filter === 'all' ? true : filter === 'open' ? status !== 'completed' : status === 'completed';
+  });
 
   // The day boundaries are fixed for this page load rather than re-read on
   // every render, which keeps the grouping stable and the render pure.
@@ -78,9 +101,27 @@ export function TasksView({
    * status field; it is just no longer in the way of ticking something off.
    */
   function cycleStatus(tk: Task) {
-    const next: TaskStatus = tk.status === 'completed' ? 'todo' : 'completed';
+    const was = statusOf(tk);
+    const next: TaskStatus = was === 'completed' ? 'todo' : 'completed';
+
+    // Flip now. The student pressed it; the box should say so before the
+    // network has an opinion.
+    setOptimistic((prev) => ({ ...prev, [tk.id]: { from: tk.status, to: next } }));
+
     startTransition(async () => {
       const result = await setTaskStatus(tk.id, next, new Date().getTimezoneOffset());
+
+      // Put it back if the write did not land, and say why. Silence here is
+      // what made a failure indistinguishable from a button that does nothing.
+      if (!result.ok) {
+        setOptimistic((prev) => {
+          const next = { ...prev };
+          delete next[tk.id];
+          return next;
+        });
+        toast.error(t.errors.generic);
+        return;
+      }
 
       // Ticking something off should feel like it landed.
       const m = result.momentum;
@@ -161,36 +202,39 @@ export function TasksView({
                 <span className="ms-2 tabular-nums">{group.items.length}</span>
               </h2>
               <ul className="space-y-2">
-                {group.items.map((tk) => (
+                {group.items.map((tk) => {
+                  // Read through the override so a tick shows instantly.
+                  const status = statusOf(tk);
+                  return (
                   <Card as="li" key={tk.id} padded={false} className="p-3.5">
                     <div className="flex items-start gap-3">
                       <button
                         type="button"
                         role="checkbox"
-                        aria-checked={tk.status === 'completed'}
+                        aria-checked={status === 'completed'}
                         onClick={() => cycleStatus(tk)}
-                        aria-label={tk.status === 'completed' ? t.tasks.markTodo : t.tasks.markComplete}
+                        aria-label={status === 'completed' ? t.tasks.markTodo : t.tasks.markComplete}
                         // The visible box stays 20px; the tappable area around
                         // it does not, because a 20px target on a phone is a
                         // checkbox that misses more often than it lands.
                         style={{ padding: '6px', margin: '-6px' }}
                         className={cx(
                           'mt-0.5 w-5 h-5 box-content shrink-0 rounded-[6px] border-2 grid place-items-center transition-colors',
-                          tk.status === 'completed'
+                          status === 'completed'
                             ? 'bg-[var(--positive)] border-[var(--positive)] text-white'
-                            : tk.status === 'in_progress'
+                            : status === 'in_progress'
                               ? 'border-[var(--accent)] text-[var(--accent)]'
                               : 'border-[var(--border-strong)] hover:border-[var(--accent)]',
                         )}
                       >
-                        {tk.status === 'completed' ? <Icon.check size={13} /> : null}
-                        {tk.status === 'in_progress' ? (
+                        {status === 'completed' ? <Icon.check size={13} /> : null}
+                        {status === 'in_progress' ? (
                           <span aria-hidden="true" className="w-2 h-2 rounded-full bg-[var(--accent)]" />
                         ) : null}
                       </button>
 
                       <div className="min-w-0 flex-1">
-                        <p className={cx('text-sm font-medium leading-snug', tk.status === 'completed' && 'line-through text-[var(--text-muted)]')}>
+                        <p className={cx('text-sm font-medium leading-snug', status === 'completed' && 'line-through text-[var(--text-muted)]')}>
                           {tk.title}
                         </p>
                         {tk.description ? (
@@ -237,7 +281,8 @@ export function TasksView({
                       </div>
                     </div>
                   </Card>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           ))}
