@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check:responsive": "node scripts/responsive-check.mjs",
-    "test:calc": "tsc -p tsconfig.test.json && node .test-build/lib/calculations/__tests__/calculations.test.js && node .test-build/lib/validation/__tests__/cleaning.test.js && node .test-build/lib/momentum/__tests__/momentum.test.js && node .test-build/lib/flashcards/__tests__/scheduler.test.js && node .test-build/lib/hub/__tests__/format.test.js && node .test-build/lib/time/__tests__/greeting.test.js && node .test-build/lib/groups/__tests__/availability.test.js && node .test-build/lib/notes/__tests__/design.test.js && node .test-build/lib/coach/__tests__/coach.test.js && node .test-build/lib/syllabus/__tests__/apply.test.js",
+    "test:calc": "tsc -p tsconfig.test.json && node .test-build/lib/calculations/__tests__/calculations.test.js && node .test-build/lib/validation/__tests__/cleaning.test.js && node .test-build/lib/momentum/__tests__/momentum.test.js && node .test-build/lib/flashcards/__tests__/scheduler.test.js && node .test-build/lib/hub/__tests__/format.test.js && node .test-build/lib/time/__tests__/greeting.test.js && node .test-build/lib/groups/__tests__/availability.test.js && node .test-build/lib/notes/__tests__/design.test.js && node .test-build/lib/coach/__tests__/coach.test.js && node .test-build/lib/syllabus/__tests__/apply.test.js && node .test-build/lib/ai/__tests__/json.test.js",
     "test:e2e": "node scripts/e2e-smoke.mjs"
   },
   "dependencies": {

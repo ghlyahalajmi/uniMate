@@ -210,9 +210,28 @@ them; and that the anonymous role can read nothing at all.
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-or-anon-key
-ANTHROPIC_API_KEY=sk-ant-...          # optional
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# AI is optional, and either provider turns on every agent. Set one:
+ANTHROPIC_API_KEY=sk-ant-...           # Anthropic directly, used first if both are set
+OPENROUTER_API_KEY=sk-or-...           # or route through OpenRouter
 ```
+
+### Choosing an AI provider
+
+Both are optional — without either, every screen still works and each agent
+falls back to its deterministic path.
+
+- **`ANTHROPIC_API_KEY`** is the one the prompts were written against, and
+  takes precedence when both are present.
+- **`OPENROUTER_API_KEY`** routes the same calls through OpenRouter, which
+  fronts many models behind one key. `OPENROUTER_MODEL` picks the model and
+  defaults to `openrouter/auto`; set it to any model id OpenRouter lists,
+  including a `:free` one, to run the AI features at no cost.
+
+A Claude, ChatGPT or similar *subscription* cannot be used here. Those cover
+the chat apps, not programmatic access, so a deployed site has no way to
+authenticate against them — hence an API key from one provider or the other.
 
 ### Local Supabase (optional)
 
@@ -233,9 +252,11 @@ data already loaded. It needs Docker.
    |---|---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | all | |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | all | Safe in the browser; RLS is the boundary |
-   | `ANTHROPIC_API_KEY` | all | Server only. Never prefix with `NEXT_PUBLIC_` |
+   | `ANTHROPIC_API_KEY` | optional | Server only. Never prefix with `NEXT_PUBLIC_` |
+   | `OPENROUTER_API_KEY` | optional | Alternative to the above; server only |
    | `NEXT_PUBLIC_SITE_URL` | all | Your deployed URL, for auth emails |
    | `ANTHROPIC_MODEL` | optional | Defaults to `claude-opus-5` |
+   | `OPENROUTER_MODEL` | optional | Defaults to `openrouter/auto` |
    | `WORKFLOW_WEBHOOK_SECRET` | optional | Enables the automation webhooks |
    | `SUPABASE_SERVICE_ROLE_KEY` | optional | Required only by those webhooks |
 
