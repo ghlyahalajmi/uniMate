@@ -23,10 +23,16 @@ export const STUDENT_HUB_URL =
   'https://myport-git-claude-upbeat-bohr-312ris-t021551-3544.vercel.app/hub';
 
 /**
- * Flashcards are deliberately absent: a deck belongs to a course, so the way
- * in is the course's own Practice tab, alongside the two written formats.
- * `/flashcards` still exists and still takes a `?course=` — nothing links to
- * it from the sidebar.
+ * Three things are deliberately absent from this list, because each belongs
+ * inside something else rather than beside it:
+ *
+ *   * Flashcards — a deck belongs to a course, so the way in is that course's
+ *     Practice tab, alongside the two written question styles.
+ *   * The Hub and Study groups — both are things you do *with* the class, so
+ *     the way in is the Student Hub, which is where the class already is.
+ *
+ * All three routes still exist and are still linked to; none of them needs a
+ * sidebar icon of its own.
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', icon: 'dashboard', label: (t) => t.nav.dashboard, primaryMobile: true },
@@ -36,7 +42,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/notes',     icon: 'notes',     label: (t) => t.nav.notes },
   { href: '/momentum',  icon: 'flame',     label: (t) => t.nav.momentum },
   { href: '/study',     icon: 'study',     label: (t) => t.nav.study },
-  { href: '/groups',    icon: 'groups',    label: (t) => t.nav.groups },
   { href: '/planner',   icon: 'planner',   label: (t) => t.nav.planner },
   { href: '/syllabi',   icon: 'syllabi',   label: (t) => t.nav.syllabi },
   { href: '/calendar',  icon: 'calendar',  label: (t) => t.nav.calendar },
@@ -44,7 +49,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/records',   icon: 'records',   label: (t) => t.nav.records },
   { href: '/assistant', icon: 'assistant', label: (t) => t.nav.assistant },
   { href: '/automation', icon: 'automation', label: (t) => t.nav.automation },
-  { href: '/hub',       icon: 'hub',        label: (t) => t.nav.hub },
   { href: '/student-hub', icon: 'students', label: (t) => t.nav.studentHub },
 ];
 

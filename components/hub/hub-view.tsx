@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
@@ -69,6 +70,18 @@ export function HubView({ links }: { links: LinkRow[] }) {
 
   return (
     <>
+      {/* The sidebar has no entry for this page: it is reached from the Student
+          Hub, so the way back is named rather than left to the Back button. */}
+      <div className="mb-2">
+        <Link
+          href="/student-hub"
+          className="inline-flex items-center gap-1.5 min-h-[32px] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        >
+          <Icon.chevronEnd size={15} className="rotate-180 flip-rtl" />
+          {t.hub.studentHubTitle}
+        </Link>
+      </div>
+
       <PageHeader title={t.hub.title} subtitle={t.hub.subtitle} action={addButton} />
 
       {links.length === 0 ? (

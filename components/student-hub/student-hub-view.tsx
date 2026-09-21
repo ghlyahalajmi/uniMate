@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
@@ -20,8 +21,23 @@ import type { LinkRow } from '@/components/hub/hub-view';
 
 const EMPTY: ActionState = {};
 
-export function StudentHubView({ links, board }: { links: LinkRow[]; board: LeaderboardRow[] }) {
-  const { t } = useI18n();
+export interface GroupCard {
+  id: string;
+  title: string;
+  courseCode: string;
+  memberCount: number;
+  maxMembers: number;
+}
+
+export function StudentHubView({
+  links, board, myLinks, groups,
+}: {
+  links: LinkRow[];
+  board: LeaderboardRow[];
+  myLinks: LinkRow[];
+  groups: GroupCard[];
+}) {
+  const { t, tf, formatNumber } = useI18n();
   const router = useRouter();
   const toast = useToast();
 
@@ -68,6 +84,56 @@ export function StudentHubView({ links, board }: { links: LinkRow[]; board: Lead
         {/* Who is keeping their run going --------------------------------- */}
         <StreakBoard rows={board} />
 
+        {/* Who you study with --------------------------------------------- */}
+        <Card>
+          <CardHeader
+            title={t.groups.title}
+            subtitle={t.groups.subtitle}
+            action={
+              <Link
+                href="/groups"
+                className="inline-flex items-center gap-1.5 min-h-[32px] text-[0.8125rem] font-medium text-[var(--accent-soft-text)] hover:underline"
+              >
+                {groups.length > 0 ? t.common.viewAll : t.groups.find}
+                <Icon.chevronEnd size={14} className="flip-rtl" />
+              </Link>
+            }
+          />
+
+          {groups.length === 0 ? (
+            <EmptyState
+              title={t.groups.none}
+              body={t.groups.noneBody}
+              icon={<Icon.groups size={24} />}
+              action={<Button onClick={() => router.push('/groups')}>{t.groups.find}</Button>}
+              compact
+            />
+          ) : (
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {groups.slice(0, 4).map((g) => (
+                <li key={g.id} className="min-w-0">
+                  <Link
+                    href={`/groups/${g.id}`}
+                    className="h-full flex flex-col gap-1.5 p-3 rounded-[var(--radius-md)] border
+                               border-[var(--border-subtle)] hover:border-[var(--accent)]
+                               hover:bg-[var(--bg-accent-soft)] transition-colors"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Badge tone="accent">{g.courseCode}</Badge>
+                      <span className="text-sm font-medium truncate">{g.title}</span>
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                      {tf(t.groups.membersOf, {
+                        n: formatNumber(g.memberCount), max: formatNumber(g.maxMembers),
+                      })}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
         {/* Shared links --------------------------------------------------- */}
         <Card>
           <CardHeader title={t.hub.classLinks} subtitle={t.hub.classLinksSub} />
@@ -93,6 +159,56 @@ export function StudentHubView({ links, board }: { links: LinkRow[]; board: Lead
                 </li>
               ))}
             </ul>
+          )}
+        </Card>
+
+        {/* Your own links -------------------------------------------------- */}
+        <Card>
+          <CardHeader
+            title={t.hub.myLinks}
+            subtitle={t.hub.myLinksSub}
+            action={
+              <Link
+                href="/hub"
+                className="inline-flex items-center gap-1.5 min-h-[32px] text-[0.8125rem] font-medium text-[var(--accent-soft-text)] hover:underline"
+              >
+                {t.hub.openHub}
+                <Icon.chevronEnd size={14} className="flip-rtl" />
+              </Link>
+            }
+          />
+
+          {myLinks.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">{t.hub.noLinks}</p>
+          ) : (
+            <>
+              <ul className="flex flex-wrap gap-2">
+                {[...myLinks]
+                  .sort((a, b) => Number(b.isPinned) - Number(a.isPinned))
+                  .slice(0, 6)
+                  .map((l) => (
+                    <li key={l.id}>
+                      <a
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border
+                                   border-[var(--border-subtle)] text-[0.8125rem]
+                                   hover:border-[var(--border-strong)] transition-colors"
+                      >
+                        <span className="max-w-[12rem] truncate">{l.title}</span>
+                        <Icon.external size={13} className="shrink-0 text-[var(--text-muted)]" />
+                        <span className="sr-only">{t.hub.opensNewTab}</span>
+                      </a>
+                    </li>
+                  ))}
+              </ul>
+              <p className="text-xs text-[var(--text-muted)] mt-3 tabular-nums">
+                {myLinks.length === 1
+                  ? t.hub.linkCountOne
+                  : tf(t.hub.linkCount, { n: formatNumber(myLinks.length) })}
+              </p>
+            </>
           )}
         </Card>
       </div>

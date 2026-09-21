@@ -80,6 +80,18 @@ export function GroupsView({
 
   return (
     <>
+      {/* The sidebar has no entry for this page: it is reached from the Student
+          Hub, so the way back is named rather than left to the Back button. */}
+      <div className="mb-2">
+        <Link
+          href="/student-hub"
+          className="inline-flex items-center gap-1.5 min-h-[32px] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        >
+          <Icon.chevronEnd size={15} className="rotate-180 flip-rtl" />
+          {t.hub.studentHubTitle}
+        </Link>
+      </div>
+
       <PageHeader
         title={t.groups.title}
         subtitle={t.groups.subtitle}
