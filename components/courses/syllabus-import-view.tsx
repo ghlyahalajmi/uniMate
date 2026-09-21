@@ -68,6 +68,8 @@ interface Draft {
   saveError?: 'duplicate_course' | 'invalid_course' | 'save_failed';
   /** Set once this one is safely in the database. */
   savedId?: string;
+  /** A demonstration row. Never saved, never counted as pending. */
+  preview?: boolean;
 }
 
 interface ReadResult {
@@ -107,18 +109,25 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
    * one while they can still take a file out — finding out afterwards, on a
    * review screen four times longer than expected, is a worse way to learn it.
    */
+  const showingExample = drafts.some((d) => d.preview);
+
   const groups = groupSyllabuses(
     pages.map((p) => ({ name: p.file.name, type: p.file.type, id: p.id })),
     (n) => tf(t.syllabusImport.photoGroup, { n }),
   );
 
-  if (!aiEnabled) {
-    return (
-      <>
-        <PageHeader title={t.syllabusImport.title} subtitle={t.syllabusImport.subtitle} />
-        <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
-      </>
-    );
+  /**
+   * Fill the review step with a worked example.
+   *
+   * Without a provider the screen used to stop at a banner, which meant the
+   * part worth looking at — a card per syllabus, the doubt markers, the file
+   * each course came from — could not be seen at all. The sample is marked as
+   * a sample and cannot be saved; it exists so the interface can be judged
+   * before anyone pays for a key.
+   */
+  function showExample() {
+    setDrafts(EXAMPLE_DRAFTS);
+    setPhase('review');
   }
 
   function addFiles(incoming: FileList | File[]) {
@@ -157,6 +166,9 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
 
   async function read() {
     if (pages.length === 0) return;
+    // Nothing to call yet. Say so where the student pressed, rather than
+    // letting the request come back with a error they did not cause.
+    if (!aiEnabled) { setError(t.ai.unavailableBody); setPhase('error'); return; }
     setPhase('reading');
     setError(null);
 
@@ -220,7 +232,7 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
 
   /** Everything still on screen that has a course and has not already saved. */
   function pending(): Draft[] {
-    return drafts.filter((d) => d.course !== null && !d.savedId);
+    return drafts.filter((d) => d.course !== null && !d.savedId && !d.preview);
   }
 
   async function save() {
@@ -320,6 +332,22 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
 
       {phase === 'idle' || phase === 'error' ? (
         <div className="space-y-4">
+          {!aiEnabled ? (
+            <>
+              <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+              <Card>
+                <CardHeader
+                  title={t.syllabusImport.previewTitle}
+                  subtitle={t.syllabusImport.previewBody}
+                />
+                <Button variant="secondary" onClick={showExample}>
+                  <Icon.sparkle size={17} />
+                  {t.syllabusImport.previewOpen}
+                </Button>
+              </Card>
+            </>
+          ) : null}
+
           {phase === 'error' && error ? (
             <ErrorState message={error} onRetry={() => { setPhase('idle'); setError(null); }} retryLabel={t.common.retry} />
           ) : null}
@@ -455,33 +483,123 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
             />
           ))}
 
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sticky bottom-20 lg:bottom-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sticky bottom-20 lg:bottom-4">
+            {showingExample ? (
+              <p className="text-xs text-[var(--text-muted)] sm:me-auto">
+                {t.syllabusImport.previewLocked}
+              </p>
+            ) : null}
             <Button
               variant="secondary"
               onClick={() => { setPhase('idle'); setDrafts([]); setPages([]); }}
             >
               {t.common.cancel}
             </Button>
-            <Button
-              onClick={save}
-              loading={phase === 'saving'}
-              loadingLabel={t.common.saving}
-              disabled={
-                pending().length === 0 ||
-                pending().some((d) => !d.course?.course_code.trim() || !d.course?.course_name.trim())
-              }
-            >
-              <Icon.check size={17} />
-              {pending().length === 1
-                ? t.syllabusImport.createCourse
-                : tf(t.syllabusImport.createAll, { n: pending().length })}
-            </Button>
+            {showingExample ? null : (
+              <Button
+                onClick={save}
+                loading={phase === 'saving'}
+                loadingLabel={t.common.saving}
+                disabled={
+                  pending().length === 0 ||
+                  pending().some((d) => !d.course?.course_code.trim() || !d.course?.course_name.trim())
+                }
+              >
+                <Icon.check size={17} />
+                {pending().length === 1
+                  ? t.syllabusImport.createCourse
+                  : tf(t.syllabusImport.createAll, { n: pending().length })}
+              </Button>
+            )}
           </div>
         </div>
       ) : null}
     </>
   );
 }
+
+/**
+ * A worked example of a two-syllabus upload.
+ *
+ * Invented on purpose and marked as invented: one course read cleanly, one
+ * with fields the reader was unsure about and a normalisation it had to make,
+ * and a third file it could not read at all — because those three outcomes
+ * side by side are what the screen is actually for.
+ *
+ * `preview: true` is what stops it being saved. Nothing here ever reaches the
+ * database, and no real student's record is used to demonstrate the feature.
+ */
+const EXAMPLE_DRAFTS: Draft[] = [
+  {
+    id: 'example-1',
+    source: 'CE301-syllabus.pdf',
+    photoCount: 0,
+    preview: true,
+    failed: false,
+    notes: [],
+    cleaning: [],
+    course: {
+      course_code: 'CE301',
+      course_name: 'Digital Signal Processing',
+      credits: 3,
+      semester: 'Fall 2026',
+      days: ['sunday', 'tuesday'],
+      start_time: '10:00',
+      end_time: '11:15',
+      room: 'Room 204',
+      instructor: {
+        name: 'Dr. Noura Al-Sabah',
+        email: 'n.alsabah@ku.edu.kw',
+        office: 'Engineering Block 2, Room 114',
+        office_hours: 'Sun & Tue 12:00-13:30',
+      },
+      ta: { name: 'Yousef Al-Rashid', email: null, office: null, office_hours: null },
+      uncertainFields: [],
+    },
+  },
+  {
+    id: 'example-2',
+    source: 'MATH201.pdf',
+    photoCount: 0,
+    preview: true,
+    failed: false,
+    notes: ['The syllabus does not state a room for the tutorial session.'],
+    cleaning: [
+      { field: 'credits', original: '3 Credit Hours', cleaned: '3', reason: 'Read as a number' },
+      { field: 'days', original: 'Mon / Wed', cleaned: 'monday, wednesday', reason: 'Expanded to full weekdays' },
+    ],
+    course: {
+      course_code: 'MATH201',
+      course_name: 'Differential Equations',
+      credits: 3,
+      semester: 'Fall 2026',
+      days: ['monday', 'wednesday'],
+      start_time: '12:00',
+      end_time: '13:15',
+      room: null,
+      instructor: {
+        name: 'Prof. Hamad Al-Otaibi',
+        email: 'h.alotaibi@ku.edu.kw',
+        office: null,
+        office_hours: 'By appointment',
+      },
+      ta: { name: null, email: null, office: null, office_hours: null },
+      // The doubt markers are the point of the review screen, so the example
+      // shows them rather than pretending every read is clean.
+      uncertainFields: ['room', 'instructor_office'],
+    },
+  },
+  {
+    id: 'example-3',
+    source: 'scan-photo.pdf',
+    photoCount: 0,
+    preview: true,
+    failed: true,
+    notes: [],
+    cleaning: [],
+    course: null,
+  },
+];
 
 /** The course fields flattened into the shape the API and the manual form share. */
 function serialiseCourse(course: ReadCourse) {
@@ -539,7 +657,9 @@ function DraftCard({
               {draft.failed ? t.syllabusImport.fileUnreadable : t.syllabusImport.noCourseInFile}
             </p>
           </div>
-          <Badge tone="warning" className="shrink-0">{t.common.notSet}</Badge>
+          <Badge tone={draft.preview ? 'neutral' : 'warning'} className="shrink-0">
+            {draft.preview ? t.syllabusImport.previewBadge : t.common.notSet}
+          </Badge>
         </div>
       </Card>
     );
@@ -560,7 +680,9 @@ function DraftCard({
             <p className="text-sm text-[var(--text-secondary)] truncate">{course.course_name}</p>
             <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{origin}</p>
           </div>
-          {saved ? (
+          {draft.preview ? (
+            <Badge tone="neutral" className="shrink-0">{t.syllabusImport.previewBadge}</Badge>
+          ) : saved ? (
             <Badge tone="positive" className="shrink-0">{t.syllabi.completed}</Badge>
           ) : (
             <button

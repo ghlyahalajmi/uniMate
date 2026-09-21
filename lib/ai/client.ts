@@ -3,6 +3,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import {
   OPENROUTER_MODEL, callStructuredViaOpenRouter, callTextViaOpenRouter,
 } from './openrouter';
+import {
+  GATEWAY_MODEL, isGatewayAvailable, callStructuredViaGateway, callTextViaGateway,
+} from './vercel-gateway';
 
 /**
  * Which service the agents talk to.
@@ -15,11 +18,15 @@ import {
  * Null means neither is configured, which stays a supported state: every agent
  * has a deterministic fallback and the product works without AI.
  */
-export type AiProvider = 'anthropic' | 'openrouter';
+export type AiProvider = 'anthropic' | 'openrouter' | 'gateway';
 
 export function aiProvider(): AiProvider | null {
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
   if (process.env.OPENROUTER_API_KEY) return 'openrouter';
+  // Last, because it is the one nobody chose: a Vercel deployment with OIDC
+  // federation on can reach the gateway with no key at all, so this is what
+  // turns the AI features on when nothing has been configured.
+  if (isGatewayAvailable()) return 'gateway';
   return null;
 }
 
@@ -34,7 +41,9 @@ export const AI_MODEL = process.env.ANTHROPIC_API_KEY
   ? ANTHROPIC_MODEL
   : process.env.OPENROUTER_API_KEY
     ? OPENROUTER_MODEL
-    : ANTHROPIC_MODEL;
+    : isGatewayAvailable()
+      ? GATEWAY_MODEL
+      : ANTHROPIC_MODEL;
 
 let cached: Anthropic | null = null;
 
@@ -84,6 +93,7 @@ export async function callStructured<T>(opts: StructuredCallOptions): Promise<T>
   const provider = aiProvider();
   if (provider === null) throw new Error('AI_NOT_CONFIGURED');
   if (provider === 'openrouter') return callStructuredViaOpenRouter<T>(opts);
+  if (provider === 'gateway') return callStructuredViaGateway<T>(opts);
 
   const client = getAnthropic();
   if (!client) throw new Error('AI_NOT_CONFIGURED');
@@ -147,6 +157,7 @@ export async function callText(opts: {
   const provider = aiProvider();
   if (provider === null) throw new Error('AI_NOT_CONFIGURED');
   if (provider === 'openrouter') return callTextViaOpenRouter(opts);
+  if (provider === 'gateway') return callTextViaGateway(opts);
 
   const client = getAnthropic();
   if (!client) throw new Error('AI_NOT_CONFIGURED');
