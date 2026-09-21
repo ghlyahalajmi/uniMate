@@ -142,6 +142,102 @@ with v as (update public.study_tasks set title = 'TAMPERED'
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — cannot update another student''s tasks through study_tasks' from v;
 
+-- ---------------------------------------------------------------------------
+-- Naming the row directly, which is what "change the id in the URL" means.
+--
+-- Every check above filters by `user_id`, so a policy that scoped on the wrong
+-- column could still pass them. These ask for one specific row by its primary
+-- key instead — the shape /courses/<id> actually takes, and the shape
+-- `getCourse(id)` uses, which filters by id alone and leans on RLS entirely.
+-- ---------------------------------------------------------------------------
+reset role;
+
+create temp table dana_rows as
+select (select id from public.courses where user_id = :'dana' limit 1) as course_id,
+       (select id from public.grades  where user_id = :'dana' limit 1) as grade_id,
+       (select id from public.tasks   where user_id = :'dana' limit 1) as task_id,
+       (select id from public.notes   where user_id = :'dana' limit 1) as note_id;
+
+-- A temp table belongs to the session role, and the checks below run as
+-- `authenticated`, which would otherwise be refused before RLS is even
+-- consulted — a permission error, not a PASS.
+grant select on dana_rows to authenticated;
+
+set role authenticated;
+set request.jwt.claim.sub = :'yousef';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s course by its id'
+  from public.courses where id = (select course_id from dana_rows);
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s grade by its id'
+  from public.grades where id = (select grade_id from dana_rows);
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s task by its id'
+  from public.tasks where id = (select task_id from dana_rows);
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s note by its id'
+  from public.notes where id = (select note_id from dana_rows);
+
+-- The lines inside a note are the note; reaching them by the parent's id must
+-- fail for the same reason reaching the note does.
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s note lines by the note id'
+  from public.note_items where note_id = (select note_id from dana_rows);
+
+-- ---------------------------------------------------------------------------
+-- Writing INTO another student's account.
+--
+-- The update and delete checks above prove existing rows cannot be changed.
+-- This is the other direction: planting a new row that claims to be theirs.
+-- RLS raises rather than returning zero here, so the failure is caught.
+-- ---------------------------------------------------------------------------
+do $$
+declare ok boolean := false;
+begin
+  begin
+    insert into public.tasks (user_id, title)
+    values ('4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31', 'planted by another student');
+  exception when insufficient_privilege or check_violation then
+    ok := true;
+  end;
+  raise notice '% — cannot plant a task in another student''s account',
+    case when ok then 'PASS' else 'FAIL' end;
+end $$;
+
+do $$
+declare ok boolean := false;
+begin
+  begin
+    insert into public.notes (user_id, title)
+    values ('4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31', 'planted note');
+  exception when insufficient_privilege or check_violation then
+    ok := true;
+  end;
+  raise notice '% — cannot plant a note in another student''s account',
+    case when ok then 'PASS' else 'FAIL' end;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Study groups are shared on purpose, which makes them the easiest place to
+-- over-share. Membership is the boundary: a student who has joined nothing
+-- must see no roster, no meeting and no attendance.
+-- ---------------------------------------------------------------------------
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — sees no group roster without joining a group'
+  from public.group_members;
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — sees no meetings of groups not joined'
+  from public.group_meetings;
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — sees no attendance of groups not joined'
+  from public.meeting_attendance;
+
 reset role;
 
 -- Anonymous visitors hold no grants at all.
