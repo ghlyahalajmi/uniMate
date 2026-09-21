@@ -28,6 +28,11 @@ export default async function DashboardPage() {
 
   const byCourse = groupGradesByCourse(grades);
 
+  const active = courses.filter((c) => c.status === 'active');
+  const today = new Date();
+  const todayKey = weekdayOf(today);
+  const todayIso = toIso(today);
+
   /**
    * The last seven days as the streak board draws them, read straight from
    * activity_days: a day is lit when it earned XP, which is the same rule the
@@ -66,10 +71,6 @@ export default async function DashboardPage() {
       theme: typeof n.theme === 'string' ? n.theme : 'plain',
       tint: typeof n.color === 'string' ? n.color : 'default',
     }));
-  const active = courses.filter((c) => c.status === 'active');
-  const today = new Date();
-  const todayKey = weekdayOf(today);
-  const todayIso = toIso(today);
 
   // Today's classes, in time order.
   const todayClasses = active
