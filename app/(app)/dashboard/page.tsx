@@ -70,6 +70,7 @@ export default async function DashboardPage() {
       total: n.items.length,
       theme: typeof n.theme === 'string' ? n.theme : 'plain',
       tint: typeof n.color === 'string' ? n.color : 'default',
+      stickers: n.stickers,
     }));
 
   // Today's classes, in time order.
