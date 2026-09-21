@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { MAX_UPLOAD_BYTES } from '@/lib/validation/schemas';
+import { groupSyllabuses } from '@/lib/syllabus/grouping';
 import { CourseTile } from './course-tile';
 import type { Weekday } from '@/types/database';
 
@@ -40,14 +41,42 @@ interface CleaningDecision {
 
 const WEEKDAYS: Weekday[] = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 const ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf';
-const MAX_PAGES = 8;
+/** Kept in step with the route. */
+const MAX_FILES = 16;
+const MAX_SYLLABI = 8;
 
 type Phase = 'idle' | 'reading' | 'review' | 'saving' | 'error';
 
-/** A page the student has chosen but not yet sent. */
+/** A file the student has chosen but not yet sent. */
 interface Page {
   file: File;
   id: string;
+}
+
+/** What one syllabus produced, and where it came from. */
+interface Draft {
+  id: string;
+  /** The PDF's filename, or null when this draft came from photos. */
+  source: string | null;
+  photoCount: number;
+  course: ReadCourse | null;
+  cleaning: CleaningDecision[];
+  notes: string[];
+  /** The read failed for this file alone. */
+  failed: boolean;
+  /** Set after a save attempt that did not land. */
+  saveError?: 'duplicate_course' | 'invalid_course' | 'save_failed';
+  /** Set once this one is safely in the database. */
+  savedId?: string;
+}
+
+interface ReadResult {
+  source: string | null;
+  photoCount: number;
+  course: ReadCourse | null;
+  cleaning?: CleaningDecision[];
+  notes?: string[];
+  failed?: boolean;
 }
 
 /**
@@ -67,11 +96,21 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [pages, setPages] = useState<Page[]>([]);
-  const [course, setCourse] = useState<ReadCourse | null>(null);
-  const [cleaning, setCleaning] = useState<CleaningDecision[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  /**
+   * How the chosen files will be split, shown before anything is read.
+   *
+   * The student should know they are about to create four courses rather than
+   * one while they can still take a file out — finding out afterwards, on a
+   * review screen four times longer than expected, is a worse way to learn it.
+   */
+  const groups = groupSyllabuses(
+    pages.map((p) => ({ name: p.file.name, type: p.file.type, id: p.id })),
+    (n) => tf(t.syllabusImport.photoGroup, { n }),
+  );
 
   if (!aiEnabled) {
     return (
@@ -93,13 +132,25 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
 
     // Decided out here rather than inside the updater: a state updater has to
     // stay pure, and under StrictMode it runs twice.
-    if (pages.length + accepted.length > MAX_PAGES) {
-      setError(tf(t.syllabusImport.tooManyPages, { n: MAX_PAGES }));
+    const next = [...pages, ...accepted];
+    if (next.length > MAX_FILES) {
+      setError(tf(t.syllabusImport.tooManyFiles, { n: MAX_FILES }));
+      setPhase('error');
+      return;
+    }
+    // Refused here rather than by the server, so the student is told before
+    // they wait for a read that was never going to be allowed.
+    const syllabusCount = groupSyllabuses(
+      next.map((x) => ({ name: x.file.name, type: x.file.type })),
+      () => 'photos',
+    ).length;
+    if (syllabusCount > MAX_SYLLABI) {
+      setError(tf(t.syllabusImport.tooManySyllabi, { n: MAX_SYLLABI }));
       setPhase('error');
       return;
     }
 
-    setPages([...pages, ...accepted]);
+    setPages(next);
     setError(null);
     setPhase('idle');
   }
@@ -120,21 +171,46 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
         setError(
           data.error === 'file_too_large' ? t.errors.fileTooLarge
           : data.error === 'file_type' ? t.errors.fileType
-          : data.error === 'too_many_pages' ? tf(t.syllabusImport.tooManyPages, { n: MAX_PAGES })
+          : data.error === 'too_many_files' ? tf(t.syllabusImport.tooManyFiles, { n: MAX_FILES })
+          : data.error === 'too_many_syllabi' ? tf(t.syllabusImport.tooManySyllabi, { n: MAX_SYLLABI })
           : t.syllabusImport.error,
         );
         setPhase('error');
         return;
       }
-      if (!data.course) {
+
+      const results: ReadResult[] = Array.isArray(data.results)
+        ? data.results
+        // A server that has not been redeployed yet still answers with one
+        // course. Name it from the first group so the card reads correctly
+        // rather than calling a PDF a pile of photos.
+        : [{
+            source: pages.length === 1 && pages[0].file.type === 'application/pdf'
+              ? pages[0].file.name
+              : null,
+            photoCount: pages.length,
+            course: data.course,
+            cleaning: data.cleaning,
+            notes: data.notes,
+          }];
+
+      // Nothing readable anywhere is a dead end; one bad file among several is
+      // a card that says so, next to the ones that worked.
+      if (results.every((r) => !r.course)) {
         setError(t.syllabusImport.nothingFound);
         setPhase('error');
         return;
       }
 
-      setCourse(data.course);
-      setCleaning(data.cleaning ?? []);
-      setNotes(data.notes ?? []);
+      setDrafts(results.map((r, i) => ({
+        id: `${r.source ?? 'photos'}-${i}`,
+        source: r.source ?? null,
+        photoCount: r.photoCount ?? 0,
+        course: r.course,
+        cleaning: r.cleaning ?? [],
+        notes: r.notes ?? [],
+        failed: Boolean(r.failed),
+      })));
       setPhase('review');
     } catch {
       setError(t.errors.network);
@@ -142,65 +218,101 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
     }
   }
 
+  /** Everything still on screen that has a course and has not already saved. */
+  function pending(): Draft[] {
+    return drafts.filter((d) => d.course !== null && !d.savedId);
+  }
+
   async function save() {
-    if (!course) return;
+    const batch = pending();
+    if (batch.length === 0) return;
     setPhase('saving');
+
     try {
       const res = await fetch('/api/ai/course-from-syllabus', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          course: {
-            course_code: course.course_code,
-            course_name: course.course_name,
-            credits: course.credits ?? 3,
-            semester: course.semester ?? '',
-            days: course.days,
-            start_time: course.start_time ?? '',
-            end_time: course.end_time ?? '',
-            room: course.room ?? '',
-            instructor: course.instructor.name ?? '',
-            instructor_email: course.instructor.email ?? '',
-            instructor_office: course.instructor.office ?? '',
-            instructor_office_hours: course.instructor.office_hours ?? '',
-            ta_name: course.ta.name ?? '',
-            ta_email: course.ta.email ?? '',
-            ta_office: course.ta.office ?? '',
-            ta_office_hours: course.ta.office_hours ?? '',
-          },
-          cleaning,
+          courses: batch.map((d) => ({
+            // The id travels as `source` so each outcome can be matched back to
+            // the card that produced it, whatever order the server replies in.
+            source: d.id,
+            cleaning: d.cleaning,
+            course: serialiseCourse(d.course as ReadCourse),
+          })),
         }),
       });
       const data = await res.json();
 
-      if (!data.ok) {
-        toast.error(
-          data.error === 'duplicate_course' ? t.syllabusImport.duplicate
-          : data.error === 'invalid_course' ? t.courses.saveError
-          : t.errors.generic,
-        );
+      if (!Array.isArray(data.results)) {
+        toast.error(data.error === 'duplicate_course' ? t.syllabusImport.duplicate : t.errors.generic);
         setPhase('review');
         return;
       }
 
-      toast.success(tf(t.syllabusImport.saved, { name: course.course_code }));
-      router.push(`/courses/${data.courseId}`);
-      router.refresh();
+      const byId = new Map<string, { ok: boolean; courseId?: string; error?: Draft['saveError'] }>(
+        data.results.map((r: { source: string | null; ok: boolean; courseId?: string; error?: Draft['saveError'] }) =>
+          [r.source ?? '', { ok: r.ok, courseId: r.courseId, error: r.error }]),
+      );
+
+      const updated = drafts.map((d) => {
+        const outcome = byId.get(d.id);
+        if (!outcome) return d;
+        return outcome.ok
+          ? { ...d, savedId: outcome.courseId, saveError: undefined }
+          : { ...d, saveError: outcome.error ?? 'save_failed' };
+      });
+      setDrafts(updated);
+
+      const saved = updated.filter((d) => d.savedId);
+      const stillFailing = updated.filter((d) => d.course && !d.savedId);
+
+      if (saved.length > 0) {
+        toast.success(
+          saved.length === 1
+            ? tf(t.syllabusImport.saved, { name: saved[0].course?.course_code ?? '' })
+            : tf(t.syllabusImport.savedMany, { n: saved.length }),
+        );
+      }
+
+      // Everything landed: leave the page. Anything left to fix keeps the
+      // student here, with the saved ones marked so they are not saved twice.
+      if (stillFailing.length === 0) {
+        if (saved.length === 1 && saved[0].savedId) router.push(`/courses/${saved[0].savedId}`);
+        else router.push('/courses');
+        router.refresh();
+        return;
+      }
+
+      toast.error(tf(t.syllabusImport.someFailed, { n: stillFailing.length }));
+      setPhase('review');
     } catch {
       toast.error(t.errors.network);
       setPhase('review');
     }
   }
 
-  function update(patch: Partial<ReadCourse>) {
-    setCourse((prev) => (prev ? { ...prev, ...patch } : prev));
+  function update(id: string, patch: Partial<ReadCourse>) {
+    setDrafts((prev) => prev.map((d) =>
+      d.id === id && d.course
+        // Editing a field after a failed save clears the complaint: the state
+        // it described is no longer the state on screen.
+        ? { ...d, course: { ...d.course, ...patch }, saveError: undefined }
+        : d,
+    ));
   }
 
-  function updateContact(who: 'instructor' | 'ta', patch: Partial<ReadContact>) {
-    setCourse((prev) => (prev ? { ...prev, [who]: { ...prev[who], ...patch } } : prev));
+  function updateContact(id: string, who: 'instructor' | 'ta', patch: Partial<ReadContact>) {
+    setDrafts((prev) => prev.map((d) =>
+      d.id === id && d.course
+        ? { ...d, course: { ...d.course, [who]: { ...d.course[who], ...patch } }, saveError: undefined }
+        : d,
+    ));
   }
 
-  const uncertain = (field: string) => course?.uncertainFields.includes(field) ?? false;
+  function removeDraft(id: string) {
+    setDrafts((prev) => prev.filter((d) => d.id !== id));
+  }
 
   return (
     <>
@@ -286,11 +398,29 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
                 ))}
               </ul>
 
+              {/* What the upload will become, before a single read is paid for. */}
+              <p className="text-[0.8125rem] text-[var(--accent-soft-text)] mt-3">
+                {tf(t.syllabusImport.willCreate, { n: groups.length })}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {groups.map((g) => (
+                  // Keyed by the first file's id, not the label: two syllabuses
+                  // downloaded from different courses are often both called
+                  // "syllabus.pdf", and a duplicate key drops one from the list.
+                  <li key={g.files[0].id} className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 min-w-0">
+                    <Icon.check size={13} className="shrink-0 text-[var(--positive)]" />
+                    <span className="truncate">{g.label}</span>
+                  </li>
+                ))}
+              </ul>
+
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
                 <Button variant="secondary" onClick={() => setPages([])}>{t.common.cancel}</Button>
                 <Button onClick={read}>
                   <Icon.sparkle size={17} />
-                  {t.syllabusImport.readIt}
+                  {groups.length === 1
+                    ? t.syllabusImport.readIt
+                    : tf(t.syllabusImport.readThem, { n: groups.length })}
                 </Button>
               </div>
             </Card>
@@ -306,47 +436,184 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
         </Card>
       ) : null}
 
-      {(phase === 'review' || phase === 'saving') && course ? (
-        <div className="space-y-4">
+      {phase === 'review' || phase === 'saving' ? (
+        <div className="space-y-6">
           <Card className="bg-[var(--bg-accent-soft)] border-[var(--border-subtle)]">
-            <div className="flex items-center gap-4">
-              <CourseTile code={course.course_code} name={course.course_name} size="lg" />
-              <div className="min-w-0">
-                <h2 className="font-display text-lg font-semibold truncate">
-                  {course.course_code || t.syllabusImport.untitled}
-                </h2>
-                <p className="text-sm text-[var(--text-secondary)] truncate">{course.course_name}</p>
-              </div>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] mt-3">{t.syllabusImport.foundSub}</p>
-            {notes.length ? (
-              <ul className="mt-3 space-y-1">
-                {notes.map((n) => (
-                  <li key={n} className="text-xs text-[var(--text-secondary)] flex gap-1.5">
-                    <span aria-hidden="true">·</span>{n}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <CardHeader
+              title={tf(t.syllabusImport.coursesFound, { n: drafts.filter((d) => d.course).length })}
+              subtitle={t.syllabusImport.reviewAllSub}
+            />
           </Card>
 
+          {drafts.map((d) => (
+            <DraftCard
+              key={d.id}
+              draft={d}
+              onUpdate={(patch) => update(d.id, patch)}
+              onUpdateContact={(who, patch) => updateContact(d.id, who, patch)}
+              onRemove={() => removeDraft(d.id)}
+            />
+          ))}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sticky bottom-20 lg:bottom-4">
+            <Button
+              variant="secondary"
+              onClick={() => { setPhase('idle'); setDrafts([]); setPages([]); }}
+            >
+              {t.common.cancel}
+            </Button>
+            <Button
+              onClick={save}
+              loading={phase === 'saving'}
+              loadingLabel={t.common.saving}
+              disabled={
+                pending().length === 0 ||
+                pending().some((d) => !d.course?.course_code.trim() || !d.course?.course_name.trim())
+              }
+            >
+              <Icon.check size={17} />
+              {pending().length === 1
+                ? t.syllabusImport.createCourse
+                : tf(t.syllabusImport.createAll, { n: pending().length })}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/** The course fields flattened into the shape the API and the manual form share. */
+function serialiseCourse(course: ReadCourse) {
+  return {
+    course_code: course.course_code,
+    course_name: course.course_name,
+    credits: course.credits ?? 3,
+    semester: course.semester ?? '',
+    days: course.days,
+    start_time: course.start_time ?? '',
+    end_time: course.end_time ?? '',
+    room: course.room ?? '',
+    instructor: course.instructor.name ?? '',
+    instructor_email: course.instructor.email ?? '',
+    instructor_office: course.instructor.office ?? '',
+    instructor_office_hours: course.instructor.office_hours ?? '',
+    ta_name: course.ta.name ?? '',
+    ta_email: course.ta.email ?? '',
+    ta_office: course.ta.office ?? '',
+    ta_office_hours: course.ta.office_hours ?? '',
+  };
+}
+
+/**
+ * One syllabus, as read.
+ *
+ * Each card names the file it came from, because the whole point of uploading
+ * five at once is knowing which of them produced the course you are looking
+ * at — and, when one cannot be read, which file to photograph again.
+ */
+function DraftCard({
+  draft, onUpdate, onUpdateContact, onRemove,
+}: {
+  draft: Draft;
+  onUpdate: (patch: Partial<ReadCourse>) => void;
+  onUpdateContact: (who: 'instructor' | 'ta', patch: Partial<ReadContact>) => void;
+  onRemove: () => void;
+}) {
+  const { t, tf } = useI18n();
+  const course = draft.course;
+
+  const origin = draft.source
+    ? tf(t.syllabusImport.fromFile, { name: draft.source })
+    : tf(t.syllabusImport.fromPhotos, { n: draft.photoCount });
+
+  // A file that could not be read still gets a card. Silence would leave the
+  // student counting courses against files to work out which one is missing.
+  if (!course) {
+    return (
+      <Card className="border-[var(--warning-border)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate">{origin}</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              {draft.failed ? t.syllabusImport.fileUnreadable : t.syllabusImport.noCourseInFile}
+            </p>
+          </div>
+          <Badge tone="warning" className="shrink-0">{t.common.notSet}</Badge>
+        </div>
+      </Card>
+    );
+  }
+
+  const uncertain = (field: string) => course.uncertainFields.includes(field);
+  const saved = Boolean(draft.savedId);
+
+  return (
+    <div className={cx('space-y-4', saved && 'opacity-60')}>
+      <Card className="bg-[var(--bg-accent-soft)] border-[var(--border-subtle)]">
+        <div className="flex items-center gap-4">
+          <CourseTile code={course.course_code} name={course.course_name} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-lg font-semibold truncate">
+              {course.course_code || t.syllabusImport.untitled}
+            </h2>
+            <p className="text-sm text-[var(--text-secondary)] truncate">{course.course_name}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{origin}</p>
+          </div>
+          {saved ? (
+            <Badge tone="positive" className="shrink-0">{t.syllabi.completed}</Badge>
+          ) : (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={t.syllabusImport.removeDraft}
+              className="w-9 h-9 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] shrink-0"
+            >
+              <Icon.trash size={15} />
+            </button>
+          )}
+        </div>
+
+        {draft.saveError ? (
+          <p className="text-sm text-[var(--danger)] mt-3">
+            {draft.saveError === 'duplicate_course'
+              ? t.syllabusImport.duplicate
+              : draft.saveError === 'invalid_course'
+                ? t.courses.saveError
+                : t.errors.generic}
+          </p>
+        ) : null}
+
+        {draft.notes.length ? (
+          <ul className="mt-3 space-y-1">
+            {draft.notes.map((n) => (
+              <li key={n} className="text-xs text-[var(--text-secondary)] flex gap-1.5">
+                <span aria-hidden="true">·</span>{n}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Card>
+
+      {saved ? null : (
+        <>
           <Card>
             <CardHeader title={t.syllabusImport.courseSection} />
             <div className="grid sm:grid-cols-2 gap-3">
               <Doubtful label={t.courses.code} value={course.course_code} uncertain={uncertain('course_code')}
-                onChange={(v) => update({ course_code: v })} />
+                onChange={(v) => onUpdate({ course_code: v })} />
               <Doubtful label={t.courses.name} value={course.course_name} uncertain={uncertain('course_name')}
-                onChange={(v) => update({ course_name: v })} />
+                onChange={(v) => onUpdate({ course_name: v })} />
               <Doubtful label={t.courses.creditsLabel} type="number" value={course.credits === null ? '' : String(course.credits)}
-                uncertain={uncertain('credits')} onChange={(v) => update({ credits: v === '' ? null : Number(v) })} />
+                uncertain={uncertain('credits')} onChange={(v) => onUpdate({ credits: v === '' ? null : Number(v) })} />
               <Doubtful label={t.courses.semester} value={course.semester ?? ''} uncertain={uncertain('semester')}
-                onChange={(v) => update({ semester: v || null })} />
+                onChange={(v) => onUpdate({ semester: v || null })} />
               <Doubtful label={t.courses.startTime} type="time" value={course.start_time ?? ''} uncertain={uncertain('start_time')}
-                onChange={(v) => update({ start_time: v || null })} />
+                onChange={(v) => onUpdate({ start_time: v || null })} />
               <Doubtful label={t.courses.endTime} type="time" value={course.end_time ?? ''} uncertain={uncertain('end_time')}
-                onChange={(v) => update({ end_time: v || null })} />
+                onChange={(v) => onUpdate({ end_time: v || null })} />
               <Doubtful label={t.courses.room} value={course.room ?? ''} uncertain={uncertain('room')}
-                onChange={(v) => update({ room: v || null })} className="sm:col-span-2" />
+                onChange={(v) => onUpdate({ room: v || null })} className="sm:col-span-2" />
             </div>
 
             <fieldset className="mt-3">
@@ -360,7 +627,7 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
                   return (
                     <button
                       key={d} type="button" aria-pressed={on}
-                      onClick={() => update({ days: on ? course.days.filter((x) => x !== d) : [...course.days, d] })}
+                      onClick={() => onUpdate({ days: on ? course.days.filter((x) => x !== d) : [...course.days, d] })}
                       className={cx(
                         'px-3 min-h-[36px] rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
                         on
@@ -381,7 +648,7 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
             contact={course.instructor}
             prefix="instructor"
             uncertain={uncertain}
-            onChange={(patch) => updateContact('instructor', patch)}
+            onChange={(patch) => onUpdateContact('instructor', patch)}
           />
           <ContactCard
             title={t.contacts.ta}
@@ -389,15 +656,15 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
             contact={course.ta}
             prefix="ta"
             uncertain={uncertain}
-            onChange={(patch) => updateContact('ta', patch)}
+            onChange={(patch) => onUpdateContact('ta', patch)}
           />
 
-          {cleaning.length ? (
+          {draft.cleaning.length ? (
             <Card>
               <h3 className="text-sm font-semibold mb-2">{t.records.cleaningTitle}</h3>
               <p className="text-xs text-[var(--text-secondary)] mb-3">{t.records.cleaningSub}</p>
               <ul className="space-y-2">
-                {cleaning.map((d, i) => (
+                {draft.cleaning.map((d, i) => (
                   <li key={i} className="text-xs flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <code className="px-1.5 py-0.5 rounded bg-[var(--bg-inset)] text-[var(--text-secondary)]">{d.original}</code>
                     <span aria-hidden="true" className="text-[var(--text-muted)]">→</span>
@@ -408,24 +675,9 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
               </ul>
             </Card>
           ) : null}
-
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sticky bottom-20 lg:bottom-4">
-            <Button variant="secondary" onClick={() => { setPhase('idle'); setCourse(null); setPages([]); }}>
-              {t.common.cancel}
-            </Button>
-            <Button
-              onClick={save}
-              loading={phase === 'saving'}
-              loadingLabel={t.common.saving}
-              disabled={!course.course_code.trim() || !course.course_name.trim()}
-            >
-              <Icon.check size={17} />
-              {t.syllabusImport.createCourse}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </>
+        </>
+      )}
+    </div>
   );
 }
 
