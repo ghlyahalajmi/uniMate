@@ -7,7 +7,7 @@ import { Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import {
-  BACKDROPS, EXTRAS, FACES, HAIRS, HAIR_COLOURS, SKINS,
+  BACKDROPS, EXTRAS, FACES, FIGURES, HAIRS, HAIR_COLOURS, OUTFITS, PRESETS, SKINS,
   type AvatarDesign, type AvatarKind,
 } from '@/lib/avatar/design';
 import { AvatarArt } from './avatar-art';
@@ -55,8 +55,9 @@ export function AvatarPicker({
   function randomise() {
     const any = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
     setDesign({
-      skin: any(SKINS), hair: any(HAIRS), hairColour: any(HAIR_COLOURS),
-      face: any(FACES), extra: any(EXTRAS), backdrop: any(BACKDROPS),
+      figure: any(FIGURES), skin: any(SKINS), hair: any(HAIRS),
+      hairColour: any(HAIR_COLOURS), face: any(FACES), extra: any(EXTRAS),
+      outfit: any(OUTFITS), backdrop: any(BACKDROPS),
     });
   }
 
@@ -189,11 +190,44 @@ export function AvatarPicker({
 
       {kind === 'character' ? (
         <div className="space-y-4">
+          {/*
+            Whole looks first.
+            ------------------------------------------------------------
+            Eight choices is not many, but it is eight more than most people
+            want to make before they have seen what this can do. A preset
+            lands them somewhere finished and leaves every field editable
+            after — a starting point, not a costume they are stuck in.
+          */}
+          <fieldset>
+            <legend className="text-[0.8125rem] font-medium mb-1.5">{t.avatar.presets}</legend>
+            <div className="flex flex-wrap gap-2">
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setDesign(preset.design)}
+                  className={cx(
+                    'flex items-center gap-2 ps-1.5 pe-3 min-h-[44px] rounded-full border',
+                    'border-[var(--border-subtle)] hover:border-[var(--accent)]',
+                    'text-[0.8125rem] font-medium transition-colors',
+                  )}
+                >
+                  <AvatarArt design={preset.design} size={32} />
+                  {label(t, 'preset', preset.key)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <Row label={t.avatar.figure} feature="figure" options={FIGURES}
+            value={design.figure} onPick={(v) => set('figure', v)} />
+          <Row label={t.avatar.outfit} feature="outfit" options={OUTFITS}
+            value={design.outfit} onPick={(v) => set('outfit', v)} />
           <Row label={t.avatar.skin} feature="skin" options={SKINS}
             value={design.skin} onPick={(v) => set('skin', v)} />
           <Row label={t.avatar.hair} feature="hair" options={HAIRS}
             value={design.hair} onPick={(v) => set('hair', v)} />
-          {design.hair === 'none' ? null : (
+          {design.hair === 'none' || design.hair === 'ghutra' || design.hair === 'shmagh' ? null : (
             <Row label={t.avatar.hairColour} feature="hairColour" options={HAIR_COLOURS}
               value={design.hairColour} onPick={(v) => set('hairColour', v)} />
           )}

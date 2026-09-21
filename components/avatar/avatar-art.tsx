@@ -1,5 +1,5 @@
 import type {
-  AvatarDesign, Backdrop, Hair, HairColour, Skin,
+  AvatarDesign, Backdrop, Figure, Hair, HairColour, Outfit, Skin,
 } from '@/lib/avatar/design';
 
 /**
@@ -36,7 +36,97 @@ const BACKDROP: Record<Backdrop, string> = {
   rose:   '#c24d7c',
   amber:  '#c98a2b',
   slate:  '#5a6474',
+  // The Kuwaiti four. Each is a base colour here and a scene below.
+  sadu:   '#8c2f2a',
+  towers: '#2f7fc4',
+  dhow:   '#1f6f94',
+  flag:   '#0f7b3d',
 };
+
+/** Sadu weaving: the dark of its geometry. The red ground is the disc itself. */
+const SADU_DARK = '#1f1a18';
+
+/**
+ * What sits behind the head.
+ *
+ * Four of these are a flat disc and four are a small scene. A scene is drawn
+ * behind the shoulders and clipped by the same circle, so nothing about the
+ * figure changes — the backdrop is scenery, not a costume.
+ */
+function Scene({ backdrop }: { backdrop: Backdrop }) {
+  switch (backdrop) {
+    case 'sadu':
+      // The weave, not a photograph of it: bands and triangles in the red,
+      // black and white that a sadu piece is actually built from.
+      return (
+        <g>
+          <rect x="0" y="16" width="64" height="4" fill="#f4ece0" />
+          <rect x="0" y="44" width="64" height="4" fill="#f4ece0" />
+          <g fill={SADU_DARK}>
+            {[2, 12, 22, 32, 42, 52].map((x) => (
+              <path key={x} d={`M${x} 20 L${x + 5} 13 L${x + 10} 20 Z`} />
+            ))}
+            {[2, 12, 22, 32, 42, 52].map((x) => (
+              <path key={`b${x}`} d={`M${x} 44 L${x + 5} 51 L${x + 10} 44 Z`} />
+            ))}
+          </g>
+          <rect x="0" y="30" width="64" height="2" fill="#f4ece0" opacity="0.7" />
+        </g>
+      );
+
+    case 'towers':
+      // Kuwait Towers: the two spheres on the big mast, the smaller mast
+      // beside it. Read at 28px as a silhouette, which is how they read from
+      // the Gulf Road anyway.
+      return (
+        <g>
+          <rect x="0" y="46" width="64" height="18" fill="#1d5c8f" opacity="0.55" />
+          <g fill="#eaf2fb" opacity="0.92">
+            <rect x="43" y="14" width="2.4" height="34" rx="1.2" />
+            <ellipse cx="44.2" cy="26" rx="7.5" ry="6" />
+            <ellipse cx="44.2" cy="38" rx="4.6" ry="3.8" />
+            <rect x="53" y="20" width="2" height="28" rx="1" />
+            <ellipse cx="54" cy="30" rx="4.4" ry="3.6" />
+          </g>
+          <g fill="#7fb4dd" opacity="0.5">
+            <ellipse cx="44.2" cy="26" rx="7.5" ry="2" />
+            <ellipse cx="54" cy="30" rx="4.4" ry="1.3" />
+          </g>
+        </g>
+      );
+
+    case 'dhow':
+      // A boum under sail on the water, which is the shape on the half-dinar
+      // and on every wall in the country.
+      return (
+        <g>
+          <rect x="0" y="44" width="64" height="20" fill="#0f5170" opacity="0.6" />
+          <g fill="#f3f7fa" opacity="0.94">
+            <path d="M44 16 L44 44 L26 44 Z" />
+            <path d="M46 24 L46 44 L58 44 Z" opacity="0.85" />
+          </g>
+          <path d="M20 44 h34 l-5 6 H25 Z" fill="#7a4a24" />
+          <g stroke="#bcd9ea" strokeWidth="1" opacity="0.5">
+            <path d="M2 54h14" /><path d="M48 57h14" /><path d="M10 60h20" />
+          </g>
+        </g>
+      );
+
+    case 'flag':
+      // Green, white, red, and the black trapezoid on the hoist.
+      return (
+        <g>
+          <rect x="0" y="8" width="64" height="16" fill="#0f7b3d" />
+          <rect x="0" y="24" width="64" height="16" fill="#f4f4f2" />
+          <rect x="0" y="40" width="64" height="16" fill="#c1272d" />
+          <path d="M0 8 H18 L12 24 V40 L18 56 H0 Z" fill="#141414" />
+        </g>
+      );
+
+    default:
+      return null;
+  }
+}
 
 export function AvatarArt({
   design, size = 40, className,
@@ -68,8 +158,10 @@ export function AvatarArt({
       <circle cx="32" cy="32" r="32" fill={BACKDROP[design.backdrop]} />
 
       <g clipPath={`url(#${clipId})`}>
-        {/* Shoulders, clipped by the disc so the head sits in it, not on it. */}
-        <ellipse cx="32" cy="63" rx="20" ry="14" fill="#fff" fillOpacity="0.92" />
+        <Scene backdrop={design.backdrop} />
+
+        {/* The body, then whatever is worn over it. */}
+        <Body figure={design.figure} outfit={design.outfit} />
 
         <BackHair hair={design.hair} colour={hair} />
 
@@ -77,7 +169,7 @@ export function AvatarArt({
         <ellipse cx="32" cy="29" rx="13" ry="14.5" fill={skin.base} />
 
         {/* Ears sit under a covering, so a covering means no ears. */}
-        {design.hair === 'hijab' || design.hair === 'ghutra' ? null : (
+        {design.hair === 'hijab' || design.hair === 'ghutra' || design.hair === 'shmagh' ? null : (
           <>
             <circle cx="19.5" cy="30" r="2.6" fill={skin.shade} />
             <circle cx="44.5" cy="30" r="2.6" fill={skin.shade} />
@@ -92,6 +184,73 @@ export function AvatarArt({
   );
 }
 
+/**
+ * Shoulders, and what is on them.
+ *
+ * The figure changes the silhouette — narrower and higher for one, broader
+ * and squarer for the other — and the outfit is drawn into that shape rather
+ * than laid on top of it, so a dishdasha reads as a dishdasha and not as a
+ * white rectangle behind a head.
+ */
+function Body({ figure, outfit }: { figure: Figure; outfit: Outfit }) {
+  const girl = figure === 'girl';
+  const rx = girl ? 18 : 21;
+  const ry = girl ? 13 : 14;
+  const cy = girl ? 64 : 63;
+
+  switch (outfit) {
+    case 'dishdasha':
+      // White, with the collar band and the placket down the front.
+      return (
+        <g>
+          <ellipse cx="32" cy={cy} rx={rx} ry={ry} fill="#fbfaf6" />
+          <path d="M26 52 h12 v3 h-12 Z" fill="#eae5da" />
+          <rect x="31" y="54" width="2" height="10" fill="#e3ddd0" />
+          <circle cx="32" cy="58" r="0.9" fill="#cfc6b4" />
+          <circle cx="32" cy="62" r="0.9" fill="#cfc6b4" />
+        </g>
+      );
+
+    case 'abaya':
+      // Black, with the open front line that makes it an abaya rather than a
+      // black shape.
+      return (
+        <g>
+          <ellipse cx="32" cy={cy} rx={rx + 1} ry={ry} fill="#17161b" />
+          <path d="M32 51 V64" stroke="#2e2c36" strokeWidth="1.2" />
+          <path d="M24 53 q8 5 16 0" stroke="#2e2c36" strokeWidth="1" fill="none" />
+        </g>
+      );
+
+    case 'darraa':
+      // The embroidered neckline is the whole character of a darraa, so that
+      // is what gets the detail rather than the cloth.
+      return (
+        <g>
+          <ellipse cx="32" cy={cy} rx={rx} ry={ry} fill="#1f6f94" />
+          <path d="M23 54 q9 7 18 0" stroke="var(--logo-accent, #e8b463)" strokeWidth="2" fill="none" />
+          <g fill="var(--logo-accent, #e8b463)">
+            <circle cx="26" cy="58" r="1" /><circle cx="32" cy="60" r="1" />
+            <circle cx="38" cy="58" r="1" />
+          </g>
+        </g>
+      );
+
+    case 'graduation':
+      return (
+        <g>
+          <ellipse cx="32" cy={cy} rx={rx} ry={ry} fill="#2a2431" />
+          <path d="M26 51 L32 61 L38 51" fill="#f4f4f2" />
+          <path d="M27 52 L24 64 h4 Z" fill="#7b1f2b" />
+          <path d="M37 52 L40 64 h-4 Z" fill="#7b1f2b" />
+        </g>
+      );
+
+    default:
+      return <ellipse cx="32" cy={cy} rx={rx} ry={ry} fill="#fff" fillOpacity="0.92" />;
+  }
+}
+
 function BackHair({ hair, colour }: { hair: Hair; colour: string }) {
   switch (hair) {
     case 'long':   return <ellipse cx="32" cy="34" rx="17" ry="20" fill={colour} />;
@@ -99,6 +258,7 @@ function BackHair({ hair, colour }: { hair: Hair; colour: string }) {
     case 'curly':  return <ellipse cx="32" cy="27" rx="16.5" ry="16" fill={colour} />;
     case 'hijab':  return <ellipse cx="32" cy="34" rx="18" ry="21" fill={colour} />;
     case 'ghutra': return <ellipse cx="32" cy="34" rx="18" ry="21" fill="#f2efe7" />;
+    case 'shmagh': return <ellipse cx="32" cy="34" rx="18" ry="21" fill="#f0dcd8" />;
     default:       return null;
   }
 }
@@ -138,7 +298,27 @@ function FrontHair({ hair, colour }: { hair: Hair; colour: string }) {
       return (
         <g>
           <path d="M32 12c-11 0-17 8-17 18h6c0-8 4-13 11-13s11 5 11 13h6c0-10-6-18-17-18Z" fill="#f2efe7" />
-          <rect x="16" y="12" width="32" height="6" rx="3" fill="#2c2c2c" />
+          {/* The agal: two black cords, not one band. That doubling is what
+              makes it an agal rather than a headband, and it reads even at
+              28px because the gap between the cords is the shape. */}
+          <rect x="15" y="10.5" width="34" height="3" rx="1.5" fill="#15130f" />
+          <rect x="15" y="15" width="34" height="3" rx="1.5" fill="#15130f" />
+        </g>
+      );
+
+    case 'shmagh':
+      return (
+        <g>
+          <path d="M32 12c-11 0-17 8-17 18h6c0-8 4-13 11-13s11 5 11 13h6c0-10-6-18-17-18Z" fill="#f0dcd8" />
+          {/* The red check, suggested rather than drawn thread by thread —
+              a lattice at this size is mud, a few crossings is a shmagh. */}
+          <g stroke="#b4342c" strokeWidth="1.1" opacity="0.9">
+            <path d="M18 18 L24 12" /><path d="M24 22 L32 12" /><path d="M32 22 L40 12" />
+            <path d="M40 22 L46 15" />
+            <path d="M16 20 H48" /><path d="M17 25 H47" />
+          </g>
+          <rect x="15" y="10.5" width="34" height="3" rx="1.5" fill="#15130f" />
+          <rect x="15" y="15" width="34" height="3" rx="1.5" fill="#15130f" />
         </g>
       );
     default:

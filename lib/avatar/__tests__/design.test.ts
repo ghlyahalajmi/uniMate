@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import {
-  parseAvatar, parseAvatarKind, initialsFrom, DEFAULT_AVATAR,
+  parseAvatar, parseAvatarKind, initialsFrom, DEFAULT_AVATAR, PRESETS,
 } from '../design';
 
 let passed = 0;
@@ -18,10 +18,41 @@ console.log('\nreading a saved avatar');
 
 check('keeps every choice it recognises', () => {
   const saved = {
+    figure: 'boy', skin: 'olive', hair: 'curly', hairColour: 'auburn',
+    face: 'wink', extra: 'glasses', outfit: 'dishdasha', backdrop: 'mint',
+  };
+  assert.deepEqual(parseAvatar(saved), saved);
+});
+
+check('a design saved before figure and outfit existed still reads', () => {
+  // Exactly the shape the first version wrote. It must keep every choice it
+  // made and gain sensible values for the two fields it never knew about,
+  // because these are already in the database.
+  const old = {
     skin: 'olive', hair: 'curly', hairColour: 'auburn',
     face: 'wink', extra: 'glasses', backdrop: 'mint',
   };
-  assert.deepEqual(parseAvatar(saved), saved);
+  const out = parseAvatar(old);
+  assert.equal(out.skin, 'olive');
+  assert.equal(out.hair, 'curly');
+  assert.equal(out.backdrop, 'mint');
+  assert.equal(out.figure, DEFAULT_AVATAR.figure);
+  assert.equal(out.outfit, DEFAULT_AVATAR.outfit);
+});
+
+check('the Kuwaiti options are ordinary values, not special cases', () => {
+  assert.equal(parseAvatar({ hair: 'shmagh' }).hair, 'shmagh');
+  assert.equal(parseAvatar({ outfit: 'dishdasha' }).outfit, 'dishdasha');
+  assert.equal(parseAvatar({ outfit: 'abaya' }).outfit, 'abaya');
+  assert.equal(parseAvatar({ outfit: 'darraa' }).outfit, 'darraa');
+  assert.equal(parseAvatar({ backdrop: 'sadu' }).backdrop, 'sadu');
+  assert.equal(parseAvatar({ backdrop: 'towers' }).backdrop, 'towers');
+});
+
+check('every preset is a design the parser accepts unchanged', () => {
+  for (const preset of PRESETS) {
+    assert.deepEqual(parseAvatar(preset.design), preset.design, preset.key);
+  }
 });
 
 check('an empty design is the default one', () => {
