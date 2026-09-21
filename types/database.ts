@@ -51,6 +51,10 @@ export interface Profile {
   momentum_enabled: boolean;
   leaderboard_opt_in: boolean;
   leaderboard_show_name: boolean;
+  /** Which picture the account shows: initials, an upload, or a built one. */
+  avatar_kind: string;
+  avatar_path: string | null;
+  avatar_design: unknown;
   is_demo: boolean;
   created_at: string;
   updated_at: string;

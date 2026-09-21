@@ -28,6 +28,20 @@ export async function getProfile(): Promise<Profile | null> {
   return (data as Profile) ?? null;
 }
 
+/**
+ * A link the browser can actually load the avatar photo from.
+ *
+ * The bucket is private, so there is no public URL to hand out: a short-lived
+ * signed one is minted per render. An hour is plenty for a page view and short
+ * enough that a link copied out of the markup stops working the same morning.
+ */
+export async function getAvatarUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from('avatars').createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
+}
+
 export async function getGradeScale(): Promise<Pick<GradeScaleEntry, 'letter' | 'min_percent' | 'points'>[]> {
   const supabase = await createClient();
   const userId = await requireUserId();

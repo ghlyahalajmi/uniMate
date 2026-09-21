@@ -1,4 +1,7 @@
-import { getProfile } from '@/lib/data/queries';
+import { getProfile, getAvatarUrl } from '@/lib/data/queries';
+import { getCurrentUser } from '@/lib/supabase/server';
+import { parseAvatar, parseAvatarKind, initialsFrom } from '@/lib/avatar/design';
+import { AvatarPicker } from '@/components/avatar/avatar-picker';
 import { getLocale } from '@/lib/i18n/server';
 import { isAiConfigured, AI_MODEL } from '@/lib/ai/client';
 import { AGENT_REGISTRY } from '@/lib/ai/agents';
@@ -8,9 +11,22 @@ export const metadata = { title: 'Settings' };
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const [profile, locale] = await Promise.all([getProfile(), getLocale()]);
+  const [profile, locale, user] = await Promise.all([getProfile(), getLocale(), getCurrentUser()]);
+  const photoUrl = await getAvatarUrl(profile?.avatar_path ?? null);
 
   return (
+    <>
+      {/* The picture sits above the form: it is the part of a profile people
+          come to change, and it was the only part with nowhere to change it. */}
+      <div className="mb-5">
+        <AvatarPicker
+          initialKind={parseAvatarKind(profile?.avatar_kind)}
+          initialDesign={parseAvatar(profile?.avatar_design)}
+          photoUrl={photoUrl}
+          initials={initialsFrom(profile?.full_name ?? null, user?.email ?? '')}
+        />
+      </div>
+
     <SettingsView
       profile={{
         fullName: profile?.full_name ?? '',
@@ -34,5 +50,6 @@ export default async function SettingsPage() {
         agents: AGENT_REGISTRY.map((a) => ({ ...a })),
       }}
     />
+    </>
   );
 }

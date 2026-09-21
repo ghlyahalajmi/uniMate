@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { UniMateLogo } from '@/components/brand/logo';
 import { MateBotFace } from '@/components/brand/mate-bot';
+import { AvatarArt } from '@/components/avatar/avatar-art';
+import { initialsFrom, type AvatarDesign, type AvatarKind } from '@/lib/avatar/design';
 import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, type NavItem } from './nav-config';
@@ -14,7 +16,15 @@ import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 
 interface ShellProps {
   children: React.ReactNode;
-  user: { name: string | null; email: string; isDemo: boolean };
+  user: {
+    name: string | null;
+    email: string;
+    isDemo: boolean;
+    avatarKind: AvatarKind;
+    avatarDesign: AvatarDesign;
+    /** Signed link to the uploaded photo, when the student chose one. */
+    avatarUrl: string | null;
+  };
 }
 
 export function AppShell({ children, user }: ShellProps) {
@@ -163,8 +173,18 @@ export function AppShell({ children, user }: ShellProps) {
             narrow desktop he is carried along with the tabs instead of forcing
             the page sideways.
           */}
-          <li aria-hidden="true" className="ms-auto flex items-end shrink-0 ps-4 self-end">
-            <MateBotFace size={34} className="translate-y-[3px]" />
+          <li aria-hidden="true" className="ms-auto flex items-center shrink-0 ps-4">
+            {/*
+              On a violet disc, because that is what this drawing was made for.
+              The face is white shapes with a deep-violet visor — it was drawn
+              to sit on the assistant's violet button — so loose on a pale bar
+              it was white on near-white and read as one flat blob. The disc is
+              not decoration around it; it is the ground the shapes were cut
+              out of.
+            */}
+            <span className="grid place-items-center w-9 h-9 rounded-full bg-[var(--accent)] shadow-[var(--shadow-soft)]">
+              <MateBotFace size={26} />
+            </span>
           </li>
         </ul>
       </nav>
@@ -393,9 +413,18 @@ function NavLink({
  */
 function ProfileButton({ user }: { user: ShellProps['user'] }) {
   const { t } = useI18n();
-  const initials = (user.name ?? user.email)
-    .split(/[\s@.]+/).filter(Boolean).slice(0, 2)
-    .map((p) => p[0]?.toUpperCase()).join('');
+
+  const inner =
+    user.avatarKind === 'photo' && user.avatarUrl ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={user.avatarUrl} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+    ) : user.avatarKind === 'character' ? (
+      <AvatarArt design={user.avatarDesign} size={32} />
+    ) : (
+      <span className="grid place-items-center w-8 h-8 rounded-full text-xs font-semibold bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]">
+        {initialsFrom(user.name, user.email)}
+      </span>
+    );
 
   return (
     <Link
@@ -407,13 +436,12 @@ function ProfileButton({ user }: { user: ShellProps['user'] }) {
       <span
         aria-hidden="true"
         className={cx(
-          'grid place-items-center w-8 h-8 rounded-full text-xs font-semibold',
-          'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]',
+          'grid place-items-center rounded-full overflow-hidden',
           'ring-0 ring-[var(--accent)] transition-[transform,box-shadow] duration-200 ease-out',
           'group-hover:scale-110 group-active:scale-95 group-hover:ring-2',
         )}
       >
-        {initials || '·'}
+        {inner}
       </span>
     </Link>
   );
