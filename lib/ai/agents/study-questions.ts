@@ -19,6 +19,19 @@ export interface StudyInput {
   /** The shape every question takes. Defaults to letting the model choose. */
   format?: PracticeFormat;
   topic?: string;
+  /**
+   * One uploaded chapter to set the questions on.
+   *
+   * With this the set is drawn from what the lecturer actually taught rather
+   * than from the topic names on the course record, which is the difference
+   * between revision and a general quiz about the subject.
+   */
+  document?:
+    | { kind: 'image'; mediaType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
+    | { kind: 'pdf'; data: string }
+    | { kind: 'text'; text: string };
+  /** What the student calls that chapter. */
+  chapterTitle?: string;
 }
 
 export interface GeneratedQuestion {
@@ -141,11 +154,28 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
         difficultyLine,
         syllabus?.topics.length ? `Syllabus topics on file: ${syllabus.topics.join(', ')}.` : '',
         FORMAT_LINES[format],
+        // When a chapter is attached it is the source, not a hint. Questions
+        // about the subject in general would be indistinguishable from a quiz
+        // the student could have found anywhere.
+        input.document
+          ? `The attached chapter${input.chapterTitle ? ` ("${input.chapterTitle}")` : ''} is the `
+            + 'material to set these on. Ask only about what it covers, use its notation and its '
+            + 'terms, and do not reach for the standard treatment of the subject where the chapter '
+            + 'does something its own way.'
+          : '',
+        input.document?.kind === 'text'
+          ? `\nThe chapter text follows.\n\n${input.document.text.slice(0, 80_000)}`
+          : '',
       ].filter(Boolean).join('\n'),
       schema: schemaFor(format),
       schemaName: 'question_set',
       maxTokens: 24000,
       effort: 'high',
+      documents: !input.document || input.document.kind === 'text'
+        ? []
+        : [input.document.kind === 'pdf'
+            ? { kind: 'pdf', data: input.document.data }
+            : { kind: 'image', mediaType: input.document.mediaType, data: input.document.data }],
     });
 
     return {

@@ -18,10 +18,12 @@ import type { Question } from '@/types/database';
 
 type Phase = 'setup' | 'generating' | 'answering' | 'results' | 'error';
 
-interface HistoryRow {
+export interface StudyHistoryEntry {
   id: string; courseCode: string | null; topic: string | null;
   score: number | null; correct: number; total: number; completedAt: string;
 }
+
+type HistoryRow = StudyHistoryEntry;
 
 interface Answered { questionId: string; given: string; correct: boolean; topic: string | null }
 
@@ -36,6 +38,7 @@ const HEAT: Record<RequestedDifficulty, number> = { easy: 1, medium: 2, hard: 3,
 
 export function StudyView({
   aiEnabled, courses, initialCourseId, initialFormat, history,
+  chapters = [], initialChapterId = null, embedded = false,
 }: {
   aiEnabled: boolean;
   courses: Array<{ id: string; code: string; name: string }>;
@@ -43,6 +46,12 @@ export function StudyView({
   /** The style the course page asked for, or 'mixed' when nobody chose. */
   initialFormat: PracticeFormat;
   history: HistoryRow[];
+  /** Chapters of the chosen course, so a set can be set on one of them. */
+  chapters?: Array<{ id: string; title: string; readable: boolean }>;
+  /** Pre-selected when the student came here from a chapter review. */
+  initialChapterId?: string | null;
+  /** True when Study AI already drew the page header and course picker. */
+  embedded?: boolean;
 }) {
   const { t, tf, formatNumber } = useI18n();
   const router = useRouter();
@@ -54,6 +63,7 @@ export function StudyView({
   const [format, setFormat] = useState<PracticeFormat>(initialFormat);
   const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
   const [topic, setTopic] = useState('');
+  const [chapterId, setChapterId] = useState<string | null>(initialChapterId);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -93,6 +103,7 @@ export function StudyView({
         body: JSON.stringify({
           course_id: courseId, mode, difficulty, format,
           topic: topic.trim() || undefined,
+          material_id: chapterId ?? undefined,
         }),
       });
       const data = await res.json();
@@ -118,7 +129,7 @@ export function StudyView({
       setError(t.errors.network);
       setPhase('error');
     }
-  }, [courseId, mode, difficulty, format, topic, t]);
+  }, [courseId, mode, difficulty, format, topic, chapterId, t]);
 
   const check = useCallback(() => {
     if (!current || !sessionId || checked || !given.trim()) return;
@@ -211,7 +222,7 @@ export function StudyView({
   if (courses.length === 0) {
     return (
       <>
-        <PageHeader title={t.study.title} subtitle={t.study.subtitle} />
+        {embedded ? null : <PageHeader title={t.study.title} subtitle={t.study.subtitle} />}
         <Card><EmptyState title={t.study.title} body={t.study.empty} /></Card>
       </>
     );
@@ -220,7 +231,7 @@ export function StudyView({
   if (!aiEnabled) {
     return (
       <>
-        <PageHeader title={t.study.title} subtitle={t.study.subtitle} />
+        {embedded ? null : <PageHeader title={t.study.title} subtitle={t.study.subtitle} />}
         <LockedPanel history={history} />
       </>
     );
@@ -228,7 +239,7 @@ export function StudyView({
 
   return (
     <>
-      <PageHeader title={t.study.title} subtitle={t.study.subtitle} />
+      {embedded ? null : <PageHeader title={t.study.title} subtitle={t.study.subtitle} />}
 
       {phase === 'setup' || phase === 'error' ? (
         <div className="space-y-4">
@@ -246,15 +257,61 @@ export function StudyView({
             canStart={Boolean(courseId)}
           />
 
-          <Card>
-            <CardHeader title={t.common.course} />
-            <ChipRow
-              label={t.common.selectCourse}
-              value={courseId}
-              onChange={setCourseId}
-              options={courses.map((c) => ({ value: c.id, label: c.code, title: c.name }))}
-            />
-          </Card>
+          {embedded ? null : (
+            <Card>
+              <CardHeader title={t.common.course} />
+              <ChipRow
+                label={t.common.selectCourse}
+                value={courseId}
+                onChange={setCourseId}
+                options={courses.map((c) => ({ value: c.id, label: c.code, title: c.name }))}
+              />
+            </Card>
+          )}
+
+          {/*
+            Which chapter to be asked about.
+            Optional on purpose: a set drawn from the whole course is still a
+            useful thing to ask for, and forcing a chapter would block every
+            student who has not uploaded one yet.
+          */}
+          {chapters.length > 0 ? (
+            <Card>
+              <CardHeader title={t.studyAi.chooseChapter} subtitle={t.studyAi.onlyReadable} />
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  aria-pressed={chapterId === null}
+                  onClick={() => setChapterId(null)}
+                  className={cx(
+                    'px-3 min-h-[36px] rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
+                    chapterId === null
+                      ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                  )}
+                >
+                  {t.practice.mixed}
+                </button>
+                {chapters.filter((c) => c.readable).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={chapterId === c.id}
+                    onClick={() => setChapterId(c.id)}
+                    title={c.title}
+                    className={cx(
+                      'px-3 min-h-[36px] max-w-[16rem] truncate rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
+                      chapterId === c.id
+                        ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                    )}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader title={t.practice.format} />
@@ -982,11 +1039,25 @@ function HistoryLine({ row }: { row: HistoryRow }) {
 }
 
 function formatLabel(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
-  return f === 'mixed' ? t.practice.mixed : f === 'multiple_choice' ? t.practice.mcq : t.practice.trueFalse;
+  switch (f) {
+    case 'mixed': return t.practice.mixed;
+    case 'multiple_choice': return t.practice.mcq;
+    case 'true_false': return t.practice.trueFalse;
+    case 'fill_blank': return t.studyAi.formatFillBlank;
+    case 'compare': return t.studyAi.formatCompare;
+    case 'flashcards': return t.studyAi.formatFlashcards;
+  }
 }
 
 function formatHint(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
-  return f === 'mixed' ? t.practice.mixedSub : f === 'multiple_choice' ? t.practice.mcqSub : t.practice.trueFalseSub;
+  switch (f) {
+    case 'mixed': return t.practice.mixedSub;
+    case 'multiple_choice': return t.practice.mcqSub;
+    case 'true_false': return t.practice.trueFalseSub;
+    case 'fill_blank': return t.studyAi.modePracticeSub;
+    case 'compare': return t.studyAi.modePracticeSub;
+    case 'flashcards': return t.studyAi.formatFlashcardsSub;
+  }
 }
 
 function formatIcon(f: PracticeFormat) {

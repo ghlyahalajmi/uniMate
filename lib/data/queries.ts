@@ -57,6 +57,60 @@ export async function getCourses(): Promise<Course[]> {
  * Study AI reads these, so the order matters: chapters should come back in
  * teaching order, not upload order.
  */
+/**
+ * Active study plans with their sessions, newest first.
+ *
+ * The sessions come back ordered by when they happen rather than by when they
+ * were written, because the student reads this as a diary.
+ */
+export async function getStudyPlans(): Promise<Array<{
+  id: string; title: string; goal: string | null;
+  starts_on: string | null; ends_on: string | null;
+  items: Array<{
+    id: string; course_id: string | null; topic: string;
+    scheduled_on: string | null; start_time: string | null;
+    minutes: number | null; completed_at: string | null;
+  }>;
+}>> {
+  const supabase = await createClient();
+  const userId = await requireUserId();
+
+  const { data: plans } = await supabase
+    .from('study_plans')
+    .select('id, title, goal, starts_on, ends_on')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  const rows = (plans ?? []) as Array<{
+    id: string; title: string; goal: string | null;
+    starts_on: string | null; ends_on: string | null;
+  }>;
+  if (rows.length === 0) return [];
+
+  const { data: items } = await supabase
+    .from('study_plan_items')
+    .select('id, plan_id, course_id, topic, scheduled_on, start_time, minutes, completed_at')
+    .eq('user_id', userId)
+    .in('plan_id', rows.map((p) => p.id))
+    .order('scheduled_on')
+    .order('start_time');
+
+  const byPlan = new Map<string, Array<{
+    id: string; course_id: string | null; topic: string;
+    scheduled_on: string | null; start_time: string | null;
+    minutes: number | null; completed_at: string | null;
+  }>>();
+
+  for (const row of (items ?? []) as Array<{ plan_id: string } & Record<string, unknown>>) {
+    const list = byPlan.get(row.plan_id) ?? [];
+    list.push(row as never);
+    byPlan.set(row.plan_id, list);
+  }
+
+  return rows.map((p) => ({ ...p, items: byPlan.get(p.id) ?? [] }));
+}
+
 export async function getCourseMaterials(courseId?: string): Promise<CourseMaterial[]> {
   const supabase = await createClient();
   const userId = await requireUserId();

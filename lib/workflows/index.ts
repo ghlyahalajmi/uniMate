@@ -322,7 +322,7 @@ export async function workflowBuildReminders(
 
 export async function workflowGenerateQuestions(
   ctx: AgentRunContext,
-  input: Omit<StudyInput, 'context'>,
+  input: Omit<StudyInput, 'context'> & { materialId?: string },
 ): Promise<WorkflowResult<{ sessionId: string; questionIds: string[] }>> {
   const context = await loadStudentContext(ctx.supabase, ctx.userId);
   const outcome = await runAgent(studyQuestionGenerator, { ...input, context }, ctx);
@@ -333,8 +333,9 @@ export async function workflowGenerateQuestions(
     .insert({
       user_id: ctx.userId,
       course_id: input.courseId,
-      topic: input.topic ?? outcome.data.questions[0]?.topic ?? null,
+      topic: input.topic ?? input.chapterTitle ?? outcome.data.questions[0]?.topic ?? null,
       mode: input.mode,
+      material_id: input.materialId ?? null,
       total_questions: outcome.data.questions.length,
     })
     .select('id')
