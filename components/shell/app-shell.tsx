@@ -9,6 +9,7 @@ import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from './nav-config';
 import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
+import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -189,6 +190,13 @@ export function AppShell({ children, user }: ShellProps) {
           <span>{t.nav.menu}</span>
         </button>
       </nav>
+
+      {/*
+        Mate, last in the tree so he is last in the tab order: he is a shortcut
+        to a page the sidebar already lists, and nobody should have to tab past
+        a floating button to reach the content.
+      */}
+      <AssistantLauncher />
     </div>
   );
 }

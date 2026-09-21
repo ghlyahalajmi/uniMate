@@ -522,6 +522,10 @@ export const en = {
     error: 'I could not answer that right now. Please try again.',
     groundedIn: 'Answered from your records',
     clear: 'Clear conversation',
+    // Mate's floating launcher. The label names the destination, because a
+    // screen reader hears it with no picture of the bot to go with it.
+    launcherLabel: 'Open the UniMate assistant',
+    launcherHint: 'Ask Mate',
   },
   settings: {
     title: 'Profile and settings', subtitle: 'How UniMate behaves for you.',
@@ -1301,6 +1305,8 @@ export const ar: Dictionary = {
     error: 'تعذّر الرد على ذلك الآن. حاول مجدداً.',
     groundedIn: 'أُجيب من سجلاتك',
     clear: 'امسح المحادثة',
+    launcherLabel: 'افتح مساعد يوني‑ميت',
+    launcherHint: 'اسأل مِيت',
   },
   settings: {
     title: 'الملف الشخصي والإعدادات', subtitle: 'كيف يتصرّف يوني‑ميت معك.',
