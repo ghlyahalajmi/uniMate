@@ -10,6 +10,8 @@ export { unimateAssistant, dashboardInsight } from './assistant';
 export { setupScanner } from './setup-scanner';
 export { syllabusCourseReader } from './syllabus-course-reader';
 export { dailyCoach } from './daily-coach';
+export { chapterReview } from './chapter-review';
+export { studyPlanner } from './study-planner';
 
 export type { AnalystInput, AnalystOutput } from './academic-analyst';
 export type { StudyInput, StudyOutput, GeneratedQuestion, PracticeMode, RequestedDifficulty } from './study-questions';
@@ -23,6 +25,12 @@ export type {
   SyllabusCourseInput, SyllabusCourseOutput, SyllabusPage, ReadCourse, ReadContact,
 } from './syllabus-course-reader';
 export type { DailyCoachInput, DailyCoachOutput } from './daily-coach';
+export type {
+  ChapterReviewInput, ChapterReviewOutput, ReviewSection, ReviewDocument,
+} from './chapter-review';
+export type {
+  StudyPlanInput, StudyPlanOutput, PlannedSession, PlannedCourse,
+} from './study-planner';
 
 /**
  * The agent roster, for the documentation page and the activity log legend.
@@ -41,6 +49,8 @@ export const AGENT_REGISTRY = [
   { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null },
   { name: 'Dashboard Insight',        trigger: 'dashboard_opened',  workflow: 'dashboard_insight',              offline: 'Nearest recorded deadline plus a proportionate nudge' },
   { name: 'Daily Coach',              trigger: 'dashboard_opened',  workflow: 'workflow_f_daily_coaching',      offline: 'Full coaching from the deterministic rules — the screen never needs the model' },
+  { name: 'Chapter Review',           trigger: 'chapter_review_requested', workflow: 'workflow_g_chapter_review', offline: null },
+  { name: 'Study Planner',            trigger: 'study_plan_requested',     workflow: 'workflow_h_study_plan',     offline: null },
 ] as const;
 export { gradingScaleReader } from './grading-scale-reader';
 export type { ScaleRow as ReadScaleRow } from './grading-scale-reader';

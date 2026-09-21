@@ -41,6 +41,7 @@ export interface StudyOutput {
 
 const ALL_TYPES = [
   'multiple_choice', 'true_false', 'short_answer', 'calculation', 'conceptual', 'scenario',
+  'fill_blank', 'compare',
 ] as const;
 
 /**
@@ -65,7 +66,10 @@ const schemaFor = (format: PracticeFormat) => ({
           difficulty: { type: 'string', enum: ['easy','medium','hard'] },
           question_type: {
             type: 'string',
-            enum: format === 'mixed' ? [...ALL_TYPES] : [format],
+            // `flashcards` is a destination, not a question shape, and naming it
+            // here would put a value in the enum that the column cannot store.
+            // A stray call degrades to a mixed set rather than a rejected one.
+            enum: format === 'mixed' || format === 'flashcards' ? [...ALL_TYPES] : [format],
           },
           question_text: { type: 'string' },
           options: {
@@ -184,6 +188,22 @@ const FORMAT_LINES: Record<PracticeFormat, string> = {
     + 'and "answer" exactly "True" or "False". Make roughly half of them false, and make a false '
     + 'statement false by one specific detail — a swapped term, a wrong condition, a reversed '
     + 'direction — so that judging it requires knowing the material rather than spotting nonsense.',
+  fill_blank:
+    'Every question must be one sentence from this subject with exactly one blank, written as five '
+    + 'underscores (_____), and "answer" the single word or short phrase that fills it. Blank the '
+    + 'term that carries the meaning — the condition, the unit, the operator — never an article or '
+    + 'a connective, because a sentence that reads the same either way tests nothing. Put "options" '
+    + 'at null.',
+  compare:
+    'Every question must ask the student to distinguish two things this course treats as a pair — '
+    + 'two methods, two conditions, two cases — and "answer" must name the difference that matters '
+    + 'rather than list features of each in turn. Choose pairs that are genuinely confusable; two '
+    + 'unrelated topics make a question nobody gets wrong for the right reason. Put "options" at '
+    + 'null.',
+  // Never reaches the generator: a deck is built by its own path, not asked for
+  // as a question set. Present so the map stays exhaustive over the union.
+  flashcards:
+    'Write each item as a prompt and its answer, short enough to be recalled in one go.',
 };
 
 function resolveDifficulty(

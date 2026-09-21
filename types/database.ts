@@ -16,7 +16,8 @@ export type AiRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type WorkloadLevel = 'light' | 'balanced' | 'intensive';
 export type QuestionType =
   | 'multiple_choice' | 'true_false' | 'short_answer'
-  | 'calculation' | 'conceptual' | 'scenario';
+  | 'calculation' | 'conceptual' | 'scenario'
+  | 'fill_blank' | 'compare';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 export type SyllabusEventType =
   | 'exam' | 'midterm' | 'final' | 'quiz' | 'assignment' | 'project'

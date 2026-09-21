@@ -23,9 +23,29 @@ export const MODE_SIZES: Record<PracticeMode, number> = {
  * union: they are a deck the student writes and owns, not a generated set, so
  * they are a separate destination rather than a format of this one.
  */
-export type PracticeFormat = 'mixed' | 'multiple_choice' | 'true_false';
+export type PracticeFormat =
+  | 'mixed'
+  | 'multiple_choice'
+  | 'true_false'
+  | 'fill_blank'
+  | 'compare'
+  | 'flashcards';
 
-export const PRACTICE_FORMATS: PracticeFormat[] = ['mixed', 'multiple_choice', 'true_false'];
+export const PRACTICE_FORMATS: PracticeFormat[] = [
+  'mixed', 'multiple_choice', 'true_false', 'fill_blank', 'compare', 'flashcards',
+];
+
+/**
+ * Flashcards are not a question shape.
+ *
+ * The other formats produce a set the student answers and is marked on;
+ * flashcards produce a deck they keep and review on a schedule. Same starting
+ * point, different destination, so the caller has to branch rather than treat
+ * this as one more enum value.
+ */
+export function isDeckFormat(format: PracticeFormat): boolean {
+  return format === 'flashcards';
+}
 
 /** Narrows a query-string value, so a hand-edited URL cannot smuggle a format in. */
 export function toPracticeFormat(value: string | undefined): PracticeFormat {
