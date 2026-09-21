@@ -36,87 +36,138 @@ export function AppShell({ children, user }: ShellProps) {
     <div className="min-h-dvh">
       <SkipLink />
 
-      {/* Desktop sidebar ------------------------------------------------- */}
-      <aside
-        aria-label={t.nav.main}
-        className={cx(
-          'hidden lg:flex fixed inset-y-0 start-0 w-[248px] flex-col z-30',
-          'bg-[var(--bg-surface)] border-e border-[var(--border-subtle)]',
-        )}
-      >
-        <div className="px-5 py-5">
-          <Link href="/dashboard" className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]">
-            <UniMateLogo size={30} name={t.brand.name} />
-          </Link>
-        </div>
+      {/*
+        One bar across the top, at every width.
+        ------------------------------------------------------------------
+        The sidebar used to be pinned open on a wide screen and hidden behind
+        a hamburger on a narrow one, so the menu lived in two different places
+        depending on the window — and the profile, the language and the
+        day/night switch sat at the *bottom* of it, which is the last place
+        anyone looks for their own account.
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-3">
-          <ul className="space-y-0.5">
-            {primary.map((item) => (
-              <li key={item.href}>
-                <NavLink item={item} active={isActive(pathname, item.href)} />
-              </li>
-            ))}
-          </ul>
-
-          <p className="px-3 pt-5 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            {t.nav.more}
-          </p>
-          <ul className="space-y-0.5">
-            {secondary.map((item) => (
-              <li key={item.href}>
-                <NavLink item={item} active={isActive(pathname, item.href)} />
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="px-3 py-3 border-t border-[var(--border-subtle)] space-y-0.5">
-          <LanguageSwitcher />
-          <ThemeToggle />
-          <UserChip user={user} />
-        </div>
-      </aside>
-
-      {/* Mobile header --------------------------------------------------- */}
+        Now the menu is three lines on the start edge at any size, and the
+        three things a student reaches for without thinking are where they can
+        see them: top of the page, end edge, in reading order.
+      */}
       <header
         className={cx(
-          'lg:hidden sticky top-0 z-30 glass',
-          'flex items-center justify-between gap-2 px-4 h-14 border-b',
+          'sticky top-0 z-30 glass border-b border-[var(--border-subtle)]',
+          'flex items-center gap-2 px-3 sm:px-4 h-14',
         )}
       >
-        <Link href="/dashboard" className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]">
-          <UniMateLogo size={26} name={t.brand.name} />
-        </Link>
-        <div className="flex items-center gap-1">
-          <ThemeToggle compact />
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label={t.a11y.openMenu}
-            aria-expanded={drawerOpen}
-            className="w-10 h-10 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-inset)]"
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          aria-label={t.a11y.openMenu}
+          aria-expanded={drawerOpen}
+          aria-controls="app-menu"
+          className={cx(
+            'group w-10 h-10 shrink-0 grid place-items-center rounded-[var(--radius-sm)]',
+            'text-[var(--text-secondary)] hover:bg-[var(--bg-inset)] hover:text-[var(--text-primary)]',
+            'transition-colors',
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className="grid place-items-center transition-transform duration-200 ease-out group-hover:scale-110 group-active:scale-95"
           >
             <Icon.menu size={22} />
-          </button>
+          </span>
+        </button>
+
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]"
+        >
+          <UniMateLogo size={26} name={t.brand.name} />
+        </Link>
+
+        <div className="ms-auto flex items-center gap-1">
+          <LanguageSwitcher compact />
+          <ThemeToggle compact />
+          <ProfileButton user={user} />
         </div>
       </header>
 
-      {/* Mobile drawer --------------------------------------------------- */}
+      {/*
+        The tabs, on a wide screen.
+        ------------------------------------------------------------------
+        A phone gets these along the bottom, where a thumb reaches; a desktop
+        gets them directly under the bar, because a bottom bar on a 27-inch
+        monitor is a long way from where anyone is looking. Same items, same
+        selected state, same growing icon — one set of tabs shown twice, not
+        two different navigations.
+      */}
+      <nav
+        aria-label={t.nav.main}
+        className={cx(
+          'hidden lg:block sticky top-14 z-20 glass border-b border-[var(--border-subtle)]',
+        )}
+      >
+        <ul className="flex items-stretch gap-1 px-4 max-w-[1180px] mx-auto overflow-x-auto">
+          {primary.map((item) => {
+            const active = isActive(pathname, item.href);
+            const Glyph = Icon[item.icon];
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cx(
+                    'group relative flex items-center gap-2 px-3 min-h-[46px] text-sm font-medium',
+                    'transition-colors duration-200',
+                    active
+                      ? 'text-[var(--accent-soft-text)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      'grid place-items-center transition-transform duration-200 ease-out',
+                      'group-hover:scale-125 group-active:scale-95',
+                      active && 'scale-125',
+                    )}
+                  >
+                    <Glyph size={18} />
+                  </span>
+                  <span className="whitespace-nowrap">{item.label(t)}</span>
+                  {/* The underline is the selection, drawn on the edge the
+                      eye follows along a row rather than as colour alone. */}
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      'absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-[var(--accent)]',
+                      'origin-center transition-transform duration-200',
+                      active ? 'scale-x-100' : 'scale-x-0',
+                    )}
+                  />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* The menu, at every size ----------------------------------------- */}
       {drawerOpen ? (
-        <div className="lg:hidden fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-[var(--color-ink-950)]/45"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
           <div
+            id="app-menu"
             role="dialog"
             aria-modal="true"
             aria-label={t.nav.main}
             className={cx(
-              'absolute inset-y-0 end-0 w-[min(84vw,300px)] flex flex-col',
-              'bg-[var(--bg-surface)] border-s border-[var(--border-subtle)] shadow-[var(--shadow-float)]',
+              // Opens from the edge the button sits on. Pressing three lines
+              // on the left and watching a panel arrive from the right is a
+              // small lie about where the menu lives.
+              'absolute inset-y-0 start-0 w-[min(84vw,300px)] flex flex-col',
+              'bg-[var(--bg-surface)] border-e border-[var(--border-subtle)] shadow-[var(--shadow-float)]',
             )}
           >
             <div className="flex items-center justify-between px-4 h-14 border-b border-[var(--border-subtle)]">
@@ -157,8 +208,9 @@ export function AppShell({ children, user }: ShellProps) {
                 ))}
               </ul>
             </nav>
-            <div className="p-3 border-t border-[var(--border-subtle)] space-y-0.5">
-              <LanguageSwitcher />
+            {/* Language, theme and the account live in the bar above; repeating
+                them here would be two places to change one setting. */}
+            <div className="p-3 border-t border-[var(--border-subtle)]">
               <UserChip user={user} />
             </div>
           </div>
@@ -166,14 +218,12 @@ export function AppShell({ children, user }: ShellProps) {
       ) : null}
 
       {/* Content --------------------------------------------------------- */}
-      <div className="lg:ps-[248px]">
-        <main
-          id="main"
-          className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7 pb-24 lg:pb-10 max-w-[1180px] mx-auto"
-        >
-          {children}
-        </main>
-      </div>
+      <main
+        id="main"
+        className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7 pb-24 lg:pb-10 max-w-[1180px] mx-auto"
+      >
+        {children}
+      </main>
 
       {/* Mobile bottom bar ----------------------------------------------- */}
       <nav
@@ -207,8 +257,8 @@ export function AppShell({ children, user }: ShellProps) {
                 className={cx(
                   'grid place-items-center w-12 h-7 rounded-full',
                   'transition-[background,transform] duration-200 ease-out',
-                  'group-active:scale-90',
-                  active ? 'bg-[var(--bg-accent-soft)] scale-105' : 'scale-100',
+                  'group-hover:scale-110 group-active:scale-90',
+                  active ? 'bg-[var(--bg-accent-soft)] scale-110' : 'scale-100',
                 )}
               >
                 <Glyph size={20} />
@@ -306,6 +356,45 @@ function NavLink({
   return (
     <Link href={item.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={className}>
       {body}
+    </Link>
+  );
+}
+
+/**
+ * The account, as one round button at the top of every page.
+ *
+ * It is a link to Profile rather than a menu: a menu here would put sign-out
+ * one slip away from the thing people actually press this for, and the profile
+ * page already holds everything that menu would have listed.
+ *
+ * Initials rather than a generic silhouette, because on a shared laptop the
+ * question this answers is "whose account am I in", and a silhouette answers
+ * that for nobody.
+ */
+function ProfileButton({ user }: { user: ShellProps['user'] }) {
+  const { t } = useI18n();
+  const initials = (user.name ?? user.email)
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2)
+    .map((p) => p[0]?.toUpperCase()).join('');
+
+  return (
+    <Link
+      href="/settings"
+      aria-label={`${t.nav.profile}${user.name ? ` — ${user.name}` : ''}`}
+      title={user.name ?? user.email}
+      className="group w-10 h-10 shrink-0 grid place-items-center rounded-full"
+    >
+      <span
+        aria-hidden="true"
+        className={cx(
+          'grid place-items-center w-8 h-8 rounded-full text-xs font-semibold',
+          'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]',
+          'ring-0 ring-[var(--accent)] transition-[transform,box-shadow] duration-200 ease-out',
+          'group-hover:scale-110 group-active:scale-95 group-hover:ring-2',
+        )}
+      >
+        {initials || '·'}
+      </span>
     </Link>
   );
 }
