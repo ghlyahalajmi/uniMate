@@ -55,9 +55,18 @@ export const academicAnalyst: AgentDefinition<AnalystInput, AnalystOutput> = {
   async run({ context }) {
     const result = await callStructured<Omit<AnalystOutput, 'basedOn'>>({
       system: systemFor(
-        'You are the Academic Analyst. Report only patterns that the records below actually support. ' +
-        'If the record is too thin to support a pattern, say so instead of inventing one. ' +
-        'Quote the specific courses and grades behind every claim.',
+        'You are the Academic Analyst. Report only patterns that the records below actually '
+        + 'support. If the record is too thin to support a pattern, say so instead of inventing '
+        + 'one. Quote the specific courses, grades or practice results behind every claim.\n\n'
+        + 'Three sources, not one. Completed courses say what this student has already proved they '
+        + 'can do; marked assessments say how the current semester is going; practice sessions say '
+        + 'which topics they get wrong when nobody is marking. A subject can be a strength by grade '
+        + 'and a weakness in practice — say so when it is, because that gap is the most useful '
+        + 'thing in the record.\n\n'
+        + 'Name subjects, not feelings. "Weak at circuits, from 58% on the CE210 midterm and 4/10 '
+        + 'on filter practice" is something to act on; "could revise more" is not.\n\n'
+        + 'Every suggestion must follow from a specific record and say what to do next week, not in '
+        + 'general.',
       ),
       prompt: `${renderContext(context)}\n\nAnalyse this academic record.`,
       schema: SCHEMA,

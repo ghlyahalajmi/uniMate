@@ -238,6 +238,51 @@ select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || ' — sees no attendance of groups not joined'
   from public.meeting_attendance;
 
+-- ---------------------------------------------------------------------------
+-- Course materials and study plans.
+--
+-- Uploaded slides are the most private thing a course holds after grades, and
+-- a study plan says where the student will be on Tuesday evening. Both arrived
+-- after this file was first written, so both are checked the same way.
+-- ---------------------------------------------------------------------------
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s uploaded materials'
+  from public.course_materials where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s study plans'
+  from public.study_plans where user_id = :'dana';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot read another student''s planned sessions'
+  from public.study_plan_items where user_id = :'dana';
+
+with u as (update public.course_materials set title = 'TAMPERED'
+           where user_id = :'dana' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot rename another student''s materials' from u;
+
+with d as (delete from public.study_plan_items where user_id = :'dana' returning 1)
+select case when count(*) = 0 then 'PASS' else 'FAIL' end
+       || ' — cannot delete another student''s sessions' from d;
+
+-- A file row that claims to belong to someone else must be refused outright.
+do $$
+declare ok boolean := false;
+begin
+  begin
+    insert into public.course_materials
+      (user_id, course_id, title, file_name, file_path, file_type)
+    select '4f6d1a52-9c8e-4c0b-9a1e-0b7c2d5e8f31', id, 'planted', 'x.pdf',
+           'planted/x.pdf', 'application/pdf'
+      from public.courses limit 1;
+  exception when insufficient_privilege or check_violation or not_null_violation then
+    ok := true;
+  end;
+  raise notice '% — cannot plant a file in another student''s course',
+    case when ok then 'PASS' else 'FAIL' end;
+end $$;
+
 reset role;
 
 -- Anonymous visitors hold no grants at all.

@@ -4,6 +4,7 @@ import { runAgent } from '@/lib/ai/run';
 import { studyPlanner, type PlannedCourse, type PlannedSession } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
 import { isAiConfigured } from '@/lib/ai/client';
+import { WEEKDAYS } from '@/lib/groups/availability';
 
 export const maxDuration = 300;
 
@@ -74,6 +75,17 @@ export async function POST(request: Request) {
     .eq('user_id', userId)
     .maybeSingle();
 
+  // `study_availability` is free text the student typed, so weekdays are read
+  // out of it rather than parsed from a structure it does not have. Finding
+  // none means no constraint, which is the honest reading of "they did not
+  // say" — inventing weekdays here would schedule around a week nobody agreed
+  // to.
+  const availabilityText =
+    (profile as { study_availability?: string | null } | null)?.study_availability ?? '';
+  const availableDays = WEEKDAYS.filter((d) =>
+    new RegExp(`\\b${d}s?\\b`, 'i').test(availabilityText),
+  );
+
   const planned: PlannedCourse[] = courses.map((c) => ({
     id: c.id,
     code: c.course_code,
@@ -101,7 +113,7 @@ export async function POST(request: Request) {
       courses: planned,
       todayIso,
       defaultMinutes: (profile as { preferred_study_minutes?: number } | null)?.preferred_study_minutes ?? 45,
-      availableDays: [],
+      availableDays,
       horizonDays: horizon,
       weakTopics: weak,
     },

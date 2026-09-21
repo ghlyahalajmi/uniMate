@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import {
-  MODE_SIZES, PRACTICE_FORMATS,
+  MODE_SIZES, PRACTICE_FORMATS, isDeckFormat,
   type PracticeFormat, type PracticeMode, type RequestedDifficulty,
 } from '@/lib/study/modes';
 import { XP_RULES } from '@/lib/momentum/engine';
@@ -96,6 +96,39 @@ export function StudyView({
     if (!courseId) return;
     setPhase('generating');
     setError(null);
+
+    // Flashcards are a deck, not a set to answer now, so they go to their own
+    // route and the student lands on the deck rather than on question one.
+    // Sending them through the question generator would quietly hand back
+    // ordinary questions under a label that promised cards.
+    if (isDeckFormat(format)) {
+      try {
+        const res = await fetch('/api/ai/flashcards', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            course_id: courseId,
+            mode,
+            material_id: chapterId ?? undefined,
+            topic: topic.trim() || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          setError(data.error === 'ai_not_configured' ? t.ai.unavailableBody : t.study.genError);
+          setPhase('error');
+          return;
+        }
+        toast.success(tf(t.study.deckBuilt, { n: formatNumber(data.created ?? 0) }));
+        router.push(`/flashcards?course=${courseId}`);
+        router.refresh();
+      } catch {
+        setError(t.errors.network);
+        setPhase('error');
+      }
+      return;
+    }
+
     try {
       const res = await fetch('/api/ai/study', {
         method: 'POST',
@@ -129,7 +162,7 @@ export function StudyView({
       setError(t.errors.network);
       setPhase('error');
     }
-  }, [courseId, mode, difficulty, format, topic, chapterId, t]);
+  }, [courseId, mode, difficulty, format, topic, chapterId, t, tf, formatNumber, router, toast]);
 
   const check = useCallback(() => {
     if (!current || !sessionId || checked || !given.trim()) return;

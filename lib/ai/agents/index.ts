@@ -12,6 +12,7 @@ export { syllabusCourseReader } from './syllabus-course-reader';
 export { dailyCoach } from './daily-coach';
 export { chapterReview } from './chapter-review';
 export { studyPlanner } from './study-planner';
+export { flashcardWriter } from './flashcard-writer';
 
 export type { AnalystInput, AnalystOutput } from './academic-analyst';
 export type { StudyInput, StudyOutput, GeneratedQuestion, PracticeMode, RequestedDifficulty } from './study-questions';
@@ -31,6 +32,7 @@ export type {
 export type {
   StudyPlanInput, StudyPlanOutput, PlannedSession, PlannedCourse,
 } from './study-planner';
+export type { FlashcardInput, FlashcardOutput, WrittenCard } from './flashcard-writer';
 
 /**
  * The agent roster, for the documentation page and the activity log legend.
@@ -51,6 +53,7 @@ export const AGENT_REGISTRY = [
   { name: 'Daily Coach',              trigger: 'dashboard_opened',  workflow: 'workflow_f_daily_coaching',      offline: 'Full coaching from the deterministic rules — the screen never needs the model' },
   { name: 'Chapter Review',           trigger: 'chapter_review_requested', workflow: 'workflow_g_chapter_review', offline: null },
   { name: 'Study Planner',            trigger: 'study_plan_requested',     workflow: 'workflow_h_study_plan',     offline: null },
+  { name: 'Flashcard Writer',         trigger: 'user_requested',           workflow: 'workflow_i_flashcards',     offline: null },
 ] as const;
 export { gradingScaleReader } from './grading-scale-reader';
 export type { ScaleRow as ReadScaleRow } from './grading-scale-reader';
