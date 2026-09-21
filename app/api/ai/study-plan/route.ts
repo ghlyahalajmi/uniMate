@@ -4,7 +4,6 @@ import { runAgent } from '@/lib/ai/run';
 import { studyPlanner, type PlannedCourse, type PlannedSession } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
 import { isAiConfigured } from '@/lib/ai/client';
-import type { Weekday } from '@/types/database';
 
 export const maxDuration = 300;
 
