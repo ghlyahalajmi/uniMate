@@ -503,12 +503,10 @@ begin
   values
     (v_user, 'UniMate', 'https://unimate-pied.vercel.app',
      'This app, live.', 'project', 1, true, true),
-    (v_user, 'UniMate on GitHub', 'https://github.com/ghlyahalajmi/uniMate',
-     'Source, issues and pull requests.', 'project', 2, false, true),
     (v_user, 'Plana — Digital Planner Studio', 'https://github.com/ghlyahalajmi/plana-digital-planner-studio',
-     null, 'project', 3, false, true),
-    (v_user, 'Day 6', 'https://github.com/ghlyahalajmi/day6', null, 'project', 4, false, true),
-    (v_user, 'Day 5', 'https://github.com/ghlyahalajmi/day5', null, 'project', 5, false, true),
+     null, 'project', 2, false, true),
+    (v_user, 'Day 6', 'https://github.com/ghlyahalajmi/day6', null, 'project', 3, false, true),
+    (v_user, 'Day 5', 'https://github.com/ghlyahalajmi/day5', null, 'project', 4, false, true),
 
     (v_user, 'Kuwait University', 'https://kuweb.ku.edu.kw',
      'Registration, transcripts and the academic calendar.', 'university', 1, true, true),
@@ -517,8 +515,6 @@ begin
 
     (v_user, 'Supabase dashboard', 'https://supabase.com/dashboard',
      'The database behind this app.', 'resource', 1, false, true),
-    (v_user, 'Vercel dashboard', 'https://vercel.com/dashboard',
-     'Deployments and logs.', 'resource', 2, false, true),
     -- Shown on the Student Hub page. A preview URL, so it will need updating
     -- when the class hub gets a production domain.
     (v_user, 'Class hub',
