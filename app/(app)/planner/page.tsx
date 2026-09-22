@@ -1,16 +1,20 @@
 import { getCourses, getSchedules } from '@/lib/data/queries';
+import { isAiConfigured } from '@/lib/ai/client';
 import { PlannerView } from '@/components/planner/planner-view';
 
 export const metadata = { title: 'Planner' };
 export const dynamic = 'force-dynamic';
 
 export default async function PlannerPage() {
-  const [courses, schedules] = await Promise.all([getCourses(), getSchedules()]);
+  const [courses, schedules, aiEnabled] = await Promise.all([
+    getCourses(), getSchedules(), isAiConfigured(),
+  ]);
 
   const byId = new Map(courses.map((c) => [c.id, c]));
 
   return (
     <PlannerView
+      aiEnabled={aiEnabled}
       candidates={courses
         .filter((c) => c.status === 'planned' || c.status === 'active')
         .map((c) => ({

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
-import { AiThinking, EmptyState } from '@/components/ui/states';
+import { AiThinking, AiUnavailable, EmptyState } from '@/components/ui/states';
 import { Checkbox, TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm';
@@ -25,7 +25,18 @@ interface Plan {
   courses: Array<{ id: string; code: string; name: string; credits: number }>;
 }
 
-export function PlannerView({ candidates, plans }: { candidates: Candidate[]; plans: Plan[] }) {
+export function PlannerView({
+  candidates, plans, aiEnabled,
+}: {
+  candidates: Candidate[];
+  plans: Plan[];
+  /**
+   * Whether a model is reachable. The planner works either way — the agent
+   * falls back to credit-capped light/balanced/intensive splits — so this
+   * changes what the student is told, never whether the button works.
+   */
+  aiEnabled: boolean;
+}) {
   const { t, tf, formatNumber, formatDate } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -96,10 +107,12 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
       });
       const data = await res.json();
       if (data.ok) {
-        toast.success(t.planner.saved);
+        // A plan the credit rules produced is not a plan a model weighed, and
+        // saying so is the difference between a suggestion and a claim.
+        toast.success(data.source === 'ai' ? t.planner.saved : t.planner.savedOffline);
         router.refresh();
       } else {
-        toast.error(t.errors.generic);
+        toast.error(data.error === 'planning_failed' ? t.planner.failed : t.errors.generic);
       }
     } catch {
       toast.error(t.errors.network);
@@ -111,6 +124,12 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
   return (
     <>
       <PageHeader title={t.planner.title} subtitle={t.planner.subtitle} />
+
+      {!aiEnabled ? (
+        <div className="mb-4">
+          <AiUnavailable title={t.planner.aiOffTitle} body={t.planner.aiOffBody} />
+        </div>
+      ) : null}
 
       <div className="rounded-[var(--radius-md)] bg-[var(--warning-soft)] border border-[var(--warning-border)] p-3.5 mb-5">
         <p className="text-sm text-[var(--text-primary)] flex items-start gap-2">

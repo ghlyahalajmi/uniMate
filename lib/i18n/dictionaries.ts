@@ -483,6 +483,10 @@ export const en = {
   },
   planner: {
     title: 'Smart schedule planner', subtitle: 'Compare realistic semester plans side by side.',
+    aiOffTitle: 'Study with AI is switched off — the planner still works',
+    aiOffBody: 'Plans are built from your credits, difficulty and timetable clashes, which UniMate works out itself. Adding a key in Settings lets the AI weigh the trade-offs and explain them as well.',
+    savedOffline: 'Plans built from your credits and timetable.',
+    failed: 'We could not build the plans. Check your candidate courses and try again.',
     generate: 'Generate plans', generating: 'Weighing your options…',
     candidates: 'Candidate courses', addCandidate: 'Add a course to consider',
     noCandidates: 'Add the courses available to you next semester and UniMate will build plans from them.',
@@ -1632,6 +1636,10 @@ export const ar: Dictionary = {
   },
   planner: {
     title: 'مخطط الجدول الذكي', subtitle: 'قارن خططاً فصلية واقعية جنباً إلى جنب.',
+    aiOffTitle: 'المذاكرة بالذكاء الاصطناعي مُطفأة — والمخطط يعمل رغم ذلك',
+    aiOffBody: 'تُبنى الخطط من ساعاتك وصعوبة المقررات وتعارضات جدولك، وهذا ما يحسبه يوني‑ميت بنفسه. إضافة مفتاح في الإعدادات تتيح للذكاء الاصطناعي الموازنة بينها وشرحها أيضاً.',
+    savedOffline: 'بُنيت الخطط من ساعاتك وجدولك.',
+    failed: 'تعذّر بناء الخطط. راجع المقررات المرشحة وحاول مجدداً.',
     generate: 'أنشئ الخطط', generating: 'جارٍ الموازنة بين خياراتك…',
     candidates: 'المقررات المرشحة', addCandidate: 'أضف مقرراً للنظر فيه',
     noCandidates: 'أضف المقررات المتاحة لك الفصل القادم وسيبني يوني‑ميت خططاً منها.',
