@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { adminIdentifierToEmail, adminUsernameFrom, isAdmin, adminExists } from './queries';
 import { isPasswordPwned } from '@/lib/auth/pwned';
+import { verifyKey } from '@/lib/ai/credentials';
 
 export interface AdminState {
   error?: string;
@@ -152,6 +153,43 @@ export async function adminChangePassword(
   if (wrongCurrent) return { error: 'wrongCurrent' };
 
   const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) return { error: 'failed' };
+
+  revalidatePath('/admin');
+  return { ok: true };
+}
+
+/**
+ * Put one key on every student account.
+ *
+ * Checked against the provider first, because a wrong key applied to everyone
+ * is every AI screen in the deployment failing at once, and the person who
+ * would notice is not the person who pasted it.
+ */
+export async function setAiKeyForAll(
+  _prev: AdminState, formData: FormData,
+): Promise<AdminState & { applied?: number }> {
+  const key = String(formData.get('key') ?? '').trim();
+
+  if (!(await isAdmin())) return { error: 'notAdmin' };
+  if (key.length < 8 || key.length > 400) return { error: 'badKey' };
+  if (!(await verifyKey('openrouter', key))) return { error: 'rejected' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_set_ai_key_for_all', {
+    p_provider: 'openrouter',
+    p_key: key,
+  });
+  if (error) return { error: 'failed' };
+
+  revalidatePath('/admin');
+  return { ok: true, applied: Number(data ?? 0) };
+}
+
+/** Remove every stored key, for one that has been revoked at the provider. */
+export async function clearAllAiKeys(): Promise<AdminState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_clear_all_ai_keys');
   if (error) return { error: 'failed' };
 
   revalidatePath('/admin');

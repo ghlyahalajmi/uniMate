@@ -9,7 +9,6 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { saveProfile, type ActionState } from '@/lib/data/actions';
-import { AiKeyForm } from './ai-key-form';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { AppLanguage } from '@/types/database';
 
@@ -27,10 +26,6 @@ export function SettingsView({
   };
   ai: {
     configured: boolean; model: string | null;
-    /** Last four characters of the student's own key, when they saved one. */
-    keyHint: string | null;
-    /** True when the deployment has its own key, so nobody needs to add one. */
-    deploymentKey: boolean;
   };
 }) {
   const { t, locale, setLocale } = useI18n();
@@ -235,29 +230,26 @@ export function SettingsView({
       </Card>
 
       {/*
-        The student's own AI key, and nothing else.
+        Whether the AI is on, and nothing to configure.
         --------------------------------------------------------------------
-        The roster of agents — what fires each one, which workflow it belongs
-        to, what it does without a model — is operations detail. It answered a
-        question a student was not asking and buried the one control they
-        actually need. It lives on the admin side now.
+        Keys are set by an administrator now. A student still deserves to know
+        whether the AI features are working and what to do when they are not,
+        which is one line and the name of the person to ask — not a field for a
+        credential they were never meant to hold.
       */}
       <Card className="mt-5">
         <CardHeader
-          title={t.ai.ownKeyTitle}
-          subtitle={ai.configured ? `${t.common.ai} · ${ai.model}` : t.ai.unavailableTitle}
+          title={t.common.ai}
+          subtitle={ai.configured ? (ai.model ?? undefined) : undefined}
           action={
             <Badge tone={ai.configured ? 'positive' : 'warning'}>
               {ai.configured ? t.syllabi.completed : t.common.notSet}
             </Badge>
           }
         />
-        {!ai.configured ? (
-          <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.ai.unavailableBody}</p>
-        ) : null}
-
-        <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
-
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          {ai.configured ? t.ai.managedOn : t.ai.managedOff}
+        </p>
         <p className="text-xs text-[var(--text-muted)] mt-3">{t.ai.noInvention}</p>
       </Card>
     </>

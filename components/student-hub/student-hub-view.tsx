@@ -4,15 +4,14 @@ import { useActionState, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
-import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
+import { Badge, Button, Card, CardHeader } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { TextInput, TextArea, Checkbox } from '@/components/ui/form';
 import { Modal, useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { saveHubLink, deleteHubLink, toggleHubPin } from '@/lib/hub/actions';
-import { hostOf, initialsOf } from '@/lib/hub/format';
+import { saveHubLink, deleteHubLink } from '@/lib/hub/actions';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { ActionState } from '@/lib/data/actions';
 import { StreakBoard } from './streak-board';
@@ -30,9 +29,8 @@ export interface GroupCard {
 }
 
 export function StudentHubView({
-  links, board, myLinks, groups,
+  board, myLinks, groups,
 }: {
-  links: LinkRow[];
   board: LeaderboardRow[];
   myLinks: LinkRow[];
   groups: GroupCard[];
@@ -53,14 +51,6 @@ export function StudentHubView({
     startTransition(async () => {
       const res = await deleteHubLink(link.id);
       if (res.ok) { toast.success(actionMessage(t, res.messageKey)); router.refresh(); }
-      else toast.error(actionMessage(t, res.messageKey));
-    });
-  }
-
-  function togglePin(link: LinkRow) {
-    startTransition(async () => {
-      const res = await toggleHubPin(link.id, !link.isPinned);
-      if (res.ok) router.refresh();
       else toast.error(actionMessage(t, res.messageKey));
     });
   }
@@ -134,34 +124,6 @@ export function StudentHubView({
           )}
         </Card>
 
-        {/* Shared links --------------------------------------------------- */}
-        <Card>
-          <CardHeader title={t.hub.classLinks} subtitle={t.hub.classLinksSub} />
-
-          {links.length === 0 ? (
-            <EmptyState
-              title={t.hub.classEmptyTitle}
-              body={t.hub.classEmptyBody}
-              icon={<Icon.students size={24} />}
-              action={addButton}
-              compact
-            />
-          ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {links.map((l) => (
-                <li key={l.id}>
-                  <ClassLinkTile
-                    link={l}
-                    onEdit={() => { setEditing(l); setFormOpen(true); }}
-                    onDelete={() => setDeleting(l)}
-                    onTogglePin={() => togglePin(l)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
         {/* Your own links -------------------------------------------------- */}
         <Card>
           <CardHeader
@@ -228,71 +190,6 @@ export function StudentHubView({
         body={deleting?.title ?? ''}
       />
     </>
-  );
-}
-
-function ClassLinkTile({
-  link, onEdit, onDelete, onTogglePin,
-}: {
-  link: LinkRow;
-  onEdit: () => void;
-  onDelete: () => void;
-  onTogglePin: () => void;
-}) {
-  const { t } = useI18n();
-  const host = hostOf(link.url);
-
-  return (
-    <div
-      className={cx(
-        'h-full rounded-[var(--radius-md)] border p-3 transition-colors',
-        link.isPinned
-          ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)]'
-          : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)]',
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className="shrink-0 w-9 h-9 rounded-[var(--radius-sm)] grid place-items-center
-                     text-xs font-semibold bg-[var(--bg-inset)] text-[var(--text-secondary)]"
-        >
-          {initialsOf(link.title)}
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 min-h-[32px] text-sm font-medium hover:underline"
-          >
-            <span className="min-w-0 break-words">{link.title}</span>
-            <Icon.external size={13} className="shrink-0 text-[var(--text-muted)]" />
-            <span className="sr-only">{t.hub.opensNewTab}</span>
-          </a>
-          {host ? <p className="text-xs text-[var(--text-muted)] break-all">{host}</p> : null}
-          {link.description ? (
-            <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">{link.description}</p>
-          ) : null}
-          {link.isPinned ? (
-            <Badge tone="accent" className="mt-2" icon={<Icon.pin size={11} />}>{t.hub.pinned}</Badge>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-1 mt-2">
-        <Button size="sm" variant="ghost" onClick={onTogglePin} aria-label={link.isPinned ? t.hub.unpin : t.hub.pin}>
-          <Icon.pin size={14} className={link.isPinned ? 'text-[var(--accent)]' : undefined} />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onEdit} aria-label={t.hub.editLink}>
-          <Icon.edit size={14} />
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onDelete} aria-label={t.common.delete}>
-          <Icon.trash size={14} />
-        </Button>
-      </div>
-    </div>
   );
 }
 

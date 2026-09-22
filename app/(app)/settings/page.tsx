@@ -3,17 +3,15 @@ import { getCurrentUser } from '@/lib/supabase/server';
 import { parseAvatar, parseAvatarKind, initialsFrom } from '@/lib/avatar/design';
 import { AvatarPicker } from '@/components/avatar/avatar-picker';
 import { getLocale } from '@/lib/i18n/server';
-import { isAiConfigured, aiProvider, modelNameFor, deploymentProvider } from '@/lib/ai/client';
-import { studentKeyHint } from '@/lib/ai/credentials';
+import { isAiConfigured, aiProvider, modelNameFor } from '@/lib/ai/client';
 import { SettingsView } from '@/components/settings/settings-view';
 
 export const metadata = { title: 'Settings' };
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const [profile, locale, user, aiOn, provider, keyHint] = await Promise.all([
-    getProfile(), getLocale(), getCurrentUser(),
-    isAiConfigured(), aiProvider(), studentKeyHint(),
+  const [profile, locale, user, aiOn, provider] = await Promise.all([
+    getProfile(), getLocale(), getCurrentUser(), isAiConfigured(), aiProvider(),
   ]);
   const photoUrl = await getAvatarUrl(profile?.avatar_path ?? null);
 
@@ -50,8 +48,6 @@ export default async function SettingsPage() {
         configured: aiOn,
         // The model id only; the key itself never reaches the client.
         model: aiOn ? modelNameFor(provider) : null,
-        keyHint: keyHint?.hint || null,
-        deploymentKey: deploymentProvider() !== null,
       }}
     />
     </>

@@ -6,6 +6,7 @@ import { setSuspended, clearAiKeyFor, adminSignOut } from '@/lib/admin/actions';
 import type { AdminUserRow } from '@/lib/admin/queries';
 import { AdminPasswordForm } from './admin-password-form';
 import { AdminAgents } from './admin-agents';
+import { AdminAiKey } from './admin-ai-key';
 
 /**
  * The accounts screen.
@@ -146,6 +147,8 @@ export function AdminUsersView({
           </ul>
         )}
       </div>
+
+      <AdminAiKey withKey={summary.withKey} accounts={summary.accounts} />
 
       <AdminAgents agents={agents} />
 

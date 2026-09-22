@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Everything the student does *with* other people, on one page: the streak
- * board, the groups they study with, the links the class shares, and their own
- * link page. The Hub and Study groups have no sidebar entry of their own —
- * they are reached from here, because this is where the class already is.
+ * board, the groups they study with, and their own link page. The Hub and
+ * Study groups have no sidebar entry of their own — they are reached from
+ * here, because this is where the class already is.
  */
 export default async function StudentHubPage() {
   const [links, board, groups] = await Promise.all([
@@ -29,7 +29,6 @@ export default async function StudentHubPage() {
   return (
     <StudentHubView
       board={board}
-      links={rows.filter((l) => l.kind === 'class')}
       // The personal Hub, previewed rather than duplicated: pinned first, and
       // the page itself is one press away.
       myLinks={rows.filter((l) => l.kind !== 'class')}

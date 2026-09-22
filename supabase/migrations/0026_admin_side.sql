@@ -270,3 +270,103 @@ $$;
 
 revoke all on function public.session_state() from public, anon;
 grant execute on function public.session_state() to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Keys are an administrator's job
+-- -----------------------------------------------------------------------------
+
+/**
+ * Set one student's AI key.
+ *
+ * The key still lives on that student's own row, which is what keeps it
+ * readable by their session and nobody else's — including other students, and
+ * including the administrator who set it. An administrator can write a key and
+ * clear a key. No function here returns one.
+ */
+create or replace function public.admin_set_ai_key(p_user uuid, p_provider text, p_key text)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'not an administrator';
+  end if;
+  if length(coalesce(p_key, '')) < 8 then
+    raise exception 'key too short';
+  end if;
+
+  insert into public.ai_credentials (user_id, provider, api_key, updated_at)
+  values (p_user, coalesce(nullif(p_provider, ''), 'openrouter'), p_key, now())
+  on conflict (user_id) do update
+    set provider = excluded.provider,
+        api_key = excluded.api_key,
+        updated_at = now();
+end;
+$$;
+
+revoke all on function public.admin_set_ai_key(uuid, text, text) from public, anon;
+grant execute on function public.admin_set_ai_key(uuid, text, text) to authenticated;
+
+/**
+ * The same key on every student account, in one statement.
+ *
+ * A loop from the browser would be dozens of round trips and could stop
+ * halfway, leaving half a deployment working and no way to tell which half.
+ */
+create or replace function public.admin_set_ai_key_for_all(p_provider text, p_key text)
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'not an administrator';
+  end if;
+  if length(coalesce(p_key, '')) < 8 then
+    raise exception 'key too short';
+  end if;
+
+  insert into public.ai_credentials (user_id, provider, api_key, updated_at)
+  select u.id, coalesce(nullif(p_provider, ''), 'openrouter'), p_key, now()
+    from auth.users u
+   where not exists (select 1 from public.admins a where a.user_id = u.id)
+  on conflict (user_id) do update
+    set provider = excluded.provider,
+        api_key = excluded.api_key,
+        updated_at = now();
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.admin_set_ai_key_for_all(text, text) from public, anon;
+grant execute on function public.admin_set_ai_key_for_all(text, text) to authenticated;
+
+/** Clear every stored key at once, for a key that has been revoked at the provider. */
+create or replace function public.admin_clear_all_ai_keys()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_count integer;
+begin
+  if not public.is_admin() then
+    raise exception 'not an administrator';
+  end if;
+
+  delete from public.ai_credentials;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.admin_clear_all_ai_keys() from public, anon;
+grant execute on function public.admin_clear_all_ai_keys() to authenticated;
