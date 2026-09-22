@@ -28,26 +28,51 @@ interface Due {
 
 const EVERY_MS = 60_000;
 
+/**
+ * One audio context for the page.
+ *
+ * Browsers cap how many a page may create — a handful — and creating one per
+ * chime silently stops working after the first few. Kept at module scope so it
+ * survives the component remounting on navigation.
+ */
+let shared: AudioContext | null = null;
+
+function audioContext(): AudioContext | null {
+  if (shared) return shared;
+  const Ctor = window.AudioContext
+    ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  shared = new Ctor();
+  return shared;
+}
+
 export function ReminderWatch() {
   const { t, locale } = useI18n();
   const [due, setDue] = useState<Due[]>([]);
   const seen = useRef<Set<string>>(new Set());
 
   /**
-   * Two notes and a fall, from the Web Audio API.
+   * Two notes, from the Web Audio API.
    *
-   * No audio file: a asset would be another request, another thing to 404,
-   * and this needs to be about a second long and unmistakable rather than
-   * pretty. Browsers refuse audio until the page has been interacted with, so
-   * a failure here is silent by design — the card still appears.
+   * No audio file: an asset would be another request and another thing to 404,
+   * and this needs to be a second long and unmistakable rather than pretty.
+   *
+   * Two things this gets wrong if written the obvious way, and both were wrong
+   * here. A browser starts an audio context *suspended* until the page has
+   * been interacted with, and a suspended context plays nothing while
+   * reporting no error — so the first chime was silent. And a new context per
+   * chime hits the browser's limit of a handful per page, after which creating
+   * one fails and every later chime is silent too. So: one context for the
+   * life of the page, woken on the first click or key the student makes, and
+   * resumed again before each use in case the browser put it back to sleep.
    */
-  const chime = useCallback(() => {
+  const chime = useCallback(async () => {
     try {
-      const Ctor = window.AudioContext
-        ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return;
+      const ctx = audioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state !== 'running') return;
 
-      const ctx = new Ctor();
       const now = ctx.currentTime;
       [880, 1174.66].forEach((hz, i) => {
         const osc = ctx.createOscillator();
@@ -61,10 +86,29 @@ export function ReminderWatch() {
         osc.start(now + i * 0.18);
         osc.stop(now + i * 0.18 + 0.55);
       });
-      setTimeout(() => ctx.close().catch(() => {}), 1500);
     } catch {
       // Audio is the flourish; the card is the message.
     }
+  }, []);
+
+  /*
+   * Wake the audio context on the first thing the student does.
+   *
+   * Browsers only allow sound after a genuine interaction. Waiting until the
+   * reminder is due is too late: by then the click that would have permitted
+   * it happened minutes ago and the context is still asleep.
+   */
+  useEffect(() => {
+    const unlock = () => {
+      const ctx = audioContext();
+      if (ctx && ctx.state === 'suspended') void ctx.resume();
+    };
+    document.addEventListener('pointerdown', unlock);
+    document.addEventListener('keydown', unlock);
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
   }, []);
 
   const check = useCallback(async () => {
@@ -82,7 +126,7 @@ export function ReminderWatch() {
 
       fresh.forEach((d) => seen.current.add(d.id));
       setDue((prev) => [...fresh, ...prev].slice(0, 4));
-      chime();
+      void chime();
 
       // Told once. The server remembers, so a refresh does not repeat it.
       await fetch('/api/reminders/due', {

@@ -1,15 +1,28 @@
 'use server';
 
+import { timingSafeEqual } from 'node:crypto';
+
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { adminIdentifierToEmail, adminUsernameFrom, isAdmin, adminExists } from './queries';
 import { isPasswordPwned } from '@/lib/auth/pwned';
-import { verifyKey } from '@/lib/ai/credentials';
 
 export interface AdminState {
   error?: string;
   ok?: boolean;
+}
+
+/**
+ * Compare two secrets without leaking the answer through how long it took.
+ *
+ * A plain `===` returns faster the earlier it finds a difference, which is
+ * enough to recover a token one character at a time given patience.
+ */
+function timingSafeEquals(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
 }
 
 /**
@@ -54,6 +67,22 @@ export async function adminBootstrap(_prev: AdminState, formData: FormData): Pro
   const identifier = String(formData.get('username') ?? '');
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('confirmPassword') ?? '');
+  const token = String(formData.get('setupToken') ?? '');
+
+  /*
+   * Claiming the admin side takes something only the deployment's owner has.
+   *
+   * Before this, whoever opened the page first became the administrator of the
+   * whole deployment — and the page's address is published in a public
+   * repository. Being early is not a credential.
+   *
+   * With no token configured the page cannot be used at all, which is the safe
+   * direction: a deployment nobody has set a token on is a deployment nobody
+   * can claim.
+   */
+  const expected = process.env.ADMIN_SETUP_TOKEN ?? '';
+  if (expected.length < 16) return { error: 'setupClosed' };
+  if (!timingSafeEquals(token, expected)) return { error: 'badToken' };
 
   // A username or an email, because people reach for both and refusing one of
   // them reads as "my password is wrong" rather than "wrong field".
@@ -157,33 +186,6 @@ export async function adminChangePassword(
 
   revalidatePath('/admin');
   return { ok: true };
-}
-
-/**
- * Put one key on every student account.
- *
- * Checked against the provider first, because a wrong key applied to everyone
- * is every AI screen in the deployment failing at once, and the person who
- * would notice is not the person who pasted it.
- */
-export async function setAiKeyForAll(
-  _prev: AdminState, formData: FormData,
-): Promise<AdminState & { applied?: number }> {
-  const key = String(formData.get('key') ?? '').trim();
-
-  if (!(await isAdmin())) return { error: 'notAdmin' };
-  if (key.length < 8 || key.length > 400) return { error: 'badKey' };
-  if (!(await verifyKey('openrouter', key))) return { error: 'rejected' };
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('admin_set_ai_key_for_all', {
-    p_provider: 'openrouter',
-    p_key: key,
-  });
-  if (error) return { error: 'failed' };
-
-  revalidatePath('/admin');
-  return { ok: true, applied: Number(data ?? 0) };
 }
 
 /** Remove every stored key, for one that has been revoked at the provider. */

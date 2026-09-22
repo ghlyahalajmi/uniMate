@@ -12,6 +12,8 @@ const MESSAGES: Record<string, string> = {
   mismatch: 'The two passwords do not match.',
   pwned: 'That password has appeared in a public data breach. Choose a different one.',
   taken: 'An administrator already exists. Sign in instead.',
+  setupClosed: 'Setup is closed: no setup token is configured for this deployment.',
+  badToken: 'That setup token is wrong.',
   signUpFailed: 'That username could not be created. Try another.',
 };
 
@@ -31,6 +33,10 @@ export function AdminFirstRunForm() {
       subtitle="Nobody administers this deployment yet. Choose a username and password — this page stops working the moment an administrator exists. If you are signed in as a student, that session ends here."
     >
       <form action={action} className="space-y-4">
+        <AdminField
+          label="Setup token" name="setupToken" type="password" autoComplete="off" required
+          hint="From the deployment's environment variables. Without it this page does nothing."
+        />
         <AdminField
           label="Admin username or email" name="username" autoComplete="username" required
           hint="A username is enough — an email works too. Either way this is a separate account from any student one."

@@ -102,10 +102,12 @@ accounts, and its own screens. There is no link to it from the student app.
 student sign-up refuses. The two credential sets cannot collide, by
 construction rather than by convention.
 
-**First run.** While no administrator exists, `/admin/first-run` lets whoever
-reaches it choose a username and password and claim the side. The moment one
-exists the database refuses a second claim, and the page redirects to sign-in.
-No password is ever generated, written down, or sent anywhere.
+**First run.** Claiming the admin side takes a setup token — `ADMIN_SETUP_TOKEN`
+in the deployment's environment, at least 16 characters. With no token set, the
+first-run page cannot be used at all, which is the safe direction: being early
+is not a credential, and the page's address is not a secret. The moment one
+administrator exists the database refuses a second claim as well. No password is
+ever generated, written down, or sent anywhere.
 
 **What an administrator can see** is account facts: who exists, when they
 joined, when they last signed in, whether they are suspended, whether they hold
