@@ -1,7 +1,6 @@
 import {
   getCourses, getStudySessions, getCourseMaterials, getStudyPlans,
 } from '@/lib/data/queries';
-import { isAiConfigured } from '@/lib/ai/client';
 import { toPracticeFormat } from '@/lib/study/modes';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { StudyHome } from '@/components/study/study-home';
@@ -32,7 +31,6 @@ export default async function StudyPage({
 
   return (
     <StudyHome
-      aiEnabled={await isAiConfigured()}
       courses={active.map((c) => ({
         id: c.id,
         code: c.course_code,

@@ -1,7 +1,6 @@
 import { getCourses, getGrades, getGradeScale, getStudySessions, groupGradesByCourse } from '@/lib/data/queries';
 import { computeCourseGrade } from '@/lib/calculations/grades';
 import { cumulativeGpa } from '@/lib/calculations/gpa';
-import { isAiConfigured } from '@/lib/ai/client';
 import { AnalyticsView } from '@/components/analytics/analytics-view';
 
 export const metadata = { title: 'Analytics' };
@@ -72,7 +71,6 @@ export default async function AnalyticsPage() {
 
   return (
     <AnalyticsView
-      aiEnabled={await isAiConfigured()}
       assessmentSeries={assessmentSeries}
       courseStanding={courseStanding}
       gpaSeries={gpaSeries}

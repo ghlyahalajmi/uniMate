@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, cx } from '@/components/ui/primitives';
-import { AiThinking, AiUnavailable, ErrorState } from '@/components/ui/states';
+import { AiThinking, ErrorState } from '@/components/ui/states';
 import { TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
@@ -38,7 +38,7 @@ type Phase = 'idle' | 'scanning' | 'review' | 'saving' | 'error';
  * the model was unsure about are flagged individually so the student's
  * attention goes where the doubt is.
  */
-export function ScannerView({ aiEnabled }: { aiEnabled: boolean }) {
+export function ScannerView() {
   const { t, tf } = useI18n();
   const router = useRouter();
   const toast = useToast();
@@ -52,19 +52,6 @@ export function ScannerView({ aiEnabled }: { aiEnabled: boolean }) {
   const [semester, setSemester] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
-
-  if (!aiEnabled) {
-    return (
-      <>
-        <PageHeader title={t.scanner.title} subtitle={t.scanner.subtitle} />
-        <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />
-      </>
-    );
-  }
 
   async function handleFile(file: File) {
     if (file.size > MAX_UPLOAD_BYTES) { setError(t.errors.fileTooLarge); setPhase('error'); return; }

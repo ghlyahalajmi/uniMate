@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
@@ -39,10 +38,9 @@ const DIFFICULTIES: RequestedDifficulty[] = ['easy', 'medium', 'hard', 'adaptive
 const HEAT: Record<RequestedDifficulty, number> = { easy: 1, medium: 2, hard: 3, adaptive: 0 };
 
 export function StudyView({
-  aiEnabled, courses, initialCourseId, initialFormat, history,
+  courses, initialCourseId, initialFormat, history,
   chapters = [], initialChapterId = null, embedded = false,
 }: {
-  aiEnabled: boolean;
   courses: Array<{ id: string; code: string; name: string }>;
   initialCourseId: string;
   /** The style the course page asked for, or 'mixed' when nobody chose. */
@@ -119,7 +117,7 @@ export function StudyView({
         });
         const data = await res.json();
         if (!data.ok) {
-          setError(data.error === 'ai_not_configured' ? t.ai.unavailableBody : t.study.genError);
+          setError(t.study.genError);
           setPhase('error');
           return;
         }
@@ -146,7 +144,7 @@ export function StudyView({
       const data = await res.json();
 
       if (!data.ok || !data.questions?.length) {
-        setError(data.error === 'ai_not_configured' ? t.ai.unavailableBody : t.study.genError);
+        setError(t.study.genError);
         setPhase('error');
         return;
       }
@@ -261,15 +259,6 @@ export function StudyView({
       <>
         {embedded ? null : <PageHeader title={t.study.title} subtitle={t.study.subtitle} />}
         <Card><EmptyState title={t.study.title} body={t.study.empty} /></Card>
-      </>
-    );
-  }
-
-  if (!aiEnabled) {
-    return (
-      <>
-        {embedded ? null : <PageHeader title={t.study.title} subtitle={t.study.subtitle} />}
-        <LockedPanel history={history} />
       </>
     );
   }
@@ -1186,82 +1175,6 @@ function ScoreRing({ pct, colour }: { pct: number; colour: string }) {
 }
 
 // --- No API key --------------------------------------------------------------
-
-/**
- * This screen is the one place in UniMate that genuinely cannot work without a
- * key, so rather than a bare notice it shows what the feature is, what a
- * question looks like, and what is still running regardless.
- */
-function LockedPanel({ history }: { history: HistoryRow[] }) {
-  const { t } = useI18n();
-
-  return (
-    <div className="space-y-4">
-      <Card className="relative overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-20 -end-20 w-52 h-52 rounded-full opacity-25"
-          style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)' }}
-        />
-        <div className="relative flex items-start gap-3.5">
-          <span
-            aria-hidden="true"
-            className="shrink-0 w-10 h-10 rounded-[var(--radius-md)] grid place-items-center bg-[var(--bg-inset)] text-[var(--text-muted)]"
-          >
-            <Icon.lock size={18} />
-          </span>
-          <div className="min-w-0">
-            <h2 className="font-display text-lg font-semibold text-balance-title">{t.study.lockedTitle}</h2>
-            <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-              {t.study.lockedBody}
-            </p>
-            {/* The one screen a student lands on wanting this. Sending them to
-                read a settings page to find the box is a step too many. */}
-            <Link
-              href="/settings"
-              className="inline-block mt-3 text-sm font-medium underline underline-offset-2"
-            >
-              {t.ai.ownKeyCta}
-            </Link>
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-          {t.study.lockedExample}
-        </p>
-        <div className="opacity-70 select-none" aria-hidden="true">
-          <p className="font-display text-base leading-snug">{t.study.lockedExampleQ}</p>
-          <div className="mt-4 p-3 rounded-[var(--radius-md)] border border-[var(--positive)] bg-[var(--positive-soft)] flex items-center gap-3 text-sm">
-            <span className="shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)] border border-[var(--positive)] text-[var(--positive)] text-xs font-semibold">
-              ✓
-            </span>
-            {t.study.lockedExampleA}
-          </div>
-        </div>
-      </Card>
-
-      <Card className="bg-[var(--positive-soft)] border-[var(--positive-border)]">
-        <p className="text-sm font-semibold">{t.study.lockedWorks}</p>
-        <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-          {t.study.lockedWorksList}
-        </p>
-      </Card>
-
-      {history.length > 0 ? (
-        <Card>
-          <CardHeader title={t.study.history} />
-          <ul className="divide-y divide-[var(--border-subtle)]">
-            {history.map((h) => (
-              <li key={h.id} className="py-2.5"><HistoryLine row={h} /></li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-    </div>
-  );
-}
 
 // --- Shared ------------------------------------------------------------------
 

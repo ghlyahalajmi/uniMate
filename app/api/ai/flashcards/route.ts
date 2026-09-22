@@ -3,7 +3,6 @@ import { withUser, apiError, readJson } from '@/lib/api/helpers';
 import { runAgent } from '@/lib/ai/run';
 import { flashcardWriter, type FlashcardInput } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
-import { isAiConfigured } from '@/lib/ai/client';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { MODE_SIZES, type PracticeMode } from '@/lib/study/modes';
 
@@ -24,7 +23,6 @@ const MODES = new Set<PracticeMode>(['quick_5', 'standard_10', 'deep_20', 'exam_
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<{
     course_id?: string; mode?: string; material_id?: string; topic?: string;

@@ -1,5 +1,4 @@
 import { getAiRuns } from '@/lib/data/queries';
-import { isAiConfigured } from '@/lib/ai/client';
 import { AutomationView } from '@/components/automation/automation-view';
 
 export const metadata = { title: 'Automation' };
@@ -10,7 +9,6 @@ export default async function AutomationPage() {
 
   return (
     <AutomationView
-      aiEnabled={await isAiConfigured()}
       // Both are required before the webhook route will answer at all, so the
       // page reports the pair rather than implying one is enough. Only whether
       // they are set crosses to the client — never the values.

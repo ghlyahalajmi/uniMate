@@ -15,11 +15,10 @@ import { Icon } from '@/components/shell/icons';
  * own cards and the only style that works with no AI key.
  */
 export function CoursePractice({
-  courseId, deck, aiEnabled,
+  courseId, deck,
 }: {
   courseId: string;
   deck: { total: number; due: number };
-  aiEnabled: boolean;
 }) {
   const { t, tf, formatNumber } = useI18n();
 
@@ -93,9 +92,6 @@ export function CoursePractice({
         ))}
       </ul>
 
-      {!aiEnabled ? (
-        <p className="text-xs text-[var(--text-muted)] mt-3 leading-relaxed">{t.practice.needsAi}</p>
-      ) : null}
     </Card>
   );
 }

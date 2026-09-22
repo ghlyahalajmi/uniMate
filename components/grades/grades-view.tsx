@@ -32,7 +32,7 @@ interface CourseCard {
 type Tab = 'need' | 'calculator' | 'scale';
 
 export function GradesView({
-  courseCards, cumulative, semester, scale, courseOptions, targetGpa, aiEnabled,
+  courseCards, cumulative, semester, scale, courseOptions, targetGpa,
 }: {
   courseCards: CourseCard[];
   cumulative: GpaResult;
@@ -40,7 +40,6 @@ export function GradesView({
   scale: Array<{ letter: string; min_percent: number; points: number }>;
   courseOptions: Array<{ value: string; label: string }>;
   targetGpa: number | null;
-  aiEnabled: boolean;
 }) {
   const { t, formatNumber } = useI18n();
   const router = useRouter();
@@ -157,7 +156,6 @@ export function GradesView({
           {/* Top of the section, as in the reference: the scale the GPA below
               is measured against, photographed rather than typed. */}
           <ScalePicture
-            aiEnabled={aiEnabled}
             onApply={(rows) => {
               startTransition(async () => {
                 const res = await saveGradeScale(rows);

@@ -3,16 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Button, Card, cx } from '@/components/ui/primitives';
-import { AiUnavailable, EmptyState } from '@/components/ui/states';
+import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
 export function AssistantView({
-  aiEnabled, sampleCourseCode,
+  sampleCourseCode,
 }: {
-  aiEnabled: boolean;
   sampleCourseCode: string;
 }) {
   const { t } = useI18n();
@@ -35,19 +34,6 @@ export function AssistantView({
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || thinking) return;
-
-    // No provider: answer in the thread rather than silently doing nothing, so
-    // the refusal lands where the student pressed and the layout still shows
-    // how a real exchange will look.
-    if (!aiEnabled) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', content: trimmed },
-        { role: 'assistant', content: t.ai.unavailableBody },
-      ]);
-      setInput('');
-      return;
-    }
 
     const history = messages.slice(-10);
     setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
@@ -73,11 +59,9 @@ export function AssistantView({
   }
 
   /**
-   * Without a provider the screen used to stop at a banner, so the chat itself
-   * — the bubbles, the suggestions, the composer — could not be seen at all.
-   * The notice now sits above a working interface instead of replacing it: the
-   * layout can be judged, and `send` is what declines, where the student
-   * pressed, rather than the page refusing to draw.
+   * The screen asks nothing and announces nothing. Whether a model is reachable
+   * is decided per question, on the server, and a question asked without one
+   * comes back answered from the student's own records rather than refused.
    */
 
   return (
@@ -93,16 +77,6 @@ export function AssistantView({
           ) : undefined
         }
       />
-
-      {!aiEnabled ? (
-        <div className="mb-3">
-          <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />
-        </div>
-      ) : null}
 
       <div className="flex-1 overflow-y-auto -mx-1 px-1">
         {messages.length === 0 ? (

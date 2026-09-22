@@ -61,11 +61,10 @@ const HORIZONS = [14, 21, 30];
  * is a calendar full of things they did not do.
  */
 export function StudyPlansPanel({
-  courses, plans, aiEnabled,
+  courses, plans,
 }: {
   courses: PlanCourse[];
   plans: SavedPlan[];
-  aiEnabled: boolean;
 }) {
   const { t, tf, formatNumber, formatDate } = useI18n();
   const router = useRouter();
@@ -95,8 +94,7 @@ export function StudyPlansPanel({
       const data = await res.json();
       if (!data.ok) {
         setError(
-          data.error === 'ai_not_configured' ? t.ai.unavailableBody
-          : data.error === 'no_courses' ? t.studyAi.planEmpty
+          data.error === 'no_courses' ? t.studyAi.planEmpty
           : data.error === 'plan_empty' ? t.studyAi.planEmpty
           : t.errors.generic,
         );
@@ -267,7 +265,7 @@ export function StudyPlansPanel({
           </div>
         </fieldset>
 
-        <Button className="mt-4" disabled={!aiEnabled} onClick={() => void propose()}>
+        <Button className="mt-4" onClick={() => void propose()}>
           <Icon.sparkle size={17} />
           {t.studyAi.planNew}
         </Button>

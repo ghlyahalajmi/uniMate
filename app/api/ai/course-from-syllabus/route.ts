@@ -3,7 +3,6 @@ import { withUser, apiError } from '@/lib/api/helpers';
 import { confirmSyllabusCourse, type SyllabusCourseDraft } from '@/lib/workflows';
 import { runAgent } from '@/lib/ai/run';
 import { syllabusCourseReader, type SyllabusPage } from '@/lib/ai/agents';
-import { isAiConfigured } from '@/lib/ai/client';
 import { courseSchema, MAX_UPLOAD_BYTES } from '@/lib/validation/schemas';
 import { groupSyllabuses, type UploadedFile } from '@/lib/syllabus/grouping';
 
@@ -58,7 +57,6 @@ async function mapLimit<T, R>(
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   let form: FormData;
   try {

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
 import { workflowGenerateQuestions } from '@/lib/workflows';
 import { studyRequestSchema } from '@/lib/validation/schemas';
-import { isAiConfigured } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/server';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import type { StudyInput } from '@/lib/ai/agents';
@@ -21,7 +20,6 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<unknown>(request, 64 * 1024);
   const parsed = studyRequestSchema.safeParse(body);

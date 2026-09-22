@@ -36,9 +36,8 @@ const WORKFLOWS = [
 ] as const;
 
 export function AutomationView({
-  aiEnabled, webhooksEnabled, runs,
+  webhooksEnabled, runs,
 }: {
-  aiEnabled: boolean;
   webhooksEnabled: boolean;
   runs: RunRow[];
 }) {
@@ -94,9 +93,7 @@ export function AutomationView({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                           <h2 className="font-display text-base font-semibold text-balance-title">{c.title}</h2>
-                          {/* All five call an agent, so the label is constant;
-                              the tone is what says whether it can run today. */}
-                          <Badge tone={aiEnabled ? 'accent' : 'warning'}>{t.automation.needsAi}</Badge>
+                          <Badge tone="accent">{t.automation.needsAi}</Badge>
                         </div>
 
                         <dl className="mt-2.5 space-y-1.5">
@@ -176,12 +173,6 @@ export function AutomationView({
             );
           })}
         </ol>
-
-        {!aiEnabled ? (
-          <Card className="bg-[var(--warning-soft)] border-[var(--warning-border)]">
-            <p className="text-[0.8125rem] leading-relaxed">{t.ai.unavailableBody}</p>
-          </Card>
-        ) : null}
 
         <Card>
           <CardHeader title={t.automation.webhooksTitle} />

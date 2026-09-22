@@ -4,7 +4,6 @@ import { runAgent } from '@/lib/ai/run';
 import { unimateAssistant } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
 import { assistantRequestSchema } from '@/lib/validation/schemas';
-import { isAiConfigured } from '@/lib/ai/client';
 
 /**
  * These agents call Claude with adaptive thinking, and the slowest of them —
@@ -18,7 +17,6 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<unknown>(request, 128 * 1024);
   const parsed = assistantRequestSchema.safeParse(body);

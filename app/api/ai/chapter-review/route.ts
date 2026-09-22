@@ -3,7 +3,6 @@ import { withUser, apiError, readJson } from '@/lib/api/helpers';
 import { runAgent } from '@/lib/ai/run';
 import { chapterReview, type ReviewDocument } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
-import { isAiConfigured } from '@/lib/ai/client';
 import { isReadableMaterial } from '@/lib/materials/limits';
 
 /** Reading a chapter properly is a long call; the default limit cuts it off. */
@@ -21,7 +20,6 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<{ materialId?: string }>(request, 16 * 1024);
   if (!body?.materialId) return apiError('invalid_request', 400);

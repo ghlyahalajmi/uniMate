@@ -24,9 +24,8 @@ type Phase = 'idle' | 'reading' | 'review' | 'error';
  * of is flagged, and only pressing save replaces the stored scale.
  */
 export function ScalePicture({
-  aiEnabled, onApply,
+  onApply,
 }: {
-  aiEnabled: boolean;
   /** Hands the confirmed rows to the scale editor, which owns saving them. */
   onApply: (rows: Array<{ letter: string; min_percent: number; points: number }>) => void;
 }) {
@@ -48,7 +47,7 @@ export function ScalePicture({
       const data = await res.json();
 
       if (!data.ok) {
-        setMessage(data.error === 'ai_not_configured' ? t.ai.unavailableBody : t.grades.scaleError);
+        setMessage(t.grades.scaleError);
         setPhase('error');
         return;
       }
@@ -106,14 +105,10 @@ export function ScalePicture({
             variant="secondary"
             className="mt-3.5"
             onClick={() => fileRef.current?.click()}
-            disabled={!aiEnabled}
           >
             <Icon.upload size={16} />
             {t.grades.scalePicture}
           </Button>
-          {!aiEnabled ? (
-            <p className="text-xs text-[var(--text-muted)] mt-2">{t.ai.unavailableTitle}</p>
-          ) : null}
           {message ? (
             <p role="alert" className="text-[0.8125rem] text-[var(--danger)] mt-2.5">{message}</p>
           ) : null}

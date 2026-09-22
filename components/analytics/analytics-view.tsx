@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader } from '@/components/ui/primitives';
-import { AiThinking, AiUnavailable, EmptyState, Provenance } from '@/components/ui/states';
+import { AiThinking, EmptyState, Provenance } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { ChartFrame } from '@/components/charts/chart-frame';
@@ -19,10 +19,9 @@ interface Analysis {
 }
 
 export function AnalyticsView({
-  aiEnabled, assessmentSeries, courseStanding, gpaSeries, creditSeries, studySeries,
+  assessmentSeries, courseStanding, gpaSeries, creditSeries, studySeries,
   maxGpa, maxCredits, completedCount, assessmentCount,
 }: {
-  aiEnabled: boolean;
   assessmentSeries: LinePoint[];
   courseStanding: BarDatum[];
   gpaSeries: BarDatum[];
@@ -161,13 +160,7 @@ export function AnalyticsView({
             }
           />
 
-          {!aiEnabled && !analysis ? (
-            <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />
-          ) : analysing ? (
+          {analysing ? (
             <AiThinking stages={[t.ai.readingHistory, t.ai.findingPatterns, t.analytics.analysing]} />
           ) : failed ? (
             <p className="text-sm text-[var(--text-secondary)]">{t.errors.generic}</p>

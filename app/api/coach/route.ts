@@ -4,7 +4,6 @@ import { runAgent } from '@/lib/ai/run';
 import { dailyCoach } from '@/lib/ai/agents';
 import { getCoachSnapshot } from '@/lib/coach/queries';
 import { logMotivation } from '@/lib/coach/service';
-import { isAiConfigured } from '@/lib/ai/client';
 
 /** The coach calls a model, so it gets the same ceiling as the other agents. */
 export const maxDuration = 300;
@@ -33,7 +32,7 @@ export async function POST() {
   );
 
   if (!outcome.ok) {
-    return apiError((await isAiConfigured()) ? 'coach_failed' : 'ai_not_configured', 200);
+    return apiError('coach_failed', 200);
   }
 
   // Record what the student was told, with the figures behind it.

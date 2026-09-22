@@ -3,7 +3,6 @@ import { withUser, apiError } from '@/lib/api/helpers';
 import { runAgent } from '@/lib/ai/run';
 import { dashboardInsight } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
-import { isAiConfigured } from '@/lib/ai/client';
 
 /**
  * These agents call Claude with adaptive thinking, and the slowest of them —
@@ -22,7 +21,7 @@ export async function POST() {
   const outcome = await runAgent(dashboardInsight, { context }, auth.ctx);
 
   if (!outcome.ok) {
-    return apiError((await isAiConfigured()) ? 'insight_failed' : 'ai_not_configured', 200);
+    return apiError('insight_failed', 200);
   }
   return NextResponse.json({ ok: true, ...outcome.data, source: outcome.source });
 }

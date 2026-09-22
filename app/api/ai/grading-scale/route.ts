@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { withUser, apiError } from '@/lib/api/helpers';
 import { runAgent } from '@/lib/ai/run';
 import { gradingScaleReader } from '@/lib/ai/agents';
-import { isAiConfigured } from '@/lib/ai/client';
 import { MAX_UPLOAD_BYTES } from '@/lib/validation/schemas';
 
 /**
@@ -25,7 +24,6 @@ type AllowedType = (typeof ALLOWED)[number];
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   let form: FormData;
   try {

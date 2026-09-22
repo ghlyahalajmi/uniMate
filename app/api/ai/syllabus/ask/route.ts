@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
 import { askSyllabus } from '@/lib/ai/agents';
 import { syllabusAskSchema } from '@/lib/validation/schemas';
-import { isAiConfigured } from '@/lib/ai/client';
 import { runAgent, type AgentDefinition } from '@/lib/ai/run';
 
 /**
@@ -36,7 +35,6 @@ const syllabusQuestionAgent: AgentDefinition<AskInput, AskOutput> = {
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<unknown>(request, 32 * 1024);
   const parsed = syllabusAskSchema.safeParse(body);

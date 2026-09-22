@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError } from '@/lib/api/helpers';
 import { workflowProcessSyllabus } from '@/lib/workflows';
-import { isAiConfigured } from '@/lib/ai/client';
 import { MAX_UPLOAD_BYTES } from '@/lib/validation/schemas';
 
 /**
@@ -68,17 +67,6 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError || !row) return apiError('save_failed', 200);
-
-  if (!(await isAiConfigured())) {
-    await auth.ctx.supabase
-      .from('syllabi')
-      .update({
-        processing_status: 'failed',
-        error_message: 'AI features are not configured, so this syllabus was stored but not read.',
-      })
-      .eq('id', row.id);
-    return NextResponse.json({ ok: true, id: row.id, processed: false, reason: 'ai_not_configured' });
-  }
 
   const document =
     IMAGE.includes(file.type as (typeof IMAGE)[number])

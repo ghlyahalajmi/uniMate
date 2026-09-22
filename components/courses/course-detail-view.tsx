@@ -24,7 +24,7 @@ type Tab = 'overview' | 'assessments' | 'materials' | 'syllabus' | 'practice' | 
 
 export function CourseDetailView({
   course, grades, tasks, syllabus, events, questions, materials,
-  breakdown, target, bestReachable, scaleLetters, deck, aiEnabled,
+  breakdown, target, bestReachable, scaleLetters, deck,
 }: {
   course: Course;
   grades: Grade[];
@@ -43,7 +43,6 @@ export function CourseDetailView({
   scaleLetters: string[];
   /** This course's flashcard deck, summarised for the practice panel. */
   deck: { total: number; due: number };
-  aiEnabled: boolean;
 }) {
   const { t, tf, formatTime, formatDate, formatNumber } = useI18n();
   const router = useRouter();
@@ -384,7 +383,7 @@ export function CourseDetailView({
 
       {tab === 'practice' ? (
         <div className="space-y-4">
-          <CoursePractice courseId={course.id} deck={deck} aiEnabled={aiEnabled} />
+          <CoursePractice courseId={course.id} deck={deck} />
 
           {/* Studying it with other people is the same decision, one step out. */}
           <Card>

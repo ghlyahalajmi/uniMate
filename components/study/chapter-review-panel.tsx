@@ -37,11 +37,10 @@ type Phase = 'choosing' | 'reading' | 'done' | 'error';
  * wondering where the slides they uploaded went.
  */
 export function ChapterReviewPanel({
-  courseId, chapters, aiEnabled, onPractise,
+  courseId, chapters, onPractise,
 }: {
   courseId: string;
   chapters: ChapterOption[];
-  aiEnabled: boolean;
   /** Hand a chapter to the practice flow, so revision leads somewhere. */
   onPractise: (chapterId: string) => void;
 }) {
@@ -67,8 +66,7 @@ export function ChapterReviewPanel({
       const data = await res.json();
       if (!data.ok) {
         setError(
-          data.error === 'ai_not_configured' ? t.ai.unavailableBody
-          : data.error === 'not_readable' ? t.studyAi.onlyReadable
+          data.error === 'not_readable' ? t.studyAi.onlyReadable
           : t.errors.generic,
         );
         setPhase('error');
@@ -218,11 +216,11 @@ export function ChapterReviewPanel({
             <li key={c.id}>
               <button
                 type="button"
-                disabled={!c.readable || !aiEnabled}
+                disabled={!c.readable}
                 onClick={() => void run(c.id)}
                 className={cx(
                   'w-full flex items-center gap-3 text-start px-3.5 py-3 rounded-[var(--radius-md)] border transition-colors',
-                  c.readable && aiEnabled
+                  c.readable
                     ? 'border-[var(--border-subtle)] hover:border-[var(--accent)] hover:bg-[var(--bg-accent-soft)]'
                     : 'border-[var(--border-subtle)] opacity-60 cursor-not-allowed',
                 )}

@@ -2,7 +2,6 @@ import { getCourses, getGrades, getGradeScale, getProfile, groupGradesByCourse }
 import { computeCourseGrade, requiredForTarget, bestReachableLetter } from '@/lib/calculations/grades';
 import { cumulativeGpa, semesterGpa } from '@/lib/calculations/gpa';
 import { GradesView } from '@/components/grades/grades-view';
-import { isAiConfigured } from '@/lib/ai/client';
 
 export const metadata = { title: 'Grades' };
 export const dynamic = 'force-dynamic';
@@ -47,7 +46,6 @@ export default async function GradesPage() {
       scale={scale}
       courseOptions={courses.map((c) => ({ value: c.id, label: `${c.course_code} — ${c.course_name}` }))}
       targetGpa={profile?.target_gpa ?? null}
-      aiEnabled={await isAiConfigured()}
     />
   );
 }

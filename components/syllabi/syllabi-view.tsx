@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
-import { AiThinking, AiUnavailable, EmptyState } from '@/components/ui/states';
+import { AiThinking, EmptyState } from '@/components/ui/states';
 import { Select, TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { ConfirmDialog } from '@/components/ui/confirm';
@@ -31,9 +31,8 @@ interface SyllabusRow {
 }
 
 export function SyllabiView({
-  aiEnabled, syllabi, courseOptions, initialCourseId,
+  syllabi, courseOptions, initialCourseId,
 }: {
-  aiEnabled: boolean;
   syllabi: SyllabusRow[];
   courseOptions: Array<{ value: string; label: string }>;
   initialCourseId: string;
@@ -69,7 +68,7 @@ export function SyllabiView({
           : data.error === 'file_type' ? t.errors.fileType
           : t.syllabi.uploadError);
       } else if (!data.processed) {
-        toast.info(data.reason === 'ai_not_configured' ? t.ai.unavailableTitle : t.syllabi.uploadError);
+        toast.info(t.syllabi.uploadError);
       } else {
         toast.success(t.syllabi.completed);
       }
@@ -91,16 +90,6 @@ export function SyllabiView({
   return (
     <>
       <PageHeader title={t.syllabi.title} subtitle={t.syllabi.subtitle} />
-
-      {!aiEnabled ? (
-        <div className="mb-5">
-          <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />
-        </div>
-      ) : null}
 
       <Card className="mb-5">
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
@@ -233,7 +222,7 @@ export function SyllabiView({
                     courseOptions={courseOptions}
                   />
 
-                  {aiEnabled ? <AskPanel syllabusId={s.id} /> : null}
+                  <AskPanel syllabusId={s.id} />
                 </>
               ) : null}
             </Card>

@@ -1,4 +1,3 @@
-import { isAiConfigured } from '@/lib/ai/client';
 import { getCourses } from '@/lib/data/queries';
 import { AssistantView } from '@/components/assistant/assistant-view';
 
@@ -11,7 +10,6 @@ export default async function AssistantPage() {
 
   return (
     <AssistantView
-      aiEnabled={await isAiConfigured()}
       sampleCourseCode={firstActive?.course_code ?? 'CE301'}
     />
   );

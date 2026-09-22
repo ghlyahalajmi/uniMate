@@ -1,5 +1,4 @@
 import { getCourses, getSyllabi, getSyllabusEvents } from '@/lib/data/queries';
-import { isAiConfigured } from '@/lib/ai/client';
 import { SyllabiView } from '@/components/syllabi/syllabi-view';
 
 export const metadata = { title: 'Syllabus' };
@@ -19,7 +18,6 @@ export default async function SyllabiPage({
 
   return (
     <SyllabiView
-      aiEnabled={await isAiConfigured()}
       initialCourseId={course ?? ''}
       courseOptions={courses.map((c) => ({ value: c.id, label: `${c.course_code} — ${c.course_name}` }))}
       syllabi={syllabi.map((s) => ({

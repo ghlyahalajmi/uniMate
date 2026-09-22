@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Button, Card, CardHeader } from '@/components/ui/primitives';
-import { AiThinking, AiUnavailable, Provenance } from '@/components/ui/states';
+import { AiThinking, Provenance } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 
 interface Insight { fact: string; suggestion: string; source: 'ai' | 'fallback' }
@@ -17,7 +17,6 @@ export function InsightPanel() {
   const { t } = useI18n();
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
-  const [unavailable, setUnavailable] = useState(false);
   const [failed, setFailed] = useState(false);
 
   /** Pure fetch. No state is touched here, so the caller owns cancellation. */
@@ -29,8 +28,6 @@ export function InsightPanel() {
   const apply = useCallback((data: Awaited<ReturnType<typeof fetchInsight>> | null) => {
     if (data?.ok) {
       setInsight({ fact: data.fact, suggestion: data.suggestion, source: data.source });
-    } else if (data?.error === 'ai_not_configured') {
-      setUnavailable(true);
     } else {
       setFailed(true);
     }
@@ -41,7 +38,6 @@ export function InsightPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    setUnavailable(false);
     try {
       apply(await fetchInsight());
     } catch {
@@ -64,14 +60,6 @@ export function InsightPanel() {
     })();
     return () => { cancelled = true; };
   }, [apply, fetchInsight]);
-
-  if (unavailable) {
-    return <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />;
-  }
 
   return (
     <Card>

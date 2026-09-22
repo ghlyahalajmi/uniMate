@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
 import { Card, CardHeader, cx } from '@/components/ui/primitives';
-import { AiUnavailable, EmptyState } from '@/components/ui/states';
+import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import type { PracticeFormat } from '@/lib/study/modes';
@@ -34,9 +34,8 @@ export interface StudyCourse {
  * deciding what gets the week.
  */
 export function StudyHome({
-  aiEnabled, courses, plans, initialCourseId, initialFormat, history,
+  courses, plans, initialCourseId, initialFormat, history,
 }: {
-  aiEnabled: boolean;
   courses: StudyCourse[];
   plans: SavedPlan[];
   initialCourseId: string;
@@ -77,16 +76,6 @@ export function StudyHome({
   return (
     <>
       <PageHeader title={t.study.title} subtitle={t.study.subtitle} />
-
-      {!aiEnabled ? (
-        <div className="mb-4">
-          <AiUnavailable
-          title={t.ai.unavailableTitle}
-          body={t.ai.unavailableBody}
-          action={{ href: "/settings", label: t.ai.ownKeyCta }}
-        />
-        </div>
-      ) : null}
 
       {/* Which course ---------------------------------------------------- */}
       <Card className="mb-4">
@@ -145,14 +134,12 @@ export function StudyHome({
         <ChapterReviewPanel
           courseId={course.id}
           chapters={course.chapters}
-          aiEnabled={aiEnabled}
           onPractise={(id) => { setChapterId(id); setMode('practice'); }}
         />
       ) : null}
 
       {mode === 'practice' && course ? (
         <StudyView
-          aiEnabled={aiEnabled}
           courses={planCourses}
           chapters={course.chapters}
           initialCourseId={course.id}
@@ -164,7 +151,7 @@ export function StudyHome({
       ) : null}
 
       {mode === 'plan' ? (
-        <StudyPlansPanel courses={planCourses} plans={plans} aiEnabled={aiEnabled} />
+        <StudyPlansPanel courses={planCourses} plans={plans} />
       ) : null}
     </>
   );

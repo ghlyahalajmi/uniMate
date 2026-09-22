@@ -4,7 +4,6 @@ import {
   getQuestions, getGradeScale,
 } from '@/lib/data/queries';
 import { getDeck } from '@/lib/flashcards/queries';
-import { isAiConfigured } from '@/lib/ai/client';
 import { computeCourseGrade, requiredForTarget, bestReachableLetter } from '@/lib/calculations/grades';
 import { CourseDetailView } from '@/components/courses/course-detail-view';
 
@@ -57,7 +56,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         assumptions: target.assumptions,
       }}
       deck={{ total: deck.total, due: deck.due }}
-      aiEnabled={await isAiConfigured()}
       bestReachable={bestReachableLetter(grades, scale)}
       scaleLetters={scale.map((s) => s.letter)}
     />
