@@ -33,6 +33,16 @@ function asStrings(value: unknown): string[] {
 }
 
 /**
+ * How many models a request may name.
+ *
+ * OpenRouter rejects a request whose `models` array is longer than three —
+ * "'models' array must have 3 items or fewer", a flat 400 that fails every
+ * agent at once. Learned the hard way: five were being sent and nothing
+ * worked, on a key that was perfectly good.
+ */
+export const MAX_FALLBACK_MODELS = 3;
+
+/**
  * The free models worth trying, best first.
  *
  * "Best" here is deliberately crude, because the catalogue gives little to go
@@ -40,11 +50,20 @@ function asStrings(value: unknown): string[] {
  * not, since every agent but the chat assistant asks for JSON, and a longer
  * context wins the tie because syllabus PDFs are long. Order is otherwise
  * stable so the same catalogue always yields the same list.
+ *
+ * `needsImage` narrows it to models that can actually see a picture. A
+ * photographed timetable handed to a text-only model is not a worse answer, it
+ * is an invented one.
  */
-export function pickFreeModels(models: readonly CatalogueModel[], limit = 5): string[] {
+export function pickFreeModels(
+  models: readonly CatalogueModel[],
+  limit = MAX_FALLBACK_MODELS,
+  needsImage = false,
+): string[] {
   const scored = models
     .filter((m) => typeof m.id === 'string' && m.id.length > 0)
     .filter((m) => isFree(m.pricing?.prompt) && isFree(m.pricing?.completion))
+    .filter((m) => !needsImage || asStrings(m.architecture?.input_modalities).includes('image'))
     .map((m) => {
       const params = asStrings(m.supported_parameters);
       const structured =

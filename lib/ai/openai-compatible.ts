@@ -26,6 +26,11 @@ export interface CompatConfig {
   models: string[];
   /** Whether this provider understands the `models` fallback array. */
   supportsFallbackList?: boolean;
+  /**
+   * Extra top-level fields for this provider only — OpenRouter's file parser,
+   * for instance. Merged into the body, never over the fields above.
+   */
+  extraBody?: Record<string, unknown>;
 }
 
 type Part =
@@ -54,6 +59,7 @@ async function post(cfg: CompatConfig, body: Record<string, unknown>): Promise<s
       body: JSON.stringify({
         model: cfg.models[0],
         ...(cfg.supportsFallbackList && cfg.models.length > 1 ? { models: cfg.models } : {}),
+        ...(cfg.extraBody ?? {}),
         ...body,
       }),
     });

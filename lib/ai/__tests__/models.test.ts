@@ -4,7 +4,9 @@
  * strings, missing fields, and paid models sitting next to free ones.
  */
 import assert from 'node:assert/strict';
-import { pickFreeModels, resolveModels, type CatalogueModel } from '../models';
+import {
+  pickFreeModels, resolveModels, MAX_FALLBACK_MODELS, type CatalogueModel,
+} from '../models';
 
 let passed = 0;
 function check(name: string, fn: () => void) {
@@ -63,10 +65,29 @@ check('is stable when everything else ties', () => {
   assert.deepEqual(pickFreeModels([...models].reverse()), ['a/x', 'b/x', 'c/x']);
 });
 
-check('caps the list', () => {
+check('never names more models than OpenRouter accepts', () => {
   const many = Array.from({ length: 30 }, (_, i) => free(`m/${i}`));
-  assert.equal(pickFreeModels(many).length, 5);
+  // Four or more is a flat 400 from OpenRouter — "'models' array must have 3
+  // items or fewer" — which failed every agent at once on a good key.
+  assert.equal(MAX_FALLBACK_MODELS, 3);
+  assert.equal(pickFreeModels(many).length, 3);
   assert.equal(pickFreeModels(many, 2).length, 2);
+});
+
+check('keeps only models that can see a picture when one is attached', () => {
+  const seeing = {
+    id: 'v/sees', pricing: { prompt: '0', completion: '0' },
+    architecture: { input_modalities: ['text', 'image'] },
+  };
+  const reading = {
+    id: 't/reads', pricing: { prompt: '0', completion: '0' },
+    architecture: { input_modalities: ['text'] },
+  };
+  assert.deepEqual(pickFreeModels([reading, seeing], 3, true), ['v/sees']);
+  // A timetable photograph handed to a text-only model comes back invented,
+  // so an empty list is the right answer rather than a hopeful one.
+  assert.deepEqual(pickFreeModels([reading], 3, true), []);
+  assert.deepEqual(pickFreeModels([reading, seeing], 3).sort(), ['t/reads', 'v/sees']);
 });
 
 check('survives junk entries without throwing', () => {

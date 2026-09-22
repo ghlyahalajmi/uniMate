@@ -1,7 +1,9 @@
 import 'server-only';
 import type { StructuredCallOptions } from './client';
 import { compatStructured, compatText, type CompatConfig } from './openai-compatible';
-import { pickFreeModels, resolveModels, type CatalogueModel } from './models';
+import {
+  pickFreeModels, resolveModels, MAX_FALLBACK_MODELS, type CatalogueModel,
+} from './models';
 
 /**
  * OpenRouter, as a second way to power the AI features.
@@ -57,8 +59,8 @@ function attribution(): Record<string, string> {
  * Never throws: discovery is an optimisation, and a failure here should degrade
  * to OpenRouter's own router rather than take down every AI feature.
  */
-async function discoverFreeModels(key: string): Promise<string[]> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.ids;
+async function discoverFreeModels(key: string, needsImage = false): Promise<string[]> {
+  if (!needsImage && cache && Date.now() - cache.at < CACHE_MS) return cache.ids;
 
   try {
     const response = await fetch(CATALOGUE, {
@@ -67,29 +69,50 @@ async function discoverFreeModels(key: string): Promise<string[]> {
     if (!response.ok) return cache?.ids ?? [];
 
     const payload = (await response.json()) as { data?: CatalogueModel[] } | null;
-    const ids = pickFreeModels(payload?.data ?? []);
-    if (ids.length === 0) return cache?.ids ?? [];
+    const ids = pickFreeModels(payload?.data ?? [], MAX_FALLBACK_MODELS, needsImage);
+    if (ids.length === 0) return needsImage ? [] : (cache?.ids ?? []);
 
-    cache = { at: Date.now(), ids };
+    // Only the general roster is worth remembering; the narrowed one is for
+    // this request alone.
+    if (!needsImage) cache = { at: Date.now(), ids };
     return ids;
   } catch {
     return cache?.ids ?? [];
   }
 }
 
-async function config(key: string): Promise<CompatConfig> {
+async function config(
+  key: string,
+  documents: StructuredCallOptions['documents'] = [],
+): Promise<CompatConfig> {
   const token = key || process.env.OPENROUTER_API_KEY || '';
   if (!token) throw new Error('AI_NOT_CONFIGURED');
 
+  const needsImage = documents.some((d) => d.kind === 'image');
+  const hasPdf = documents.some((d) => d.kind === 'pdf');
+
   const pinned = process.env.OPENROUTER_MODEL;
+  const discovered = pinned ? [] : await discoverFreeModels(token, needsImage);
+
   return {
     endpoint: ENDPOINT,
     token,
     extraHeaders: attribution(),
-    models: resolveModels(pinned, pinned ? [] : await discoverFreeModels(token)),
+    // Never more than three: OpenRouter refuses a longer list outright, and
+    // the refusal is a 400 that takes down every agent at once.
+    models: resolveModels(pinned, discovered).slice(0, MAX_FALLBACK_MODELS),
     // OpenRouter falls through this list when the first model is busy — which
     // on the free roster is a normal Tuesday rather than an exception.
     supportsFallbackList: true,
+    /*
+     * A PDF chapter should work on a model that cannot read PDFs. OpenRouter's
+     * own parser turns the file into text before the model sees it, and the
+     * `pdf-text` engine costs nothing — which matters, because the point of
+     * this route is that a student can use it with a free key.
+     */
+    ...(hasPdf
+      ? { extraBody: { plugins: [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }] } }
+      : {}),
   };
 }
 
@@ -97,7 +120,7 @@ async function config(key: string): Promise<CompatConfig> {
 export async function callStructuredViaOpenRouter<T>(
   opts: StructuredCallOptions, key = '',
 ): Promise<T> {
-  return compatStructured<T>(await config(key), opts);
+  return compatStructured<T>(await config(key, opts.documents), opts);
 }
 
 /** A plain-prose call, for the chat assistant. */
