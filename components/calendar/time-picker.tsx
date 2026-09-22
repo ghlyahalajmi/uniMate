@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { toClockParts, toStoredTime, type Meridiem } from '@/lib/time/when';
 import { cx } from '@/components/ui/primitives';
 
@@ -24,9 +25,40 @@ export function TimePicker({
   invalid?: boolean;
 }) {
   const parts = toClockParts(value) ?? { hour: 9, minute: 0, meridiem: 'AM' as Meridiem };
+
+  /*
+   * What is typed, before it is a number.
+   *
+   * The field has to show "0" while someone is on their way to "07", so the
+   * keystrokes live here and the padded value is what leaves. `emitted`
+   * remembers what this component last sent up: when the incoming value is
+   * something else, the form was reset from outside and the draft follows it.
+   * Without that check, every keystroke would come back padded and the caret
+   * would jump.
+   */
+  const [draft, setDraft] = useState(() => pad(parts.minute));
+  const [emitted, setEmitted] = useState(value);
+  if (value !== emitted) {
+    setEmitted(value);
+    setDraft(pad(parts.minute));
+  }
+
   const set = (next: Partial<typeof parts>) => {
     const stored = toStoredTime({ ...parts, ...next });
-    if (stored) onChange(stored);
+    if (!stored) return;
+    setEmitted(stored);
+    if (next.minute !== undefined) setDraft(pad(next.minute));
+    onChange(stored);
+  };
+
+  /** Digits only, and never past 59 — 7 then 5 is 7 minutes past, not 75. */
+  const type = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 2);
+    setDraft(digits);
+    const minute = Number(digits);
+    if (digits === '' || minute > 59) return;
+    const stored = toStoredTime({ ...parts, minute });
+    if (stored) { setEmitted(stored); onChange(stored); }
   };
 
   const field = cx(
@@ -51,16 +83,19 @@ export function TimePicker({
 
         <span aria-hidden="true" className="text-[var(--text-muted)]">:</span>
 
-        <select
+        {/* Typed, not scrolled. A list of sixty is a list nobody reads to the
+            end of: 10:47 took four seconds of dragging to reach. Two keys now,
+            and the four minutes anyone actually picks are the buttons below. */}
+        <input
           aria-label={`${label} — minute`}
-          value={parts.minute}
-          onChange={(e) => set({ minute: Number(e.target.value) })}
-          className={cx(field, 'w-[4.5rem]')}
-        >
-          {MINUTES.map((m) => (
-            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-          ))}
-        </select>
+          inputMode="numeric"
+          autoComplete="off"
+          value={draft}
+          onChange={(e) => type(e.target.value)}
+          onBlur={() => setDraft(pad(parts.minute))}
+          onFocus={(e) => e.currentTarget.select()}
+          className={cx(field, 'w-[3.25rem] text-center tabular-nums')}
+        />
 
         {/* Two buttons rather than a third dropdown: this is the part people
             get wrong, and it should be one press with both options in view. */}
@@ -88,6 +123,28 @@ export function TimePicker({
         </div>
       </div>
 
+      <div className="flex gap-1 mt-1.5">
+        {QUARTERS.map((m) => {
+          const selected = parts.minute === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => set({ minute: m })}
+              className={cx(
+                'h-7 px-2 rounded-[var(--radius-sm)] border text-xs tabular-nums transition-colors',
+                selected
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
+              )}
+            >
+              :{pad(m)}
+            </button>
+          );
+        })}
+      </div>
+
       {hint ? <span className="block text-xs text-[var(--text-muted)] mt-1">{hint}</span> : null}
     </div>
   );
@@ -95,11 +152,9 @@ export function TimePicker({
 
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
-/**
- * Every minute of the hour.
- *
- * This used to offer five-minute steps on the theory that nobody wants 10:37.
- * They do: a lecture ends at 10:50, a bus goes at 7:42, and a picker that
- * cannot say so is a picker you have to work around.
- */
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+/** The minutes a reminder is actually set to. Every other one is typed. */
+const QUARTERS = [0, 15, 30, 45];
+
+function pad(minute: number): string {
+  return String(minute).padStart(2, '0');
+}
