@@ -17,7 +17,7 @@ export interface NavItem {
  * The navigation, in two groups: the handful a student opens every day, then
  * everything else.
  *
- * Four things are deliberately absent, because each belongs inside something
+ * Five things are deliberately absent, because each belongs inside something
  * rather than beside it:
  *
  *   * The syllabus — it describes one course, so the way in is that course's
@@ -26,6 +26,9 @@ export interface NavItem {
  *     Practice tab, alongside the two written question styles.
  *   * The Hub and Study groups — both are things you do *with* the class, so
  *     the way in is the Student Hub, which is where the class already is.
+ *   * Automation — it explains what runs behind the other screens rather than
+ *     being somewhere a student goes, so it is not one of their daily places.
+ *     The page and its Run now buttons are unchanged at /automation.
  *
  * Every one of those routes still exists and is still linked to; none of them
  * needs a sidebar icon of its own.
@@ -53,7 +56,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/analytics', icon: 'analytics', label: (t) => t.nav.analytics },
   { href: '/records',   icon: 'records',   label: (t) => t.nav.records },
   { href: '/assistant', icon: 'assistant', label: (t) => t.nav.assistant },
-  { href: '/automation', icon: 'automation', label: (t) => t.nav.automation },
   { href: '/student-hub', icon: 'students', label: (t) => t.nav.studentHub },
 ];
 
