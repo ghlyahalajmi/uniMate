@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
@@ -27,6 +27,13 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
   const router = useRouter();
   const [saving, startTransition] = useTransition();
 
+  /*
+   * Which place is open. Tapping a step shows the work behind that streak —
+   * the hours and the tasks — because "2 days" on its own says nothing about
+   * what it took, and that is the part worth being competitive over.
+   */
+  const [openPlace, setOpenPlace] = useState<number | null>(null);
+
   const me = rows.find((r) => r.isMe) ?? null;
   const leader = rows[0] ?? null;
   const gap = me && leader ? leader.streak - me.streak : null;
@@ -34,6 +41,7 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
   // Middle slot is first place, so the podium reads 2 · 1 · 3 like a real one.
   const podium = [rows[1] ?? null, rows[0] ?? null, rows[2] ?? null];
   const rest = rows.slice(3);
+  const openRow = rows.find((r) => r.place === openPlace) ?? null;
 
   function toggleName() {
     if (!me) return;
@@ -66,52 +74,95 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
             {/* The podium ------------------------------------------------- */}
             <ol className="flex items-end justify-center gap-2 sm:gap-3 mt-1">
               {podium.map((r, i) => {
-                if (!r) return null;
-                const place = r.place;
-                const tier = TIER[Math.min(place, 3) as 1 | 2 | 3];
+                // Second, first, third — and an empty step is still a step.
+                // A podium with one person and two gaps reads as broken; one
+                // with two places waiting reads as an invitation.
+                const place = PLACE[i];
+                const tier = TIER[place];
+                const open = r !== null && openPlace === place;
                 return (
                   <li
-                    key={`${place}-${r.displayName ?? 'anon'}`}
+                    key={place}
                     className={cx('flex-1 min-w-0 flex flex-col items-center', HEIGHT[i])}
                   >
-                    {place === 1 ? (
+                    {place === 1 && r ? (
                       <Icon.trophy size={22} className="text-[var(--warning)] mb-1 animate-mark-node" />
                     ) : null}
 
-                    <span className="text-xs font-medium truncate max-w-full text-center">
-                      {r.displayName ?? t.hub.boardAnon}
+                    <span className={cx(
+                      'text-xs font-medium truncate max-w-full text-center',
+                      !r && 'text-[var(--text-muted)]',
+                    )}>
+                      {r ? (r.displayName ?? t.hub.boardAnon) : t.hub.boardOpenPlace}
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs tabular-nums text-[var(--text-muted)] mb-1.5">
-                      <Icon.flame size={11} className="text-[var(--warning)]" />
-                      {formatNumber(r.streak)}
+                      <Icon.flame size={11} className={r ? 'text-[var(--warning)]' : 'opacity-40'} />
+                      {r ? formatNumber(r.streak) : '—'}
                     </span>
 
-                    <div
+                    <button
+                      type="button"
+                      disabled={!r}
+                      aria-expanded={open}
+                      onClick={() => setOpenPlace(open ? null : place)}
                       className={cx(
                         'w-full rounded-t-[var(--radius-md)] border border-b-0 grid place-items-start justify-center pt-2',
+                        'transition-transform duration-200',
+                        r ? 'hover:-translate-y-0.5 cursor-pointer' : 'opacity-60 border-dashed',
                         tier.block,
-                        r.isMe && 'ring-2 ring-[var(--accent)] ring-inset',
+                        r?.isMe && 'ring-2 ring-[var(--accent)] ring-inset',
                       )}
                       style={{ height: BLOCK[i] }}
                     >
                       <span className={cx('font-display text-lg font-semibold tabular-nums', tier.text)}>
                         {formatNumber(place)}
                       </span>
-                    </div>
+                    </button>
                   </li>
                 );
               })}
             </ol>
             <div aria-hidden="true" className="h-px bg-[var(--border-strong)] -mt-px" />
 
+            {/* What that streak took ------------------------------------- */}
+            {openRow ? (
+              <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-inset)] p-3">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <p className="text-sm font-medium truncate">
+                    {openRow.displayName ?? t.hub.boardAnon}
+                    {openRow.isMe ? <Badge tone="accent" className="ms-2">{t.hub.boardYou}</Badge> : null}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setOpenPlace(null)}
+                    aria-label={t.common.close}
+                    className="shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--bg-surface)]"
+                  >
+                    <Icon.close size={15} />
+                  </button>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 text-center">
+                  <Stat
+                    label={t.hub.boardHours}
+                    value={formatNumber(Math.round((openRow.focusMinutes / 60) * 10) / 10)}
+                  />
+                  <Stat label={t.hub.boardTasks} value={formatNumber(openRow.tasksCompleted)} />
+                  <Stat label={t.hub.boardActiveDays} value={formatNumber(openRow.activeDays)} />
+                </dl>
+              </div>
+            ) : null}
+
             {/* Everyone else ---------------------------------------------- */}
             {rest.length > 0 ? (
               <ol className="space-y-1 mt-3">
                 {rest.map((r) => (
-                  <li
-                    key={`${r.place}-${r.displayName ?? 'anon'}`}
+                  <li key={`${r.place}-${r.displayName ?? 'anon'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenPlace(openPlace === r.place ? null : r.place)}
+                    aria-expanded={openPlace === r.place}
                     className={cx(
-                      'flex items-center gap-3 px-2.5 py-2 rounded-[var(--radius-md)] border transition-colors',
+                      'w-full text-start flex items-center gap-3 px-2.5 py-2 rounded-[var(--radius-md)] border transition-colors',
                       r.isMe
                         ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)]'
                         : 'border-transparent hover:bg-[var(--bg-inset)]',
@@ -128,6 +179,7 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
                       <Icon.flame size={14} className="text-[var(--warning)]" />
                       {r.streak === 1 ? t.hub.boardDay : tf(t.hub.boardDays, { n: formatNumber(r.streak) })}
                     </span>
+                  </button>
                   </li>
                 ))}
               </ol>
@@ -156,11 +208,27 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
           </>
         )}
 
+        {rows.length > 0 && !openRow ? (
+          <p className="text-xs text-[var(--text-muted)] mt-3">{t.hub.boardTapHint}</p>
+        ) : null}
+
         <p className="text-xs text-[var(--text-muted)] mt-3 leading-relaxed">{t.hub.boardPrivacy}</p>
       </div>
     </Card>
   );
 }
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[0.6875rem] uppercase tracking-wide text-[var(--text-muted)] order-2">{label}</dt>
+      <dd className="font-display text-lg font-semibold tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+/** The column order: second, first, third. */
+const PLACE = [2, 1, 3] as const;
 
 /** Gold, silver, bronze — drawn from the palette rather than literal metals. */
 const TIER = {
