@@ -79,8 +79,10 @@ http://localhost:3000/auth/callback
 https://your-app.vercel.app/auth/callback
 ```
 
-For a quicker first run, turn off **Confirm email** under
-**Authentication → Providers → Email**.
+**Confirm email** under **Authentication → Providers → Email** can be left
+however it is. Migration `0024` stamps the confirmation time as the account
+row is written, and sign-up signs the student straight in, so a new account is
+usable immediately either way.
 
 ## 3. Anthropic (optional)
 
@@ -158,7 +160,7 @@ never put either value anywhere a browser can reach.
 |---|---|
 | Every page redirects to sign-in | Supabase URL or anon key wrong in `.env.local` |
 | "Invalid API key" | The `service_role` key was used where the anon key belongs |
-| Sign-up succeeds but sign-in fails | Email confirmation is on and the address is unconfirmed |
+| Sign-up succeeds but sign-in fails | Check migration `0024` is applied — it is what confirms new accounts as they are created |
 | AI screens say "not switched on" | No key anywhere: set `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` for everyone (not with a `NEXT_PUBLIC_` prefix), or paste a free OpenRouter key in Settings → AI for one account |
 | Webhooks return 404 | `WORKFLOW_WEBHOOK_SECRET` is unset — they are disabled by design |
 | Webhooks return 500 | `SUPABASE_SERVICE_ROLE_KEY` is missing |
