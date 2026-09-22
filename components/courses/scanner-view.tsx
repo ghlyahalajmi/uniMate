@@ -57,7 +57,11 @@ export function ScannerView({ aiEnabled }: { aiEnabled: boolean }) {
     return (
       <>
         <PageHeader title={t.scanner.title} subtitle={t.scanner.subtitle} />
-        <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+        <AiUnavailable
+          title={t.ai.unavailableTitle}
+          body={t.ai.unavailableBody}
+          action={{ href: "/settings", label: t.ai.ownKeyCta }}
+        />
       </>
     );
   }

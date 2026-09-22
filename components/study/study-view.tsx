@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
@@ -1001,6 +1002,14 @@ function LockedPanel({ history }: { history: HistoryRow[] }) {
             <p className="text-sm text-[var(--text-secondary)] mt-1.5 leading-relaxed">
               {t.study.lockedBody}
             </p>
+            {/* The one screen a student lands on wanting this. Sending them to
+                read a settings page to find the box is a step too many. */}
+            <Link
+              href="/settings"
+              className="inline-block mt-3 text-sm font-medium underline underline-offset-2"
+            >
+              {t.ai.ownKeyCta}
+            </Link>
           </div>
         </div>
       </Card>

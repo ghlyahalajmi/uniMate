@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Card, Button, cx } from './primitives';
 
 /**
@@ -95,7 +96,14 @@ export function AiThinking({ stages, className }: { stages: string[]; className?
 }
 
 /** Shown wherever an AI feature would be, when no API key is configured. */
-export function AiUnavailable({ title, body }: { title: string; body: string }) {
+export function AiUnavailable({
+  title, body, action,
+}: {
+  title: string;
+  body: string;
+  /** Where the student can actually do something about it. */
+  action?: { href: string; label: string };
+}) {
   return (
     <Card className="bg-[var(--warning-soft)] border-[var(--warning-border)]">
       <div className="flex items-start gap-3">
@@ -103,6 +111,16 @@ export function AiUnavailable({ title, body }: { title: string; body: string }) 
         <div>
           <p className="text-sm font-medium">{title}</p>
           <p className="text-[0.8125rem] text-[var(--text-secondary)] mt-1 leading-relaxed">{body}</p>
+          {/* Telling someone a setting exists and leaving them to find it is
+              half an answer. */}
+          {action ? (
+            <Link
+              href={action.href}
+              className="inline-block mt-2.5 text-[0.8125rem] font-medium underline underline-offset-2"
+            >
+              {action.label}
+            </Link>
+          ) : null}
         </div>
       </div>
     </Card>

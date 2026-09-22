@@ -334,7 +334,11 @@ export function SyllabusImportView({ aiEnabled }: { aiEnabled: boolean }) {
         <div className="space-y-4">
           {!aiEnabled ? (
             <>
-              <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+              <AiUnavailable
+          title={t.ai.unavailableTitle}
+          body={t.ai.unavailableBody}
+          action={{ href: "/settings", label: t.ai.ownKeyCta }}
+        />
               <Card>
                 <CardHeader
                   title={t.syllabusImport.previewTitle}

@@ -162,7 +162,11 @@ export function AnalyticsView({
           />
 
           {!aiEnabled && !analysis ? (
-            <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+            <AiUnavailable
+          title={t.ai.unavailableTitle}
+          body={t.ai.unavailableBody}
+          action={{ href: "/settings", label: t.ai.ownKeyCta }}
+        />
           ) : analysing ? (
             <AiThinking stages={[t.ai.readingHistory, t.ai.findingPatterns, t.analytics.analysing]} />
           ) : failed ? (

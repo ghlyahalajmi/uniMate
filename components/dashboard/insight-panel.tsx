@@ -66,7 +66,11 @@ export function InsightPanel() {
   }, [apply, fetchInsight]);
 
   if (unavailable) {
-    return <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />;
+    return <AiUnavailable
+          title={t.ai.unavailableTitle}
+          body={t.ai.unavailableBody}
+          action={{ href: "/settings", label: t.ai.ownKeyCta }}
+        />;
   }
 
   return (

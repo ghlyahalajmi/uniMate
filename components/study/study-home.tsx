@@ -79,7 +79,11 @@ export function StudyHome({
 
       {!aiEnabled ? (
         <div className="mb-4">
-          <AiUnavailable title={t.ai.unavailableTitle} body={t.ai.unavailableBody} />
+          <AiUnavailable
+          title={t.ai.unavailableTitle}
+          body={t.ai.unavailableBody}
+          action={{ href: "/settings", label: t.ai.ownKeyCta }}
+        />
         </div>
       ) : null}
 
