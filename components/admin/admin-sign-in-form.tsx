@@ -12,7 +12,7 @@ export function AdminSignInForm() {
   return (
     <AdminShell
       title="UniMate administration"
-      subtitle="Administrator accounts are separate from student accounts. Sign in with your admin username."
+      subtitle="Administrator accounts are separate from student accounts. Sign in with your admin username — signing in here ends any student session in this browser."
     >
       <form action={action} className="space-y-4">
         <AdminField label="Admin username" name="username" autoComplete="username" required />

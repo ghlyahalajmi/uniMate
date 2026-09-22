@@ -67,6 +67,14 @@ export async function adminBootstrap(_prev: AdminState, formData: FormData): Pro
   const supabase = await createClient();
   const email = adminEmailFor(username);
 
+  /*
+   * Whoever sets this up is usually signed in as a student already. Ending
+   * that session first means the admin account is created and signed into
+   * cleanly, rather than layered on top of a session that is about to be
+   * replaced anyway.
+   */
+  await supabase.auth.signOut();
+
   const { error: signUpError } = await supabase.auth.signUp({ email, password });
   if (signUpError) return { error: 'signUpFailed' };
 

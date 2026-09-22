@@ -28,7 +28,7 @@ export function AdminFirstRunForm() {
   return (
     <AdminShell
       title="Create the administrator account"
-      subtitle="Nobody administers this deployment yet. Choose a username and password — this page stops working the moment an administrator exists."
+      subtitle="Nobody administers this deployment yet. Choose a username and password — this page stops working the moment an administrator exists. If you are signed in as a student, that session ends here."
     >
       <form action={action} className="space-y-4">
         <AdminField

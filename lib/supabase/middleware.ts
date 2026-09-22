@@ -14,6 +14,20 @@ function isAdminArea(pathname: string) {
   return pathname === '/admin' || pathname.startsWith('/admin/');
 }
 
+/**
+ * The two admin pages a student may land on.
+ *
+ * Whoever sets the admin side up is almost certainly signed in as a student
+ * already — it is their deployment. Bouncing them to the dashboard would make
+ * the first-run page unreachable by exactly the person it exists for, and the
+ * fix would be "sign out first", which nobody guesses. Neither page shows
+ * anything: one takes a username and password, the other refuses once an
+ * administrator exists.
+ */
+function isAdminDoor(pathname: string) {
+  return pathname === '/admin/sign-in' || pathname === '/admin/first-run';
+}
+
 function isPublic(pathname: string) {
   if (pathname === '/') return true;
   return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
@@ -95,7 +109,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && !admin && isAdminArea(pathname)) {
+  if (user && !admin && isAdminArea(pathname) && !isAdminDoor(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     url.search = '';
