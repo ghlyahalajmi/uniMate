@@ -2,6 +2,7 @@ import 'server-only';
 import type { AgentDefinition } from '../run';
 import { callStructured } from '../client';
 import { systemFor } from '../prompts';
+import { reviewFromDocument } from '../fallbacks/study';
 
 /** A chapter file, already fetched and encoded by the caller. */
 export type ReviewDocument =
@@ -148,7 +149,12 @@ export const chapterReview: AgentDefinition<ChapterReviewInput, ChapterReviewOut
     });
   },
 
-  fallback: () => null,
+  /*
+   * A text chapter can still be turned into a revision note without a model:
+   * its own headings, definitions and formulas, rearranged. A PDF or a photo
+   * cannot, and returns null rather than a page of invented confidence.
+   */
+  fallback: (input) => reviewFromDocument(input),
 
   summariseInput: (i) => `Review of "${i.chapterTitle}" (${i.courseCode})`,
   summariseOutput: (o) =>

@@ -3,6 +3,7 @@ import type { AgentDefinition } from '../run';
 import { callStructured } from '../client';
 import { systemFor } from '../prompts';
 import { renderContext, weakTopics, type StudentContext } from '../context';
+import { questionsFromRecords } from '../fallbacks/study';
 import type { DifficultyLevel, QuestionType } from '@/types/database';
 import {
   MODE_SIZES, type PracticeFormat, type PracticeMode, type RequestedDifficulty,
@@ -186,7 +187,13 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
   },
 
   // Writing subject-matter questions is not something we can fake offline.
-  fallback: () => null,
+  /*
+   * No model: serve the student their own material back. The questions they
+   * have already been given in this course, worst first, then their own
+   * flashcards. Nothing invented — a question written here without a model
+   * would be about the subject rather than about their course.
+   */
+  fallback: (input, ctx) => questionsFromRecords(input, ctx),
 
   summariseInput: ({ context, courseId, mode, difficulty, format }) => {
     const c = context.courses.find((x) => x.id === courseId);

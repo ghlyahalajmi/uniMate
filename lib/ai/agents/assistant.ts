@@ -2,6 +2,7 @@ import 'server-only';
 import type { AgentDefinition } from '../run';
 import { callText, callStructured } from '../client';
 import { systemFor } from '../prompts';
+import { answerFromRecords } from '../fallbacks/assistant';
 import { renderContext, gradesByCourse, type StudentContext } from '../context';
 import { computeCourseGrade, requiredForTarget } from '@/lib/calculations/grades';
 import { cumulativeGpa, semesterGpa } from '@/lib/calculations/gpa';
@@ -92,7 +93,14 @@ export const unimateAssistant: AgentDefinition<AssistantInput, AssistantOutput> 
     return { answer };
   },
 
-  fallback: () => null,
+  /*
+   * Most of what students ask is a lookup — what is due, what is my GPA, what
+   * do I have today — and those answers are arithmetic over rows that are
+   * already here. Refusing them because a model is unavailable would be
+   * refusing to read the student their own diary. Anything needing judgement
+   * still returns null rather than an imitation.
+   */
+  fallback: (input) => answerFromRecords(input, computedBlock(input.context)),
 
   summariseInput: (i) => i.message.slice(0, 120),
   summariseOutput: (o) => `${o.answer.length} character answer returned`,

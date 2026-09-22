@@ -2,6 +2,7 @@ import 'server-only';
 import type { AgentDefinition } from '../run';
 import { callStructured } from '../client';
 import { systemFor } from '../prompts';
+import { cardsFromDocument } from '../fallbacks/study';
 import { renderContext, type StudentContext } from '../context';
 import type { ReviewDocument } from './chapter-review';
 
@@ -113,7 +114,12 @@ export const flashcardWriter: AgentDefinition<FlashcardInput, FlashcardOutput> =
     });
   },
 
-  fallback: () => null,
+  /*
+   * Cards from the definitions the chapter already states, in its words. A
+   * card whose back was guessed is worse than no card: it is reviewed for
+   * weeks before anyone notices it is wrong.
+   */
+  fallback: (input) => cardsFromDocument(input),
 
   summariseInput: (i) => `${i.count} flashcards for ${i.courseCode}`,
   summariseOutput: (o) => `${o.cards.length} cards written`,

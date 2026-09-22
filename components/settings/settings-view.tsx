@@ -17,6 +17,8 @@ const EMPTY: ActionState = {};
 
 interface AgentInfo {
   name: string; trigger: string; workflow: string; offline: string | null;
+  /** Why there is no offline path, when there is none. */
+  why?: string | null;
 }
 
 export function SettingsView({
@@ -269,8 +271,10 @@ export function SettingsView({
                   {a.offline ? t.common.yes : t.common.no}
                 </Badge>
               </div>
-              {a.offline ? (
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{a.offline}</p>
+              {/* What it does without a model, or — when it cannot — why not.
+                  "No" on its own reads as an omission rather than a limit. */}
+              {(a.offline ?? a.why) ? (
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{a.offline ?? a.why}</p>
               ) : null}
             </li>
           ))}

@@ -40,20 +40,20 @@ export type { FlashcardInput, FlashcardOutput, WrittenCard } from './flashcard-w
  */
 export const AGENT_REGISTRY = [
   { name: 'Academic Analyst',         trigger: 'user_requested',    workflow: 'analyst_on_demand',              offline: 'Deterministic pass over completed courses' },
-  { name: 'Study Question Generator', trigger: 'user_requested',    workflow: 'workflow_e_study_questions',     offline: null },
+  { name: 'Study Question Generator', trigger: 'user_requested',    workflow: 'workflow_e_study_questions',     offline: 'Your own past questions, wrong ones first, then your flashcards' },
   { name: 'Course Planner',           trigger: 'user_requested',    workflow: 'workflow_planner',               offline: 'Credit-capped light/balanced/intensive splits' },
-  { name: 'Syllabus Analyst',         trigger: 'syllabus_uploaded', workflow: 'workflow_b_syllabus_processing', offline: null },
+  { name: 'Syllabus Analyst',         trigger: 'syllabus_uploaded', workflow: 'workflow_b_syllabus_processing', offline: 'Assessments, dates and weights matched by rule from a text syllabus', why: 'A photographed or scanned syllabus needs a model to read it' },
   { name: 'Grade Coach',              trigger: 'grade_entered',     workflow: 'workflow_c_grade_analysis',      offline: 'Full arithmetic, without the written advice' },
   { name: 'Task Planner',             trigger: 'user_requested',    workflow: 'workflow_task_planning',         offline: 'One preparation task per upcoming deadline' },
   { name: 'Study Reminder Agent',     trigger: 'exam_approaching',  workflow: 'workflow_d_upcoming_exam',       offline: 'Full revision ramp — deterministic by design' },
-  { name: 'UniMate Assistant',        trigger: 'user_message',      workflow: 'assistant_chat',                 offline: null },
-  { name: 'Setup Scanner',            trigger: 'timetable_uploaded',workflow: 'workflow_a_schedule_scan',       offline: null },
-  { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null },
+  { name: 'UniMate Assistant',        trigger: 'user_message',      workflow: 'assistant_chat',                 offline: 'Deadlines, GPA, today\'s classes and exams, straight from the records' },
+  { name: 'Setup Scanner',            trigger: 'timetable_uploaded',workflow: 'workflow_a_schedule_scan',       offline: null, why: 'Reads a photograph of a timetable. Nothing but a model can see a picture, and a guessed timetable is worse than none' },
+  { name: 'Syllabus Course Reader',  trigger: 'syllabus_uploaded', workflow: 'workflow_f_course_from_syllabus', offline: null, why: 'Only ever receives photographs or PDF pages, which need a model to read' },
   { name: 'Dashboard Insight',        trigger: 'dashboard_opened',  workflow: 'dashboard_insight',              offline: 'Nearest recorded deadline plus a proportionate nudge' },
   { name: 'Daily Coach',              trigger: 'dashboard_opened',  workflow: 'workflow_f_daily_coaching',      offline: 'Full coaching from the deterministic rules — the screen never needs the model' },
-  { name: 'Chapter Review',           trigger: 'chapter_review_requested', workflow: 'workflow_g_chapter_review', offline: null },
-  { name: 'Study Planner',            trigger: 'study_plan_requested',     workflow: 'workflow_h_study_plan',     offline: null },
-  { name: 'Flashcard Writer',         trigger: 'user_requested',           workflow: 'workflow_i_flashcards',     offline: null },
+  { name: 'Chapter Review',           trigger: 'chapter_review_requested', workflow: 'workflow_g_chapter_review', offline: 'The chapter\'s own headings, definitions and formulas, rearranged' },
+  { name: 'Study Planner',            trigger: 'study_plan_requested',     workflow: 'workflow_h_study_plan',     offline: 'Full plan from your deadlines, chapters and free days' },
+  { name: 'Flashcard Writer',         trigger: 'user_requested',           workflow: 'workflow_i_flashcards',     offline: 'One card per definition the chapter states, in its words' },
 ] as const;
 export { gradingScaleReader } from './grading-scale-reader';
 export type { ScaleRow as ReadScaleRow } from './grading-scale-reader';

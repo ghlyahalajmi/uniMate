@@ -2,55 +2,12 @@ import 'server-only';
 import type { AgentDefinition } from '../run';
 import { callStructured } from '../client';
 import { systemFor } from '../prompts';
-import type { Weekday } from '@/types/database';
+import type {
+  PlannedCourse, StudyPlanInput, PlannedSession, StudyPlanOutput,
+} from '@/lib/study/plan-types';
+import { buildStudyPlan } from '@/lib/study/plan-builder';
 
-/** One course the plan has to cover, with what is known about its pressure. */
-export interface PlannedCourse {
-  id: string;
-  code: string;
-  name: string;
-  /** Chapters the student has uploaded, in teaching order. */
-  chapters: Array<{ id: string; title: string }>;
-  /** Unscored assessments ahead, so revision lands before the thing it is for. */
-  upcoming: Array<{ title: string; date: string | null; weight: number | null }>;
-  /** Percent so far, when there is enough marked work to say. */
-  currentPercent: number | null;
-}
-
-export interface StudyPlanInput {
-  courses: PlannedCourse[];
-  /** Today, as the student's browser sees it. */
-  todayIso: string;
-  /** How long a session should run when nothing else decides. */
-  defaultMinutes: number;
-  /** Weekdays the student said they can study. Empty means no constraint. */
-  availableDays: Weekday[];
-  /** Days the plan may span. */
-  horizonDays: number;
-  weakTopics?: string[];
-}
-
-export interface PlannedSession {
-  courseId: string;
-  /** Which uploaded chapter this session is on, when one fits. */
-  materialId: string | null;
-  topic: string;
-  /** ISO date, within the horizon. */
-  scheduledOn: string;
-  /** 24-hour HH:MM. */
-  startTime: string;
-  minutes: number;
-  /** Why this sits here — shown beside it, so the order can be argued with. */
-  reason: string;
-}
-
-export interface StudyPlanOutput {
-  title: string;
-  goal: string;
-  sessions: PlannedSession[];
-  /** Anything the student should know before approving. */
-  notes: string[];
-}
+export type { PlannedCourse, StudyPlanInput, PlannedSession, StudyPlanOutput };
 
 const SCHEMA = {
   type: 'object',
@@ -153,7 +110,13 @@ export const studyPlanner: AgentDefinition<StudyPlanInput, StudyPlanOutput> = {
     });
   },
 
-  fallback: () => null,
+  /*
+   * Without a model there is still a plan to make, and every fact it needs is
+   * already on the record: the chapters uploaded, what is due and when, the
+   * days the student said they are free. The model writes a better reason
+   * line; it knows nothing about the dates that arithmetic does not.
+   */
+  fallback: (input) => buildStudyPlan(input),
 
   summariseInput: (i) => `Study plan for ${i.courses.length} course(s) over ${i.horizonDays} days`,
   summariseOutput: (o) => `${o.sessions.length} sessions proposed, awaiting approval`,

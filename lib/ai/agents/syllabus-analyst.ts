@@ -2,6 +2,7 @@ import 'server-only';
 import type { AgentDefinition } from '../run';
 import { callStructured, callText } from '../client';
 import { systemFor } from '../prompts';
+import { extractFromText } from '@/lib/syllabus/extract';
 import type { SyllabusEventType } from '@/types/database';
 
 export interface SyllabusInput {
@@ -111,7 +112,39 @@ export const syllabusAnalyst: AgentDefinition<SyllabusInput, SyllabusOutput> = {
     });
   },
 
-  fallback: () => null,
+  /*
+   * A syllabus that arrived as text can still be read: the assessment rows are
+   * written in a small number of shapes and those shapes match exactly. A
+   * photograph or a PDF cannot be, and says so rather than guessing a term's
+   * worth of dates.
+   */
+  fallback: (input) => {
+    if (input.document.kind !== 'text') return null;
+
+    const found = extractFromText(input.document.text, input.today);
+    if (found.events.length === 0 && !found.instructor && !found.course_code) return null;
+
+    return {
+      course_name: found.course_name,
+      course_code: found.course_code,
+      instructor: found.instructor,
+      office_hours: found.office_hours,
+      required_material: null,
+      policies: null,
+      topics: found.topics,
+      events: found.events.map((e) => ({
+        title: e.title,
+        event_type: e.event_type as SyllabusOutput['events'][number]['event_type'],
+        event_date: e.event_date,
+        weight: e.weight,
+        description: e.description,
+      })),
+      summary:
+        `Read without AI: ${found.events.length} assessment(s) matched by their dates and weights. `
+        + 'Anything the rules could not match is simply absent rather than guessed — check it against the file.',
+      extracted_text: input.document.text,
+    };
+  },
 
   summariseInput: (i) =>
     `${i.document.kind === 'text' ? 'Syllabus text' : `Syllabus ${i.document.kind}`}${i.courseHint ? ` for ${i.courseHint}` : ''}`,
