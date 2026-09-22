@@ -92,6 +92,39 @@ npm run dev                     # http://localhost:3000
 **Requirements:** Node 20+ and a Supabase project. An Anthropic API key is
 optional — see the next note.
 
+## The admin side
+
+`/admin` is a separate product in the same deployment: its own sign-in, its own
+accounts, and its own screens. There is no link to it from the student app.
+
+**Administrators are not students with a flag set.** An admin signs in with a
+*username*, which is mapped to an address in `admin.unimate.app` — a domain
+student sign-up refuses. The two credential sets cannot collide, by
+construction rather than by convention.
+
+**First run.** While no administrator exists, `/admin/first-run` lets whoever
+reaches it choose a username and password and claim the side. The moment one
+exists the database refuses a second claim, and the page redirects to sign-in.
+No password is ever generated, written down, or sent anywhere.
+
+**What an administrator can see** is account facts: who exists, when they
+joined, when they last signed in, whether they are suspended, whether they hold
+an AI key (last four characters), and how many courses and tasks they have
+entered. **Not** their grades, notes, tasks, questions or files. The isolation
+rules are not relaxed for administrators — `admin_list_users()` reads no table
+that carries academic content, and nothing else is exposed.
+
+**What they can do:** suspend and restore an account, and clear a student's
+stored AI key when it has been revoked at the provider or pasted wrong. Note
+what is missing: reading a key. The value is returned by no function in the
+schema.
+
+Every admin function is `SECURITY DEFINER` and checks membership of `admins`
+itself, so reaching the page is not what grants the access. Verified against
+the live database: a student session gets `is_admin() = false`, zero rows from
+`admin_list_users()`, zero rows from `admins`, and an exception from every
+write.
+
 ### Signing up
 
 There is no confirmation step. Migration `0024` puts a trigger on `auth.users`

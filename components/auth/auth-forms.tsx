@@ -37,7 +37,7 @@ function FormBanner({ tone, children }: { tone: 'error' | 'success'; children: R
   );
 }
 
-export function SignInForm({ next }: { next?: string }) {
+export function SignInForm({ next, suspended }: { next?: string; suspended?: boolean }) {
   const { t } = useI18n();
   const copy = useAuthCopy();
   const [state, action, pending] = useActionState(signInAction, EMPTY);
@@ -47,6 +47,14 @@ export function SignInForm({ next }: { next?: string }) {
       <Card className="p-6">
         <h1 className="font-display text-2xl font-semibold">{t.auth.signInTitle}</h1>
         <p className="text-sm text-[var(--text-secondary)] mt-1.5">{t.auth.signInSub}</p>
+
+        {/* Signed out mid-session by an administrator. Without this the screen
+            reads as the password having stopped working. */}
+        {suspended ? (
+          <div className="mt-4">
+            <FormBanner tone="error">{t.auth.suspended}</FormBanner>
+          </div>
+        ) : null}
 
         <form action={action} className="mt-6 space-y-4">
           {next ? <input type="hidden" name="next" value={next} /> : null}

@@ -2,7 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 /** Routes a signed-out visitor may open. Everything else redirects to sign-in. */
-const PUBLIC_PREFIXES = ['/auth', '/how-it-works'];
+const PUBLIC_PREFIXES = ['/auth', '/how-it-works', '/admin'];
+
+/**
+ * The admin side is its own product: its own sign-in, its own accounts, and
+ * its own guards. The pages under it check administrator membership against
+ * the database, so middleware's job here is only to keep the two sides from
+ * landing on each other's screens.
+ */
+function isAdminArea(pathname: string) {
+  return pathname === '/admin' || pathname.startsWith('/admin/');
+}
 
 function isPublic(pathname: string) {
   if (pathname === '/') return true;
@@ -45,6 +55,52 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  /*
+   * Which side this session belongs to.
+   *
+   * Asked once, of the database, and only for a signed-in session. An
+   * administrator has no student profile worth showing and a student has no
+   * business on the admin screens, so each is sent back to their own side
+   * rather than shown an empty or forbidden one.
+   */
+  let admin = false;
+  let suspended = false;
+  if (user) {
+    // One round trip: middleware runs on every request and two would be felt.
+    const { data } = await supabase.rpc('session_state');
+    const state = Array.isArray(data) ? data[0] : null;
+    admin = state?.is_admin === true;
+    suspended = state?.suspended === true;
+  }
+
+  /*
+   * A suspended account is signed out on its next request rather than left
+   * holding a session that quietly fails. Administrators are exempt: the
+   * suspension flag does not apply to them, and locking the last
+   * administrator out of their own deployment would be unrecoverable.
+   */
+  if (user && suspended && !admin) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/sign-in';
+    url.search = '?suspended=1';
+    return NextResponse.redirect(url);
+  }
+
+  if (user && admin && !isAdminArea(pathname) && !isApi(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
+  if (user && !admin && isAdminArea(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
 
   if (!user && !isPublic(pathname) && !isApi(pathname)) {
     const url = request.nextUrl.clone();

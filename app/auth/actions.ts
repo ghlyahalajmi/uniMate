@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { signInSchema, signUpSchema, fieldErrors } from '@/lib/validation/schemas';
 import { isPasswordPwned } from '@/lib/auth/pwned';
+import { ADMIN_EMAIL_DOMAIN } from '@/lib/admin/queries';
 
 export interface AuthState {
   errors?: Record<string, string>;
@@ -50,6 +51,12 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
     password,
   });
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
+
+  // The administrators' domain is not a student address. Refusing it here is
+  // what makes "admin credentials are separate" true rather than a convention.
+  if (parsed.data.email.toLowerCase().endsWith(`@${ADMIN_EMAIL_DOMAIN}`)) {
+    return { errors: { email: 'errEmail' } };
+  }
 
   // A password that has already been published in a breach is the one thing
   // worth refusing outright: it is not guessed, it is looked up.
