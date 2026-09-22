@@ -79,6 +79,8 @@ const SCHEMA = {
  */
 export const dailyCoach: AgentDefinition<DailyCoachInput, DailyCoachOutput> = {
   name: 'Daily Coach',
+  // Same screen, same reason — and its deterministic path is the whole answer.
+  throttleHours: 6,
   trigger: 'dashboard_opened',
   workflow: 'workflow_f_daily_coaching',
   describe: 'Turns the student\'s own records into encouragement and one next step.',

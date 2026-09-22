@@ -18,6 +18,16 @@ export interface AgentDefinition<TInput, TOutput> {
   /** The AI path. May throw; a throw becomes a logged failure plus fallback. */
   run(input: TInput, ctx: AgentRunContext): Promise<TOutput>;
   /**
+   * How long a model answer from this agent stays good enough to reuse.
+   *
+   * Set on the agents that fire by themselves — the two that run on every
+   * dashboard open — because a free provider allows a few dozen calls a day
+   * and spending them on a page the student opens twenty times means the one
+   * they actually asked for fails. Inside the window the deterministic path is
+   * used instead, which for both of them is the full answer anyway.
+   */
+  throttleHours?: number;
+  /**
    * Deterministic path used when no API key is configured or the AI call
    * fails. Returning null means "this agent genuinely cannot answer without
    * AI" and the run is recorded as failed.
@@ -35,6 +45,41 @@ export interface AgentRunContext {
 export type AgentOutcome<TOutput> =
   | { ok: true; data: TOutput; source: 'ai' | 'fallback'; runId: string | null }
   | { ok: false; error: string; runId: string | null };
+
+/**
+ * Whether this agent already got a model answer inside the window.
+ *
+ * Read from the log that is written anyway: a completed run with no error
+ * recorded against it was a model answer. Never throws — a failure to read the
+ * log means the call goes ahead, which is the safe direction.
+ */
+async function ranRecently<TInput, TOutput>(
+  agent: AgentDefinition<TInput, TOutput>,
+  ctx: AgentRunContext,
+  hours: number,
+  exceptRunId: string | null,
+): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - hours * 3600_000).toISOString();
+    let query = ctx.supabase
+      .from('ai_runs')
+      .select('id')
+      .eq('user_id', ctx.userId)
+      .eq('agent_name', agent.name)
+      .eq('status', 'completed')
+      .is('error_message', null)
+      .gte('started_at', since)
+      .limit(1);
+
+    // The row this very run just wrote is not evidence of an earlier answer.
+    if (exceptRunId) query = query.neq('id', exceptRunId);
+
+    const { data } = await query;
+    return (data ?? []).length > 0;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Runs an agent and records it. A row is written to ai_runs before the work
@@ -102,6 +147,21 @@ export async function runAgent<TInput, TOutput>(
       output_summary: `${safeSummary(() => agent.summariseOutput(fb))} (computed without AI)`,
     });
     return { ok: true, data: fb, source: 'fallback', runId };
+  }
+
+  /*
+   * Recently asked and answered: take the deterministic path rather than spend
+   * another call. Only agents that fire on their own set a window, and both of
+   * them have a fallback that is the whole answer.
+   */
+  if (agent.throttleHours && (await ranRecently(agent, ctx, agent.throttleHours, runId))) {
+    const fb = await Promise.resolve(agent.fallback(input, ctx));
+    if (fb !== null) {
+      await finish('completed', {
+        output_summary: `${safeSummary(() => agent.summariseOutput(fb))} (computed without AI — a model answer for this screen is still fresh)`,
+      });
+      return { ok: true, data: fb, source: 'fallback', runId };
+    }
   }
 
   try {

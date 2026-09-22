@@ -120,7 +120,7 @@ export async function compatStructured<T>(
     { role: 'user', content: partsFor(opts) },
   ];
 
-  const text = await post(cfg, {
+  const body = {
     max_tokens: opts.maxTokens ?? 16000,
     messages,
     response_format: {
@@ -134,13 +134,37 @@ export async function compatStructured<T>(
         schema: opts.schema,
       },
     },
-  });
+  };
 
-  try {
-    return JSON.parse(extractJson(text)) as T;
-  } catch {
-    throw new Error('AI_INVALID_JSON');
+  /*
+   * A model that answers with prose where JSON was asked for has not failed in
+   * the way the fallback list catches: the request succeeded, so the provider
+   * never rotates away from it. On a free roster that is common enough to be
+   * the normal case, so the next model gets a turn here instead.
+   *
+   * Only the ones already chosen for this request, and only once each — a
+   * model that cannot hold a schema will not learn to on the third attempt.
+   */
+  const candidates = cfg.models.slice(0, 3);
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < candidates.length; i += 1) {
+    // The first attempt keeps the fallback list, so the provider can still
+    // route around a busy model. A retry names one model deliberately.
+    const attempt: CompatConfig = i === 0 ? cfg : { ...cfg, models: [candidates[i]] };
+
+    // A transport or provider error propagates: it is not the model's doing,
+    // and the same request will not fare better against a different one.
+    const text = await post(attempt, body);
+
+    try {
+      return JSON.parse(extractJson(text)) as T;
+    } catch {
+      lastError = new Error('AI_INVALID_JSON');
+    }
   }
+
+  throw lastError ?? new Error('AI_INVALID_JSON');
 }
 
 /** A plain-prose call, for the chat assistant. */

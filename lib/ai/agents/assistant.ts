@@ -128,6 +128,10 @@ const INSIGHT_SCHEMA = {
 
 export const dashboardInsight: AgentDefinition<InsightInput, InsightOutput> = {
   name: 'Dashboard Insight',
+  // Fires on every dashboard open. A free provider allows a few dozen calls a
+  // day, and spending them here means the practice set the student actually
+  // asked for fails.
+  throttleHours: 6,
   trigger: 'dashboard_opened',
   workflow: 'dashboard_insight',
   describe: 'Produces one grounded observation and one suggestion for the dashboard.',
