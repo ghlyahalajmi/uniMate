@@ -16,7 +16,7 @@ import {
  * The files a course is taught from.
  *
  * Chapters rather than attachments: each one carries a name the student chose,
- * because "Week 7 — Z-transform" is what they will look for when Study AI asks
+ * because "Week 7 — Z-transform" is what they will look for when Study with AI asks
  * which chapter to revise, and "lecture07_final_v2.pdf" is not.
  */
 export function CourseMaterials({

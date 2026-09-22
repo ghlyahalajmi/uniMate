@@ -33,7 +33,7 @@ export async function POST() {
   );
 
   if (!outcome.ok) {
-    return apiError(isAiConfigured() ? 'coach_failed' : 'ai_not_configured', 200);
+    return apiError((await isAiConfigured()) ? 'coach_failed' : 'ai_not_configured', 200);
   }
 
   // Record what the student was told, with the figures behind it.

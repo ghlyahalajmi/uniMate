@@ -21,7 +21,7 @@ export interface StudyCourse {
 }
 
 /**
- * Study AI, as three things rather than one.
+ * Study with AI, as three things rather than one.
  *
  * The screen used to open straight into a question-set builder, which assumed
  * the student already knew that practice was what they wanted. Most of the

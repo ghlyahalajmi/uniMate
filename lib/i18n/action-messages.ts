@@ -32,6 +32,10 @@ export function actionMessage(t: Dictionary, key: string | undefined): string {
     linkSaved: t.hub.saved,
     linkDeleted: t.hub.deleted,
     linkSaveError: t.hub.saveError,
+    aiKeySaved: t.ai.ownKeySavedToast,
+    aiKeyRemoved: t.ai.ownKeyRemovedToast,
+    aiKeyInvalid: t.ai.ownKeyInvalid,
+    aiKeyRejected: t.ai.ownKeyRejected,
   };
   return table[key] ?? t.errors.generic;
 }

@@ -23,7 +23,7 @@ type AllowedType = (typeof ALLOWED)[number];
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!isAiConfigured()) return apiError('ai_not_configured', 200);
+  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   let form: FormData;
   try {

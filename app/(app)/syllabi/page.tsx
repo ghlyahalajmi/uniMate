@@ -19,7 +19,7 @@ export default async function SyllabiPage({
 
   return (
     <SyllabiView
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
       initialCourseId={course ?? ''}
       courseOptions={courses.map((c) => ({ value: c.id, label: `${c.course_code} — ${c.course_name}` }))}
       syllabi={syllabi.map((s) => ({

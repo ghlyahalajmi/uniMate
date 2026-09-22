@@ -25,7 +25,7 @@ const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!isAiConfigured()) return apiError('ai_not_configured', 200);
+  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<{
     courseIds?: string[]; horizonDays?: number; todayIso?: string;

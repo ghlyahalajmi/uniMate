@@ -72,7 +72,7 @@ export default async function AnalyticsPage() {
 
   return (
     <AnalyticsView
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
       assessmentSeries={assessmentSeries}
       courseStanding={courseStanding}
       gpaSeries={gpaSeries}

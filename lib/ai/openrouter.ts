@@ -77,8 +77,8 @@ async function discoverFreeModels(key: string): Promise<string[]> {
   }
 }
 
-async function config(): Promise<CompatConfig> {
-  const token = process.env.OPENROUTER_API_KEY ?? '';
+async function config(key: string): Promise<CompatConfig> {
+  const token = key || process.env.OPENROUTER_API_KEY || '';
   if (!token) throw new Error('AI_NOT_CONFIGURED');
 
   const pinned = process.env.OPENROUTER_MODEL;
@@ -94,8 +94,10 @@ async function config(): Promise<CompatConfig> {
 }
 
 /** One structured call, returning parsed JSON that matches `opts.schema`. */
-export async function callStructuredViaOpenRouter<T>(opts: StructuredCallOptions): Promise<T> {
-  return compatStructured<T>(await config(), opts);
+export async function callStructuredViaOpenRouter<T>(
+  opts: StructuredCallOptions, key = '',
+): Promise<T> {
+  return compatStructured<T>(await config(key), opts);
 }
 
 /** A plain-prose call, for the chat assistant. */
@@ -103,6 +105,6 @@ export async function callTextViaOpenRouter(opts: {
   system: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   maxTokens?: number;
-}): Promise<string> {
-  return compatText(await config(), opts);
+}, key = ''): Promise<string> {
+  return compatText(await config(key), opts);
 }

@@ -92,6 +92,22 @@ npm run dev                     # http://localhost:3000
 **Requirements:** Node 20+ and a Supabase project. An Anthropic API key is
 optional — see the next note.
 
+### A key the student adds themselves
+
+Setting an environment variable is not something a student can do, so
+**Settings → AI** takes a key of their own. Paste an OpenRouter key — the free
+tier costs nothing — and every agent turns on for that account alone.
+
+The key is verified against the provider before it is stored, saved in
+`ai_credentials` with RLS enabled *and* forced, and never read back to the
+browser: the screen shows the last four characters, from a generated column.
+One student's key is unreachable from another's session — reads, updates,
+deletes and planted rows are all refused by the policy, which is checked in
+the two-account test described under Data isolation.
+
+Precedence is: the deployment's `ANTHROPIC_API_KEY`, then its
+`OPENROUTER_API_KEY`, then the student's own key, then Vercel's AI Gateway.
+
 ### Running without an AI key
 
 UniMate works without `ANTHROPIC_API_KEY`. Grades, GPA, the target calculator,
@@ -220,7 +236,8 @@ OPENROUTER_API_KEY=sk-or-...           # or route through OpenRouter (free model
 ### Choosing an AI provider
 
 Both are optional — without either, every screen still works and each agent
-falls back to its deterministic path.
+falls back to its deterministic path. A student can also add a key of their
+own (see below), so an empty environment is no longer a dead end for them.
 
 - **`ANTHROPIC_API_KEY`** is the one the prompts were written against, and
   takes precedence when both are present.

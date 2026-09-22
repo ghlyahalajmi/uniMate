@@ -50,7 +50,7 @@ export function StudyView({
   chapters?: Array<{ id: string; title: string; readable: boolean }>;
   /** Pre-selected when the student came here from a chapter review. */
   initialChapterId?: string | null;
-  /** True when Study AI already drew the page header and course picker. */
+  /** True when Study with AI already drew the page header and course picker. */
   embedded?: boolean;
 }) {
   const { t, tf, formatNumber } = useI18n();

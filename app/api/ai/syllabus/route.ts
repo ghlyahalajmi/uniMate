@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   if (insertError || !row) return apiError('save_failed', 200);
 
-  if (!isAiConfigured()) {
+  if (!(await isAiConfigured())) {
     await auth.ctx.supabase
       .from('syllabi')
       .update({

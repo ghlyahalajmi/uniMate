@@ -36,7 +36,7 @@ const syllabusQuestionAgent: AgentDefinition<AskInput, AskOutput> = {
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
-  if (!isAiConfigured()) return apiError('ai_not_configured', 200);
+  if (!(await isAiConfigured())) return apiError('ai_not_configured', 200);
 
   const body = await readJson<unknown>(request, 32 * 1024);
   const parsed = syllabusAskSchema.safeParse(body);

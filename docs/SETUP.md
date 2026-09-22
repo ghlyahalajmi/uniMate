@@ -159,7 +159,7 @@ never put either value anywhere a browser can reach.
 | Every page redirects to sign-in | Supabase URL or anon key wrong in `.env.local` |
 | "Invalid API key" | The `service_role` key was used where the anon key belongs |
 | Sign-up succeeds but sign-in fails | Email confirmation is on and the address is unconfirmed |
-| AI screens say "not configured" | `ANTHROPIC_API_KEY` is unset or was set with a `NEXT_PUBLIC_` prefix |
+| AI screens say "not switched on" | No key anywhere: set `ANTHROPIC_API_KEY` or `OPENROUTER_API_KEY` for everyone (not with a `NEXT_PUBLIC_` prefix), or paste a free OpenRouter key in Settings → AI for one account |
 | Webhooks return 404 | `WORKFLOW_WEBHOOK_SECRET` is unset — they are disabled by design |
 | Webhooks return 500 | `SUPABASE_SERVICE_ROLE_KEY` is missing |
 | Seed fails on `auth.users` | Run it against the database directly, not through PostgREST |

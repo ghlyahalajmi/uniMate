@@ -3,7 +3,8 @@ import { getCurrentUser } from '@/lib/supabase/server';
 import { parseAvatar, parseAvatarKind, initialsFrom } from '@/lib/avatar/design';
 import { AvatarPicker } from '@/components/avatar/avatar-picker';
 import { getLocale } from '@/lib/i18n/server';
-import { isAiConfigured, AI_MODEL } from '@/lib/ai/client';
+import { isAiConfigured, aiProvider, modelNameFor, deploymentProvider } from '@/lib/ai/client';
+import { studentKeyHint } from '@/lib/ai/credentials';
 import { AGENT_REGISTRY } from '@/lib/ai/agents';
 import { SettingsView } from '@/components/settings/settings-view';
 
@@ -11,7 +12,10 @@ export const metadata = { title: 'Settings' };
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const [profile, locale, user] = await Promise.all([getProfile(), getLocale(), getCurrentUser()]);
+  const [profile, locale, user, aiOn, provider, keyHint] = await Promise.all([
+    getProfile(), getLocale(), getCurrentUser(),
+    isAiConfigured(), aiProvider(), studentKeyHint(),
+  ]);
   const photoUrl = await getAvatarUrl(profile?.avatar_path ?? null);
 
   return (
@@ -44,9 +48,11 @@ export default async function SettingsPage() {
         isDemo: Boolean(profile?.is_demo),
       }}
       ai={{
-        configured: isAiConfigured(),
+        configured: aiOn,
         // The model id only; the key itself never reaches the client.
-        model: isAiConfigured() ? AI_MODEL : null,
+        model: aiOn ? modelNameFor(provider) : null,
+        keyHint: keyHint?.hint || null,
+        deploymentKey: deploymentProvider() !== null,
         agents: AGENT_REGISTRY.map((a) => ({ ...a })),
       }}
     />

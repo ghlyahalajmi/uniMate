@@ -11,6 +11,7 @@ import { cleanCourseCode } from '@/lib/validation/cleaning';
 import { parseDesign } from '@/lib/notes/design';
 import { workflowBuildReminders, agentContext } from '@/lib/workflows';
 import { recordActivity } from '@/lib/momentum/record';
+import { verifyKey } from '@/lib/ai/credentials';
 import type { RecordResult } from '@/lib/momentum/record';
 import type { Note, NoteItem } from '@/types/database';
 
@@ -759,6 +760,61 @@ export async function deleteRecord(table: DeletableTable, id: string): Promise<A
     if (error) return GENERIC;
     revalidatePath('/records');
     return { ok: true };
+  } catch {
+    return GENERIC;
+  }
+}
+
+// --- The student's own AI key ------------------------------------------------
+
+/**
+ * Save a key of the student's own, so the AI features work on an account the
+ * deployment has no key for.
+ *
+ * The key is checked against the provider before it is stored — a key that
+ * turns out to be wrong two screens later reads as "the AI is broken" — and it
+ * is written with the student's own session, so RLS is what decides whose row
+ * it lands on. It is never read back to the browser: Settings shows the last
+ * four characters, from a generated column.
+ */
+export async function saveAiKey(input: { provider: string; key: string }): Promise<ActionState> {
+  try {
+    const provider = input.provider === 'anthropic' ? 'anthropic' : 'openrouter';
+    const key = input.key.trim();
+    if (key.length < 8 || key.length > 400) return { ok: false, messageKey: 'aiKeyInvalid' };
+
+    if (!(await verifyKey(provider, key))) return { ok: false, messageKey: 'aiKeyRejected' };
+
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    const { error } = await supabase
+      .from('ai_credentials')
+      .upsert({ user_id: userId, provider, api_key: key, updated_at: new Date().toISOString() },
+              { onConflict: 'user_id' });
+
+    if (error) return GENERIC;
+
+    revalidatePath('/settings');
+    revalidatePath('/study');
+    return { ok: true, messageKey: 'aiKeySaved' };
+  } catch {
+    return GENERIC;
+  }
+}
+
+/** Remove it again. The AI features go back to whatever the deployment has. */
+export async function clearAiKey(): Promise<ActionState> {
+  try {
+    const supabase = await createClient();
+    const userId = await requireUserId();
+
+    const { error } = await supabase.from('ai_credentials').delete().eq('user_id', userId);
+    if (error) return GENERIC;
+
+    revalidatePath('/settings');
+    revalidatePath('/study');
+    return { ok: true, messageKey: 'aiKeyRemoved' };
   } catch {
     return GENERIC;
   }

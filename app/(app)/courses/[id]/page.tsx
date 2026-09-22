@@ -57,7 +57,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         assumptions: target.assumptions,
       }}
       deck={{ total: deck.total, due: deck.due }}
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
       bestReachable={bestReachableLetter(grades, scale)}
       scaleLetters={scale.map((s) => s.letter)}
     />

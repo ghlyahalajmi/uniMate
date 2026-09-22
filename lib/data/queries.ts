@@ -68,7 +68,7 @@ export async function getCourses(): Promise<Course[]> {
 /**
  * The files uploaded against one course, in the student's own order.
  *
- * Study AI reads these, so the order matters: chapters should come back in
+ * Study with AI reads these, so the order matters: chapters should come back in
  * teaching order, not upload order.
  */
 /**

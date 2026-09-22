@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { saveProfile, type ActionState } from '@/lib/data/actions';
+import { AiKeyForm } from './ai-key-form';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { AppLanguage } from '@/types/database';
 
@@ -28,7 +29,13 @@ export function SettingsView({
     boardOptIn: boolean; boardShowName: boolean;
     language: AppLanguage; isDemo: boolean;
   };
-  ai: { configured: boolean; model: string | null; agents: AgentInfo[] };
+  ai: {
+    configured: boolean; model: string | null; agents: AgentInfo[];
+    /** Last four characters of the student's own key, when they saved one. */
+    keyHint: string | null;
+    /** True when the deployment has its own key, so nobody needs to add one. */
+    deploymentKey: boolean;
+  };
 }) {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
@@ -245,6 +252,9 @@ export function SettingsView({
         {!ai.configured ? (
           <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.ai.unavailableBody}</p>
         ) : null}
+
+        {/* The way out of "not configured" that does not need a deployment. */}
+        <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
         <ul className="divide-y divide-[var(--border-subtle)]">
           {ai.agents.map((a) => (
             <li key={a.name} className="py-2.5">

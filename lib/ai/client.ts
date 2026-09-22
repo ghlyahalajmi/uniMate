@@ -6,6 +6,9 @@ import {
 import {
   GATEWAY_MODEL, isGatewayAvailable, callStructuredViaGateway, callTextViaGateway,
 } from './vercel-gateway';
+import { envCredential, resolveCredential, type AiCredential, type AiProvider } from './credentials';
+
+export type { AiProvider, AiCredential };
 
 /**
  * Which service the agents talk to.
@@ -13,21 +16,23 @@ import {
  * Anthropic first, because the prompts and the structured-output calls were
  * written against it. OpenRouter second, so a deployment with no Anthropic key
  * still gets every AI feature — it fronts many models, free ones included,
- * behind a single key.
+ * behind a single key. Then the student's own key, then Vercel's gateway.
  *
- * Null means neither is configured, which stays a supported state: every agent
- * has a deterministic fallback and the product works without AI.
+ * Null means none of those is available, which stays a supported state: every
+ * agent has a deterministic fallback and the product works without AI.
  */
-export type AiProvider = 'anthropic' | 'openrouter' | 'gateway';
+export async function aiProvider(): Promise<AiProvider | null> {
+  return (await resolveCredential())?.provider ?? null;
+}
 
-export function aiProvider(): AiProvider | null {
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
-  // Last, because it is the one nobody chose: a Vercel deployment with OIDC
-  // federation on can reach the gateway with no key at all, so this is what
-  // turns the AI features on when nothing has been configured.
-  if (isGatewayAvailable()) return 'gateway';
-  return null;
+/**
+ * The same question asked of the environment alone, without a database read.
+ * Used where there is no signed-in student to have a key of their own.
+ */
+export function deploymentProvider(): AiProvider | null {
+  const env = envCredential();
+  if (env) return env.provider;
+  return isGatewayAvailable() ? 'gateway' : null;
 }
 
 /** The Anthropic model, used when that is the provider. */
@@ -37,30 +42,32 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-opus-5';
  * The model the agents run on, for display and logging. Overridable so a
  * deployment can trade cost against depth without touching agent code.
  */
-export const AI_MODEL = process.env.ANTHROPIC_API_KEY
-  ? ANTHROPIC_MODEL
-  : process.env.OPENROUTER_API_KEY
-    ? OPENROUTER_MODEL
-    : isGatewayAvailable()
-      ? GATEWAY_MODEL
-      : ANTHROPIC_MODEL;
-
-let cached: Anthropic | null = null;
-
-/** True when either provider has a key. Never exposes the key itself. */
-export function isAiConfigured(): boolean {
-  return aiProvider() !== null;
+export function modelNameFor(provider: AiProvider | null): string {
+  if (provider === 'openrouter') return OPENROUTER_MODEL;
+  if (provider === 'gateway') return GATEWAY_MODEL;
+  return ANTHROPIC_MODEL;
 }
 
 /**
- * Server-only Anthropic client. Returns null when no key is configured, which
- * is a supported state: every agent has a deterministic fallback so the
- * product keeps working without AI.
+ * The model of whatever the deployment itself is configured with. Kept for
+ * logs and for anything that runs outside a student's session; a screen a
+ * student is looking at asks `modelNameFor(await aiProvider())` instead, so it
+ * names the model their own key runs on.
  */
-export function getAnthropic(): Anthropic | null {
-  if (aiProvider() !== 'anthropic') return null;
-  cached ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  return cached;
+export const AI_MODEL = modelNameFor(deploymentProvider());
+
+/** True when a credential is available — the deployment's, or the student's own. */
+export async function isAiConfigured(): Promise<boolean> {
+  return (await resolveCredential()) !== null;
+}
+
+/**
+ * Server-only Anthropic client for a given key. Not cached across keys: two
+ * students may be holding two different ones, and a client built for the wrong
+ * key is the kind of mix-up nothing downstream would notice.
+ */
+function anthropicFor(key: string): Anthropic {
+  return new Anthropic({ apiKey: key });
 }
 
 /** JSON Schema subset we hand to `output_config.format`. */
@@ -90,14 +97,12 @@ export interface StructuredCallOptions {
  * deterministic fallback.
  */
 export async function callStructured<T>(opts: StructuredCallOptions): Promise<T> {
-  const provider = aiProvider();
-  if (provider === null) throw new Error('AI_NOT_CONFIGURED');
-  if (provider === 'openrouter') return callStructuredViaOpenRouter<T>(opts);
-  if (provider === 'gateway') return callStructuredViaGateway<T>(opts);
+  const cred = await resolveCredential();
+  if (cred === null) throw new Error('AI_NOT_CONFIGURED');
+  if (cred.provider === 'openrouter') return callStructuredViaOpenRouter<T>(opts, cred.key);
+  if (cred.provider === 'gateway') return callStructuredViaGateway<T>(opts);
 
-  const client = getAnthropic();
-  if (!client) throw new Error('AI_NOT_CONFIGURED');
-
+  const client = anthropicFor(cred.key);
   const model = ANTHROPIC_MODEL;
 
   const content: Anthropic.ContentBlockParam[] = [];
@@ -154,14 +159,12 @@ export async function callText(opts: {
   maxTokens?: number;
   effort?: 'low' | 'medium' | 'high';
 }): Promise<string> {
-  const provider = aiProvider();
-  if (provider === null) throw new Error('AI_NOT_CONFIGURED');
-  if (provider === 'openrouter') return callTextViaOpenRouter(opts);
-  if (provider === 'gateway') return callTextViaGateway(opts);
+  const cred = await resolveCredential();
+  if (cred === null) throw new Error('AI_NOT_CONFIGURED');
+  if (cred.provider === 'openrouter') return callTextViaOpenRouter(opts, cred.key);
+  if (cred.provider === 'gateway') return callTextViaGateway(opts);
 
-  const client = getAnthropic();
-  if (!client) throw new Error('AI_NOT_CONFIGURED');
-
+  const client = anthropicFor(cred.key);
   const model = ANTHROPIC_MODEL;
 
   const response = await client.messages.create({

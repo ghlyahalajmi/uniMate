@@ -18,7 +18,7 @@ export async function POST() {
 
   const result = await workflowAnalyseRecord(auth.ctx);
   if (!result.ok) {
-    return apiError(isAiConfigured() ? 'analysis_failed' : 'ai_not_configured', 200);
+    return apiError((await isAiConfigured()) ? 'analysis_failed' : 'ai_not_configured', 200);
   }
   return NextResponse.json({ ok: true, ...result.data });
 }

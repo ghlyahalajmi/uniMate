@@ -90,11 +90,11 @@ export async function runAgent<TInput, TOutput>(
   };
 
   // No API key: go straight to the deterministic path, still logged.
-  if (!isAiConfigured()) {
+  if (!(await isAiConfigured())) {
     const fb = await Promise.resolve(agent.fallback(input, ctx));
     if (fb === null) {
       await finish('failed', {
-        error_message: 'No AI provider is configured (set ANTHROPIC_API_KEY or OPENROUTER_API_KEY) and this agent has no offline equivalent.',
+        error_message: 'No AI provider is available — the deployment has no key and the student has not added one in Settings — and this agent has no offline equivalent.',
       });
       return { ok: false, error: 'AI_NOT_CONFIGURED', runId };
     }

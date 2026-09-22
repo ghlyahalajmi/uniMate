@@ -47,7 +47,7 @@ export default async function GradesPage() {
       scale={scale}
       courseOptions={courses.map((c) => ({ value: c.id, label: `${c.course_code} — ${c.course_name}` }))}
       targetGpa={profile?.target_gpa ?? null}
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
     />
   );
 }

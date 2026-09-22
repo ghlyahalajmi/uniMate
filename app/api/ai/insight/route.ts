@@ -22,7 +22,7 @@ export async function POST() {
   const outcome = await runAgent(dashboardInsight, { context }, auth.ctx);
 
   if (!outcome.ok) {
-    return apiError(isAiConfigured() ? 'insight_failed' : 'ai_not_configured', 200);
+    return apiError((await isAiConfigured()) ? 'insight_failed' : 'ai_not_configured', 200);
   }
   return NextResponse.json({ ok: true, ...outcome.data, source: outcome.source });
 }

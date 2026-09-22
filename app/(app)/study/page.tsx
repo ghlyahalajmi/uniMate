@@ -6,7 +6,7 @@ import { toPracticeFormat } from '@/lib/study/modes';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { StudyHome } from '@/components/study/study-home';
 
-export const metadata = { title: 'Study AI' };
+export const metadata = { title: 'Study with AI' };
 export const dynamic = 'force-dynamic';
 
 export default async function StudyPage({
@@ -32,7 +32,7 @@ export default async function StudyPage({
 
   return (
     <StudyHome
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
       courses={active.map((c) => ({
         id: c.id,
         code: c.course_code,

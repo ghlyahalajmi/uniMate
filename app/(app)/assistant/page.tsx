@@ -11,7 +11,7 @@ export default async function AssistantPage() {
 
   return (
     <AssistantView
-      aiEnabled={isAiConfigured()}
+      aiEnabled={await isAiConfigured()}
       sampleCourseCode={firstActive?.course_code ?? 'CE301'}
     />
   );
