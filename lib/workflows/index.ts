@@ -407,7 +407,7 @@ export async function workflowPlanTasks(
 export async function workflowPlanSemester(
   ctx: AgentRunContext,
   input: Omit<PlannerInput, 'context'>,
-): Promise<WorkflowResult<{ scheduleIds: string[] }>> {
+): Promise<WorkflowResult<{ scheduleIds: string[]; source: 'ai' | 'fallback' }>> {
   const context = await loadStudentContext(ctx.supabase, ctx.userId);
   const outcome = await runAgent(coursePlanner, { ...input, context }, ctx);
   if (!outcome.ok) return { ok: false, error: outcome.error, runId: outcome.runId };
@@ -442,7 +442,10 @@ export async function workflowPlanSemester(
     }
   }
 
-  return { ok: true, data: { scheduleIds: ids }, runId: outcome.runId };
+  // Which half produced these matters to the student: the planner works with
+  // no AI at all, and a plan built by the credit rules should not be presented
+  // as though a model weighed it.
+  return { ok: true, data: { scheduleIds: ids, source: outcome.source }, runId: outcome.runId };
 }
 
 // --- Academic analysis -------------------------------------------------------

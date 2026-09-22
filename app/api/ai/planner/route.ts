@@ -27,5 +27,10 @@ export async function POST(request: Request) {
   });
   if (!result.ok) return apiError('planning_failed', 200);
 
-  return NextResponse.json({ ok: true, scheduleIds: result.data?.scheduleIds ?? [] });
+  return NextResponse.json({
+    ok: true,
+    scheduleIds: result.data?.scheduleIds ?? [],
+    // 'fallback' means the credit rules built these, not a model.
+    source: result.data?.source ?? 'fallback',
+  });
 }
