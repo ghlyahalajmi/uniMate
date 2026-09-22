@@ -12,6 +12,7 @@ import { cx } from '@/components/ui/primitives';
 import { Icon } from './icons';
 import { NAV_ITEMS, type NavItem } from './nav-config';
 import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
+import { GlobalSearch } from './global-search';
 import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 
 interface ShellProps {
@@ -173,7 +174,19 @@ export function AppShell({ children, user }: ShellProps) {
             narrow desktop he is carried along with the tabs instead of forcing
             the page sideways.
           */}
-          <li aria-hidden="true" className="ms-auto flex items-center shrink-0 ps-4">
+          {/*
+            Search, in the space the tabs never used.
+            ----------------------------------------------------------------
+            It is not a tab and does not pretend to be one: no underline, no
+            selected state, and `ms-auto` puts it and Mate at the end rather
+            than stretching the row. It is a list item because it lives in
+            this list; what it does is open a panel, not navigate.
+          */}
+          <li className="ms-auto flex items-center shrink-0 ps-4 py-1.5">
+            <GlobalSearch className="w-[clamp(160px,22vw,260px)]" />
+          </li>
+
+          <li aria-hidden="true" className="flex items-center shrink-0 ps-2">
             {/*
               On a violet disc, because that is what this drawing was made for.
               The face is white shapes with a deep-violet visor — it was drawn
@@ -221,6 +234,12 @@ export function AppShell({ children, user }: ShellProps) {
                 <Icon.close size={20} />
               </button>
             </div>
+            {/* The same search, so a phone — which never sees the tab row —
+                is not the one size without it. */}
+            <div className="px-3 pt-3 lg:hidden">
+              <GlobalSearch />
+            </div>
+
             <nav className="flex-1 overflow-y-auto p-3">
               <ul className="space-y-0.5">
                 {primary.map((item) => (

@@ -928,6 +928,13 @@ export const en = {
     factLabel: 'From your records', suggestionLabel: 'UniMate suggestion',
     noInvention: 'UniMate answers from the records you have added. It does not fill in university information it has not been given.',
   },
+  search: {
+    label: 'Search UniMate',
+    placeholder: 'Search courses, tasks, notes…',
+    page: 'Screen',
+    typing: 'Keep typing…',
+    empty: 'Nothing matches that yet.',
+  },
   errors: {
     generic: 'Something went wrong. Please try again.',
     loadCourses: 'We could not load your courses right now. Please try again.',
@@ -2058,6 +2065,13 @@ export const ar: Dictionary = {
     ownKeyRejected: 'لم يقبل المزوّد هذا المفتاح. تأكد من نسخه كاملاً وأنه لم يُلغَ.',
     factLabel: 'من سجلاتك', suggestionLabel: 'اقتراح يوني‑ميت',
     noInvention: 'يجيب يوني‑ميت من السجلات التي أضفتها. ولا يختلق معلومات جامعية لم تُعطَ له.',
+  },
+  search: {
+    label: 'البحث في يوني‑ميت',
+    placeholder: 'ابحث في المقررات والمهام والملاحظات…',
+    page: 'شاشة',
+    typing: 'واصل الكتابة…',
+    empty: 'لا يوجد ما يطابق ذلك بعد.',
   },
   errors: {
     generic: 'حدث خطأ ما. حاول مجدداً.',
