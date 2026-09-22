@@ -174,7 +174,8 @@ export const coursePlanner: AgentDefinition<PlannerInput, PlannerOutput> = {
 };
 
 const DISCLAIMER =
-  'None of these is objectively best — they trade workload against pace. ' +
+  'No plan here is the right one: a lighter semester is easier week to week but pushes ' +
+  'graduation further out, and a heavier one finishes sooner and takes more of your time. ' +
   'UniMate does not hold your university\'s prerequisite or registration rules, so check ' +
   'eligibility with your department before registering.';
 

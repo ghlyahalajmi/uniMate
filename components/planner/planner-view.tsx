@@ -112,13 +112,6 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
     <>
       <PageHeader title={t.planner.title} subtitle={t.planner.subtitle} />
 
-      <div className="rounded-[var(--radius-md)] bg-[var(--warning-soft)] border border-[var(--warning-border)] p-3.5 mb-5">
-        <p className="text-sm text-[var(--text-primary)] flex items-start gap-2">
-          <span aria-hidden="true" className="text-[var(--warning)]">ⓘ</span>
-          <span>{t.planner.notBest}</span>
-        </p>
-      </div>
-
       {/* Adding a candidate ------------------------------------------------
           Outside the `candidates.length === 0` branch on purpose: the list
           looked fixed precisely because the only way to change it was to
@@ -258,6 +251,15 @@ export function PlannerView({ candidates, plans }: { candidates: Candidate[]; pl
 
       {plans.length === 0 && !generating ? (
         <Card><EmptyState title={t.planner.compare} body={t.planner.empty} /></Card>
+      ) : null}
+
+      {/* The caveat belongs next to the plans, not at the top of a page that
+          has none yet: read before there is anything to compare, it is a
+          warning about nothing. */}
+      {plans.length > 0 ? (
+        <p className="text-[0.8125rem] text-[var(--text-secondary)] leading-relaxed mb-4">
+          {t.planner.notBest}
+        </p>
       ) : null}
 
       {plans.length > 0 ? (
