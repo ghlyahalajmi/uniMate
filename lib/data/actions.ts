@@ -793,7 +793,14 @@ export async function saveAiKey(input: { provider: string; key: string }): Promi
       .upsert({ user_id: userId, provider, api_key: key, updated_at: new Date().toISOString() },
               { onConflict: 'user_id' });
 
-    if (error) return GENERIC;
+    // The demonstration account is refused by the database, not by this line:
+    // it is a shared login, so a key stored on it is a key handed to the
+    // internet. All that is left to do here is say so in words.
+    if (error) {
+      return error.message.includes('demonstration account')
+        ? { ok: false, messageKey: 'aiKeyDemo' }
+        : GENERIC;
+    }
 
     revalidatePath('/settings');
     revalidatePath('/study');

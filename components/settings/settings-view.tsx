@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { saveProfile, type ActionState } from '@/lib/data/actions';
+import { AiKeyForm } from '@/components/settings/ai-key-form';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { AppLanguage } from '@/types/database';
 
@@ -26,6 +27,10 @@ export function SettingsView({
   };
   ai: {
     configured: boolean; model: string | null;
+    /** The last four characters of this student's own key, if they saved one. */
+    keyHint: string | null;
+    /** Whether the deployment itself has a key, so their own is optional. */
+    deploymentKey: boolean;
   };
 }) {
   const { t, locale, setLocale } = useI18n();
@@ -230,12 +235,17 @@ export function SettingsView({
       </Card>
 
       {/*
-        Whether the AI is on, and nothing to configure.
+        Whether the AI is on, and how a student switches it on themselves.
         --------------------------------------------------------------------
-        Keys are set by an administrator now. A student still deserves to know
-        whether the AI features are working and what to do when they are not,
-        which is one line and the name of the person to ask — not a field for a
-        credential they were never meant to hold.
+        A student who wants the AI features should not have to go and ask
+        somebody for them. An OpenRouter key is free to create, takes a minute,
+        and belongs to whoever made it — so the box is here.
+
+        What is not here, and must not come back, is a key written across other
+        people's accounts: a credential one student pastes lands on that
+        student's row alone, is stored where only the server reads it, and
+        comes back as four characters. The demonstration account cannot hold
+        one at all — the database refuses the row, not the page.
       */}
       <Card className="mt-5">
         <CardHeader
@@ -247,9 +257,16 @@ export function SettingsView({
             </Badge>
           }
         />
-        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
           {ai.configured ? t.ai.managedOn : t.ai.managedOff}
         </p>
+        {profile.isDemo ? (
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 mb-4">
+            {t.ai.ownKeyDemo}
+          </p>
+        ) : (
+          <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
+        )}
         <p className="text-xs text-[var(--text-muted)] mt-3">{t.ai.noInvention}</p>
       </Card>
     </>

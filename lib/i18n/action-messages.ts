@@ -36,6 +36,7 @@ export function actionMessage(t: Dictionary, key: string | undefined): string {
     aiKeyRemoved: t.ai.ownKeyRemovedToast,
     aiKeyInvalid: t.ai.ownKeyInvalid,
     aiKeyRejected: t.ai.ownKeyRejected,
+    aiKeyDemo: t.ai.ownKeyDemo,
   };
   return table[key] ?? t.errors.generic;
 }
