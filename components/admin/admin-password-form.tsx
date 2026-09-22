@@ -54,7 +54,7 @@ export function AdminPasswordForm() {
           <AdminField label="Confirm new password" name="confirmPassword" type="password" autoComplete="new-password" required />
 
           {state.error ? <AdminError>{MESSAGES[state.error] ?? 'That did not work.'}</AdminError> : null}
-          {state.ok ? <p className="text-[0.8125rem] text-[var(--success)]">Password changed.</p> : null}
+          {state.ok ? <p className="text-[0.8125rem] text-[var(--positive)]">Password changed.</p> : null}
 
           <div className="flex items-center gap-2">
             <AdminSubmit pending={pending}>Change password</AdminSubmit>

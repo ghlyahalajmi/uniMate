@@ -57,7 +57,7 @@ export function AdminAiKey({ withKey, accounts }: { withKey: number; accounts: n
 
           {state.error ? <AdminError>{MESSAGES[state.error] ?? 'That did not work.'}</AdminError> : null}
           {state.ok ? (
-            <p className="text-[0.8125rem] text-[var(--success)]">
+            <p className="text-[0.8125rem] text-[var(--positive)]">
               Applied to {state.applied} account{state.applied === 1 ? '' : 's'}.
             </p>
           ) : null}

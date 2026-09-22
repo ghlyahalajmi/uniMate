@@ -42,7 +42,7 @@ export function AdminAgents({
                 <span
                   className={
                     a.offline
-                      ? 'shrink-0 text-xs px-2 py-1 rounded-full bg-[var(--success-soft)] text-[var(--success)]'
+                      ? 'shrink-0 text-xs px-2 py-1 rounded-full bg-[var(--positive-soft)] text-[var(--positive)]'
                       : 'shrink-0 text-xs px-2 py-1 rounded-full bg-[var(--bg-inset)] text-[var(--text-muted)]'
                   }
                 >

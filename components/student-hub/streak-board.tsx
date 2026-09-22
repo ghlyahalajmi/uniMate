@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { setBoardNameVisible } from '@/lib/momentum/board-actions';
 import type { LeaderboardRow } from '@/lib/momentum/leaderboard';
+import { StreakSticker } from './streak-sticker';
 
 /**
  * Who is keeping their run going — as a contest rather than a table.
@@ -183,6 +184,13 @@ export function StreakBoard({ rows }: { rows: LeaderboardRow[] }) {
                   </li>
                 ))}
               </ol>
+            ) : null}
+
+            {/* A word for where they actually are ------------------------- */}
+            {me ? (
+              <div className="mt-4">
+                <StreakSticker streak={me.streak} place={me.place} />
+              </div>
             ) : null}
 
             {/* The challenge, and the name choice -------------------------- */}

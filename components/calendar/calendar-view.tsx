@@ -9,6 +9,8 @@ import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { addReminder } from '@/lib/data/actions';
+import { isPast } from '@/lib/time/when';
+import { TimePicker } from './time-picker';
 import { TextInput } from '@/components/ui/form';
 import type { Weekday } from '@/types/database';
 
@@ -42,6 +44,15 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
   const [reminderTitle, setReminderTitle] = useState('');
   const [reminderDay, setReminderDay] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [reminderTime, setReminderTime] = useState('');
+
+  /*
+   * Whether the moment chosen has already gone.
+   *
+   * Recomputed on every render rather than watched on a timer: the only way a
+   * correct choice becomes wrong is time passing while the form sits open, and
+   * the next keystroke or click re-reads it.
+   */
+  const reminderPast = isPast(reminderDay, reminderTime || null, new Date());
 
   const byDate = useMemo(() => {
     const map = new Map<string, DatedRow[]>();
@@ -86,6 +97,12 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
   async function saveReminder() {
     const title = reminderTitle.trim();
     if (!title) return;
+    // Checked here as well as on the button, because a form left open past
+    // the chosen minute would otherwise save a reminder already overdue.
+    if (isPast(reminderDay, reminderTime || null, new Date())) {
+      toast.error(t.calendar.reminderPast);
+      return;
+    }
     setRebuilding(true);
     try {
       const result = await addReminder({
@@ -133,14 +150,18 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
             <TextInput
               label={t.calendar.reminderDay}
               type="date"
+              // The past is not a thing to be reminded of, and the browser can
+              // say so before anyone types.
+              min={todayIso}
               value={reminderDay}
               onChange={(e) => setReminderDay(e.target.value)}
+              error={reminderPast ? t.calendar.reminderPast : undefined}
             />
-            <TextInput
+            <TimePicker
               label={t.calendar.reminderTime}
-              type="time"
               value={reminderTime}
-              onChange={(e) => setReminderTime(e.target.value)}
+              onChange={setReminderTime}
+              invalid={reminderPast}
             />
           </div>
           <p className="text-xs text-[var(--text-muted)] mt-2">{t.calendar.reminderTimeHint}</p>
@@ -152,7 +173,7 @@ export function CalendarView({ classes, dated }: { classes: ClassRow[]; dated: D
               onClick={saveReminder}
               loading={rebuilding}
               loadingLabel={t.common.saving}
-              disabled={!reminderTitle.trim()}
+              disabled={!reminderTitle.trim() || reminderPast}
             >
               <Icon.check size={17} />
               {t.calendar.addReminder}

@@ -14,6 +14,7 @@ import { NAV_ITEMS, type NavItem } from './nav-config';
 import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
 import { GlobalSearch } from './global-search';
 import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
+import { ReminderWatch } from '@/components/reminders/reminder-watch';
 
 interface ShellProps {
   children: React.ReactNode;
@@ -334,6 +335,9 @@ export function AppShell({ children, user }: ShellProps) {
         a floating button to reach the content.
       */}
       <AssistantLauncher />
+
+      {/* Reminders arrive wherever the student is, not only on the calendar. */}
+      <ReminderWatch />
     </div>
   );
 }
