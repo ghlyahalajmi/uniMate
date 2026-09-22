@@ -94,5 +94,12 @@ export function TimePicker({
 }
 
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-/** Five-minute steps: a reminder at 10:37 is a setting nobody wanted. */
-const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+/**
+ * Every minute of the hour.
+ *
+ * This used to offer five-minute steps on the theory that nobody wants 10:37.
+ * They do: a lecture ends at 10:50, a bus goes at 7:42, and a picker that
+ * cannot say so is a picker you have to work around.
+ */
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
