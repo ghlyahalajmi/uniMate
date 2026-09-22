@@ -4,7 +4,7 @@ import {
   OPENROUTER_MODEL, callStructuredViaOpenRouter, callTextViaOpenRouter,
 } from './openrouter';
 import {
-  GATEWAY_MODEL, isGatewayAvailable, callStructuredViaGateway, callTextViaGateway,
+  GATEWAY_MODEL, callStructuredViaGateway, callTextViaGateway,
 } from './vercel-gateway';
 import { envCredential, resolveCredential, type AiCredential, type AiProvider } from './credentials';
 
@@ -26,13 +26,15 @@ export async function aiProvider(): Promise<AiProvider | null> {
 }
 
 /**
- * The same question asked of the environment alone, without a database read.
- * Used where there is no signed-in student to have a key of their own.
+ * What the deployment itself was configured with, if anything.
+ *
+ * Deliberately the environment alone: no database read, and no gateway. The
+ * gateway is a fallback that may or may not answer, so counting it here would
+ * tell a student "this deployment already has a key" — and talk them out of
+ * adding one — on the strength of something that has not been shown to work.
  */
 export function deploymentProvider(): AiProvider | null {
-  const env = envCredential();
-  if (env) return env.provider;
-  return isGatewayAvailable() ? 'gateway' : null;
+  return envCredential()?.provider ?? null;
 }
 
 /** The Anthropic model, used when that is the provider. */

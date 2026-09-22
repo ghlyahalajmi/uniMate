@@ -48,9 +48,57 @@ export function gatewayToken(): string | null {
   return process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || null;
 }
 
-/** True when this deployment can reach the gateway without any configuration. */
+/** True when a gateway credential exists at all. Says nothing about whether it works. */
 export function isGatewayAvailable(): boolean {
   return gatewayToken() !== null;
+}
+
+/**
+ * Whether the gateway will actually answer.
+ *
+ * A token is not an entitlement: OIDC federation hands every Vercel
+ * deployment one, and the gateway can still refuse it — no credit, no access,
+ * the account never enabled it. Treating the token alone as "AI is on" would
+ * put a working-looking screen in front of a student and fail on the first
+ * question, which is worse than the honest panel offering them a key of their
+ * own.
+ *
+ * So it is asked, once, with the smallest possible completion — a real call,
+ * because only a real call proves billing — and the answer is held for ten
+ * minutes either way. This only ever runs when nothing else is configured.
+ */
+const HEALTH_MS = 10 * 60 * 1000;
+let health: { at: number; ok: boolean } | null = null;
+
+export function forgetGatewayHealth(): void {
+  health = null;
+}
+
+export async function isGatewayUsable(): Promise<boolean> {
+  const token = gatewayToken();
+  if (!token) return false;
+  if (health && Date.now() - health.at < HEALTH_MS) return health.ok;
+
+  let ok = false;
+  try {
+    const models = await discoverModels();
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: models[0] ?? LAST_RESORT,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    ok = response.ok;
+  } catch {
+    ok = false;
+  }
+
+  health = { at: Date.now(), ok };
+  return ok;
 }
 
 /** Never throws: a failed read leaves the last-resort model rather than none. */

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { signInSchema, signUpSchema, fieldErrors } from '@/lib/validation/schemas';
+import { isPasswordPwned } from '@/lib/auth/pwned';
 
 export interface AuthState {
   errors?: Record<string, string>;
@@ -50,6 +51,12 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   });
   if (!parsed.success) return { errors: fieldErrors(parsed.error) };
 
+  // A password that has already been published in a breach is the one thing
+  // worth refusing outright: it is not guessed, it is looked up.
+  if (await isPasswordPwned(parsed.data.password)) {
+    return { errors: { password: 'errPwnedPassword' } };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -61,8 +68,20 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   });
   if (error) return { message: authErrorKey(error.message) };
 
-  // With email confirmation on, there is no session yet.
-  if (!data.session) return { success: true, message: 'checkEmail' };
+  /*
+   * No session means the provider is still set to confirm by email. The
+   * account is created confirmed all the same — a trigger stamps the
+   * confirmation time as the row is written — so signing in with the password
+   * just typed finishes the job rather than sending the student to their
+   * inbox. Only if that genuinely fails do they get told to check their mail.
+   */
+  if (!data.session) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+    if (signInError) return { success: true, message: 'checkEmail' };
+  }
 
   revalidatePath('/', 'layout');
   redirect('/onboarding');
@@ -99,6 +118,7 @@ export async function requestResetAction(_prev: AuthState, formData: FormData): 
 export async function updatePasswordAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const password = String(formData.get('password') ?? '');
   if (password.length < 8) return { errors: { password: 'errWeakPassword' } };
+  if (await isPasswordPwned(password)) return { errors: { password: 'errPwnedPassword' } };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });

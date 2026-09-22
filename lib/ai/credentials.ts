@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { isGatewayAvailable } from './vercel-gateway';
+import { isGatewayUsable } from './vercel-gateway';
 
 /**
  * Which credential the agents run on, and whose it is.
@@ -99,7 +99,7 @@ export async function resolveCredential(): Promise<AiCredential | null> {
   const student = await studentCredential();
   if (student) return student;
 
-  if (isGatewayAvailable()) return { provider: 'gateway', key: '', source: 'deployment' };
+  if (await isGatewayUsable()) return { provider: 'gateway', key: '', source: 'deployment' };
   return null;
 }
 

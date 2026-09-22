@@ -92,6 +92,22 @@ npm run dev                     # http://localhost:3000
 **Requirements:** Node 20+ and a Supabase project. An Anthropic API key is
 optional — see the next note.
 
+### Signing up
+
+There is no confirmation step. Migration `0024` puts a trigger on `auth.users`
+that stamps `email_confirmed_at` as the row is written, and the sign-up action
+signs the student in with the password they just typed, so they land on
+onboarding rather than in their inbox. It works whether or not the provider's
+own "Confirm email" switch is on, which matters because that switch lives in a
+dashboard rather than in this repository.
+
+Passwords are checked against the Have I Been Pwned list before an account is
+created or a password changed, using k-anonymity — only the first five
+characters of the SHA-1 are sent, and the comparison happens locally, so the
+password never leaves the server. This is the same list Supabase's own leaked
+password protection uses; doing it here means it holds regardless of that
+setting.
+
 ### A key the student adds themselves
 
 Setting an environment variable is not something a student can do, so
