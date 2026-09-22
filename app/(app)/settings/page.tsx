@@ -5,7 +5,6 @@ import { AvatarPicker } from '@/components/avatar/avatar-picker';
 import { getLocale } from '@/lib/i18n/server';
 import { isAiConfigured, aiProvider, modelNameFor, deploymentProvider } from '@/lib/ai/client';
 import { studentKeyHint } from '@/lib/ai/credentials';
-import { AGENT_REGISTRY } from '@/lib/ai/agents';
 import { SettingsView } from '@/components/settings/settings-view';
 
 export const metadata = { title: 'Settings' };
@@ -53,7 +52,6 @@ export default async function SettingsPage() {
         model: aiOn ? modelNameFor(provider) : null,
         keyHint: keyHint?.hint || null,
         deploymentKey: deploymentProvider() !== null,
-        agents: AGENT_REGISTRY.map((a) => ({ ...a })),
       }}
     />
     </>

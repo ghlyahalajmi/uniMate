@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { setSuspended, clearAiKeyFor, adminSignOut } from '@/lib/admin/actions';
 import type { AdminUserRow } from '@/lib/admin/queries';
 import { AdminPasswordForm } from './admin-password-form';
+import { AdminAgents } from './admin-agents';
 
 /**
  * The accounts screen.
@@ -17,11 +18,15 @@ import { AdminPasswordForm } from './admin-password-form';
  * would not serve them if this page asked.
  */
 export function AdminUsersView({
-  users, summary, username,
+  users, summary, username, agents,
 }: {
   users: AdminUserRow[];
   summary: { accounts: number; withKey: number; suspended: number };
   username: string;
+  agents: ReadonlyArray<{
+    name: string; trigger: string; workflow: string;
+    offline: string | null; why?: string | null;
+  }>;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -141,6 +146,8 @@ export function AdminUsersView({
           </ul>
         )}
       </div>
+
+      <AdminAgents agents={agents} />
 
       <p className="text-xs text-[var(--text-muted)] mt-4 leading-relaxed">
         Account facts only. No student&rsquo;s grades, notes, tasks or answers are readable from

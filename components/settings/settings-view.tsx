@@ -15,12 +15,6 @@ import type { AppLanguage } from '@/types/database';
 
 const EMPTY: ActionState = {};
 
-interface AgentInfo {
-  name: string; trigger: string; workflow: string; offline: string | null;
-  /** Why there is no offline path, when there is none. */
-  why?: string | null;
-}
-
 export function SettingsView({
   profile, ai,
 }: {
@@ -32,7 +26,7 @@ export function SettingsView({
     language: AppLanguage; isDemo: boolean;
   };
   ai: {
-    configured: boolean; model: string | null; agents: AgentInfo[];
+    configured: boolean; model: string | null;
     /** Last four characters of the student's own key, when they saved one. */
     keyHint: string | null;
     /** True when the deployment has its own key, so nobody needs to add one. */
@@ -240,10 +234,17 @@ export function SettingsView({
         </Button>
       </Card>
 
-      {/* Which agents exist, what fires them, and what happens without a key. */}
+      {/*
+        The student's own AI key, and nothing else.
+        --------------------------------------------------------------------
+        The roster of agents — what fires each one, which workflow it belongs
+        to, what it does without a model — is operations detail. It answered a
+        question a student was not asking and buried the one control they
+        actually need. It lives on the admin side now.
+      */}
       <Card className="mt-5">
         <CardHeader
-          title={t.records.tableRuns}
+          title={t.ai.ownKeyTitle}
           subtitle={ai.configured ? `${t.common.ai} · ${ai.model}` : t.ai.unavailableTitle}
           action={
             <Badge tone={ai.configured ? 'positive' : 'warning'}>
@@ -255,30 +256,8 @@ export function SettingsView({
           <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{t.ai.unavailableBody}</p>
         ) : null}
 
-        {/* The way out of "not configured" that does not need a deployment. */}
         <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
-        <ul className="divide-y divide-[var(--border-subtle)]">
-          {ai.agents.map((a) => (
-            <li key={a.name} className="py-2.5">
-              <div className="flex items-start justify-between gap-3">
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{a.name}</span>
-                  <span className="block text-xs text-[var(--text-muted)] mt-0.5">
-                    {a.trigger} · {a.workflow}
-                  </span>
-                </span>
-                <Badge tone={a.offline ? 'positive' : 'neutral'} className="shrink-0">
-                  {a.offline ? t.common.yes : t.common.no}
-                </Badge>
-              </div>
-              {/* What it does without a model, or — when it cannot — why not.
-                  "No" on its own reads as an omission rather than a limit. */}
-              {(a.offline ?? a.why) ? (
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{a.offline ?? a.why}</p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+
         <p className="text-xs text-[var(--text-muted)] mt-3">{t.ai.noInvention}</p>
       </Card>
     </>

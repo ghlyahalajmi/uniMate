@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { isAdmin, listUsers, aiSummary, currentAdmin } from '@/lib/admin/queries';
+import { AGENT_REGISTRY } from '@/lib/ai/agents';
 import { AdminUsersView } from '@/components/admin/admin-users-view';
 
 export const metadata = { title: 'Accounts' };
@@ -12,5 +13,12 @@ export default async function AdminPage() {
 
   const [users, summary, me] = await Promise.all([listUsers(), aiSummary(), currentAdmin()]);
 
-  return <AdminUsersView users={users} summary={summary} username={me?.username ?? ''} />;
+  return (
+    <AdminUsersView
+      users={users}
+      summary={summary}
+      username={me?.username ?? ''}
+      agents={AGENT_REGISTRY.map((a) => ({ ...a, why: 'why' in a ? a.why : null }))}
+    />
+  );
 }
