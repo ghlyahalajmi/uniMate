@@ -260,13 +260,7 @@ export function SettingsView({
         <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
           {ai.configured ? t.ai.managedOn : t.ai.managedOff}
         </p>
-        {profile.isDemo ? (
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 mb-4">
-            {t.ai.ownKeyDemo}
-          </p>
-        ) : (
-          <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
-        )}
+        <AiKeyForm savedHint={ai.keyHint} usingDeploymentKey={ai.deploymentKey} />
         <p className="text-xs text-[var(--text-muted)] mt-3">{t.ai.noInvention}</p>
       </Card>
     </>
