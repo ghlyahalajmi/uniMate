@@ -15,7 +15,10 @@ export function AdminSignInForm() {
       subtitle="Administrator accounts are separate from student accounts. Sign in with your admin username — signing in here ends any student session in this browser."
     >
       <form action={action} className="space-y-4">
-        <AdminField label="Admin username" name="username" autoComplete="username" required />
+        <AdminField
+          label="Admin username or email" name="username" autoComplete="username" required
+          hint="Whichever you set the account up with."
+        />
         <AdminField label="Password" name="password" type="password" autoComplete="current-password" required />
 
         {state.error ? (

@@ -3,15 +3,13 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { adminEmailFor, isAdmin, adminExists } from './queries';
+import { adminIdentifierToEmail, adminUsernameFrom, isAdmin, adminExists } from './queries';
 import { isPasswordPwned } from '@/lib/auth/pwned';
 
 export interface AdminState {
   error?: string;
   ok?: boolean;
 }
-
-const USERNAME = /^[a-z0-9_.-]{3,32}$/;
 
 /**
  * Sign in to the admin side.
@@ -24,16 +22,14 @@ const USERNAME = /^[a-z0-9_.-]{3,32}$/;
  * straight back out — the session must not be left standing.
  */
 export async function adminSignIn(_prev: AdminState, formData: FormData): Promise<AdminState> {
-  const username = String(formData.get('username') ?? '').trim().toLowerCase();
+  const identifier = String(formData.get('username') ?? '');
   const password = String(formData.get('password') ?? '');
 
-  if (!USERNAME.test(username) || password.length < 8) return { error: 'invalid' };
+  const email = adminIdentifierToEmail(identifier);
+  if (!email || password.length < 8) return { error: 'invalid' };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: adminEmailFor(username),
-    password,
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: 'invalid' };
 
   if (!(await isAdmin())) {
@@ -54,18 +50,21 @@ export async function adminSignIn(_prev: AdminState, formData: FormData): Promis
  * written down or sent anywhere.
  */
 export async function adminBootstrap(_prev: AdminState, formData: FormData): Promise<AdminState> {
-  const username = String(formData.get('username') ?? '').trim().toLowerCase();
+  const identifier = String(formData.get('username') ?? '');
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('confirmPassword') ?? '');
 
-  if (!USERNAME.test(username)) return { error: 'badUsername' };
+  // A username or an email, because people reach for both and refusing one of
+  // them reads as "my password is wrong" rather than "wrong field".
+  const email = adminIdentifierToEmail(identifier);
+  if (!email) return { error: 'badUsername' };
   if (password.length < 10) return { error: 'shortPassword' };
   if (password !== confirm) return { error: 'mismatch' };
   if (await isPasswordPwned(password)) return { error: 'pwned' };
   if (await adminExists()) return { error: 'taken' };
 
+  const username = adminUsernameFrom(identifier);
   const supabase = await createClient();
-  const email = adminEmailFor(username);
 
   /*
    * Whoever sets this up is usually signed in as a student already. Ending

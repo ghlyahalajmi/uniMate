@@ -36,6 +36,40 @@ export function adminEmailFor(username: string): string {
   return `${username.trim().toLowerCase()}@${ADMIN_EMAIL_DOMAIN}`;
 }
 
+/** A plausible email address. Deliberately loose — the provider is the real judge. */
+const EMAIL = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
+const USERNAME = /^[a-z0-9_.-]{3,32}$/;
+
+/**
+ * What the sign-in box accepts.
+ *
+ * A username is the intended form and is mapped into the administrators'
+ * domain. An email is accepted as written, because an administrator who was
+ * set up with a real address should be able to type it — being strict here
+ * only produces "that did not work" against a credential that is correct.
+ *
+ * Null means it is neither, which is a wrong entry rather than a wrong
+ * password, and the form says so.
+ */
+export function adminIdentifierToEmail(raw: string): string | null {
+  const value = raw.trim().toLowerCase();
+  if (!value) return null;
+  if (value.includes('@')) return EMAIL.test(value) ? value : null;
+  return USERNAME.test(value) ? adminEmailFor(value) : null;
+}
+
+/**
+ * The name to file an administrator under, derived from whatever they signed
+ * up with. The column only accepts a narrow shape, so an address becomes its
+ * local part with anything else stripped.
+ */
+export function adminUsernameFrom(raw: string): string {
+  const value = raw.trim().toLowerCase();
+  const base = value.includes('@') ? value.slice(0, value.indexOf('@')) : value;
+  const cleaned = base.replace(/[^a-z0-9_.-]/g, '').slice(0, 32);
+  return USERNAME.test(cleaned) ? cleaned : 'admin';
+}
+
 /** True when the signed-in session belongs to an administrator. */
 export async function isAdmin(): Promise<boolean> {
   const supabase = await createClient();

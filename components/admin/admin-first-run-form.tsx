@@ -7,7 +7,7 @@ import { AdminShell, AdminField, AdminSubmit, AdminError } from './admin-ui';
 const EMPTY: AdminState = {};
 
 const MESSAGES: Record<string, string> = {
-  badUsername: 'Use 3–32 characters: lowercase letters, digits, dot, dash or underscore.',
+  badUsername: 'Use a username of 3–32 characters (letters, digits, dot, dash, underscore) or a full email address.',
   shortPassword: 'Use at least 10 characters.',
   mismatch: 'The two passwords do not match.',
   pwned: 'That password has appeared in a public data breach. Choose a different one.',
@@ -32,8 +32,8 @@ export function AdminFirstRunForm() {
     >
       <form action={action} className="space-y-4">
         <AdminField
-          label="Admin username" name="username" autoComplete="username" required
-          hint="Not an email, and separate from every student account."
+          label="Admin username or email" name="username" autoComplete="username" required
+          hint="A username is enough — an email works too. Either way this is a separate account from any student one."
         />
         <AdminField
           label="Password" name="password" type="password" autoComplete="new-password" required

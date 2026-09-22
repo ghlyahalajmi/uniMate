@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { AiThinking, EmptyState, ErrorState } from '@/components/ui/states';
 import { TextInput } from '@/components/ui/form';
-import { useToast } from '@/components/ui/toast';
+import { useToast, Modal } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { formatLabel, formatHint, formatIcon } from './practice-format-picker';
@@ -63,6 +63,8 @@ export function StudyView({
   const [courseId, setCourseId] = useState(initialCourseId);
   const [mode, setMode] = useState<PracticeMode>('standard_10');
   const [format, setFormat] = useState<PracticeFormat>(initialFormat);
+  // The choices live behind the button that uses them, and open on the press.
+  const [setupOpen, setSetupOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
   const [topic, setTopic] = useState('');
   const [chapterId, setChapterId] = useState<string | null>(initialChapterId);
@@ -288,7 +290,10 @@ export function StudyView({
             format={format}
             courseCode={courseCode}
             topic={topic.trim()}
-            onStart={start}
+            // The button opens the choices rather than starting immediately:
+            // a set is twenty minutes of someone's evening, and the settings
+            // that shape it were three scrolls below the button that used it.
+            onStart={() => setSetupOpen(true)}
             canStart={Boolean(courseId)}
           />
 
@@ -460,7 +465,214 @@ export function StudyView({
           </Card>
 
           <Card>
+               {/*
+            Every choice in one window.
+            ----------------------------------------------------------------
+            Style, chapter, length, difficulty and topic decide what the next
+            twenty minutes are, and they were spread down a page under the
+            button that starts it. Here they are one dialog: open it, choose,
+            start. Escape or the backdrop closes it and nothing is lost —
+            these are the same pieces of state, just shown when they matter.
+          */}
+          <Modal
+            open={setupOpen}
+            onClose={() => setSetupOpen(false)}
+            title={t.study.setupTitle}
+            description={t.study.setupSub}
+            size="lg"
+            footer={
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="secondary" onClick={() => setSetupOpen(false)}>
+                  {t.common.cancel}
+                </Button>
+                <Button onClick={() => { setSetupOpen(false); start(); }} disabled={!courseId}>
+                  <Icon.sparkle size={16} />
+                  {t.study.start}
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-4">
+          {embedded ? null : (
+            <Card>
+              <CardHeader title={t.common.course} />
+              <ChipRow
+                label={t.common.selectCourse}
+                value={courseId}
+                onChange={setCourseId}
+                options={courses.map((c) => ({ value: c.id, label: c.code, title: c.name }))}
+              />
+            </Card>
+          )}
+
+          {/*
+            Which chapter to be asked about.
+            Optional on purpose: a set drawn from the whole course is still a
+            useful thing to ask for, and forcing a chapter would block every
+            student who has not uploaded one yet.
+          */}
+          {chapters.length > 0 ? (
+            <Card>
+              <CardHeader title={t.studyAi.chooseChapter} subtitle={t.studyAi.onlyReadable} />
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  aria-pressed={chapterId === null}
+                  onClick={() => setChapterId(null)}
+                  className={cx(
+                    'px-3 min-h-[36px] rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
+                    chapterId === null
+                      ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                  )}
+                >
+                  {t.practice.mixed}
+                </button>
+                {chapters.filter((c) => c.readable).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={chapterId === c.id}
+                    onClick={() => setChapterId(c.id)}
+                    title={c.title}
+                    className={cx(
+                      'px-3 min-h-[36px] max-w-[16rem] truncate rounded-[var(--radius-sm)] text-[0.8125rem] font-medium border transition-colors',
+                      chapterId === c.id
+                        ? 'bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] border-[var(--accent)]'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)]',
+                    )}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            </Card>
+          ) : null}
+
+          <Card>
+            <CardHeader title={t.practice.format} />
+            <div role="radiogroup" aria-label={t.practice.format} className="flex flex-wrap gap-2">
+              {PRACTICE_FORMATS.map((f) => {
+                const selected = f === format;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setFormat(f)}
+                    className={cx(
+                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    {formatIcon(f, 14)}
+                    {formatLabel(t, f)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-[var(--text-muted)] mt-3">{formatHint(t, format)}</p>
+          </Card>
+
+          <Card>
+            <CardHeader title={t.study.mode} />
+            <div role="radiogroup" aria-label={t.study.mode} className="grid grid-cols-2 gap-2">
+              {MODES.map((m) => {
+                const selected = m === mode;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setMode(m)}
+                    className={cx(
+                      'text-start p-3 rounded-[var(--radius-md)] border transition-colors',
+                      'min-h-[76px] flex flex-col justify-between gap-1',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)]'
+                        : 'border-[var(--border-subtle)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        'font-display text-2xl font-semibold tabular-nums leading-none',
+                        selected ? 'text-[var(--accent-soft-text)]' : 'text-[var(--text-primary)]',
+                      )}
+                    >
+                      {formatNumber(MODE_SIZES[m])}
+                    </span>
+                    <span className="block">
+                      <span className="block text-xs font-medium">{modeLabel(t, m)}</span>
+                      <span className="block text-xs text-[var(--text-muted)]">{modeHint(t, m)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title={t.study.difficulty} />
+            <div role="radiogroup" aria-label={t.study.difficulty} className="flex flex-wrap gap-2">
+              {DIFFICULTIES.map((d) => {
+                const selected = d === difficulty;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setDifficulty(d)}
+                    className={cx(
+                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
+                      selected
+                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
+                    )}
+                  >
+                    {d === 'adaptive' ? (
+                      <Icon.sparkle size={14} />
+                    ) : (
+                      <span aria-hidden="true" className="flex items-end gap-0.5 h-3">
+                        {[1, 2, 3].map((bar) => (
+                          <span
+                            key={bar}
+                            className={cx(
+                              'w-1 rounded-full',
+                              bar <= HEAT[d] ? 'bg-current' : 'bg-current opacity-25',
+                            )}
+                            style={{ height: `${4 + bar * 3}px` }}
+                          />
+                        ))}
+                      </span>
+                    )}
+                    {t.study[d]}
+                  </button>
+                );
+              })}
+            </div>
+            {difficulty === 'adaptive' ? (
+              <p className="text-xs text-[var(--text-muted)] mt-3">{t.study.adaptiveNote}</p>
+            ) : null}
+          </Card>
+
+          <Card>
             <TextInput
+              label={t.study.topic}
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              hint={t.common.optional}
+              placeholder={t.study.topic}
+            />
+          </Card>
+            </div>
+          </Modal>
+
+       <TextInput
               label={t.study.topic}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}

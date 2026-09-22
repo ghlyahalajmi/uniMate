@@ -4,6 +4,7 @@ import { callStructured } from '../client';
 import { systemFor } from '../prompts';
 import { renderContext, weakTopics, type StudentContext } from '../context';
 import { questionsFromRecords } from '../fallbacks/study';
+import { enforceFormat } from '@/lib/study/enforce-format';
 import type { DifficultyLevel, QuestionType } from '@/types/database';
 import {
   MODE_SIZES, type PracticeFormat, type PracticeMode, type RequestedDifficulty,
@@ -138,7 +139,7 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
         ? 'Exam mode: mix easy, medium and hard as a real paper would, in ascending order.'
         : `Every question at ${difficulty} difficulty.`;
 
-    const result = await callStructured<Omit<StudyOutput, 'resolvedDifficulty'>>({
+    const ask = (insist: string) => callStructured<Omit<StudyOutput, 'resolvedDifficulty'>>({
       system: systemFor(
         'You are the Study Question Generator. Write genuine practice questions on the academic ' +
         'subject matter of the course named below. Base the topics on the syllabus topics and the ' +
@@ -155,6 +156,7 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
         difficultyLine,
         syllabus?.topics.length ? `Syllabus topics on file: ${syllabus.topics.join(', ')}.` : '',
         FORMAT_LINES[format],
+        insist,
         // When a chapter is attached it is the source, not a hint. Questions
         // about the subject in general would be indistinguishable from a quiz
         // the student could have found anywhere.
@@ -179,9 +181,48 @@ export const studyQuestionGenerator: AgentDefinition<StudyInput, StudyOutput> = 
             : { kind: 'image', mediaType: input.document.mediaType, data: input.document.data }],
     });
 
+    const first = await ask('');
+
+    /*
+     * The schema pins question_type to the chosen style and a capable model
+     * honours it. A small free one returns short answers with no options, and
+     * the screen then renders a text box — which is how "multiple choice" ends
+     * up looking like every other set. So the shape is enforced rather than
+     * trusted, and anything unrepairable is dropped.
+     */
+    let kept = enforceFormat(first.questions ?? [], format) as GeneratedQuestion[];
+    let rationale = first.rationale;
+
+    // Half a set is not a set. One more attempt, told plainly what went wrong.
+    if (format !== 'mixed' && kept.length < Math.ceil(count / 2)) {
+      const second = await ask(
+        'YOUR PREVIOUS ATTEMPT WAS REJECTED. It returned questions of the wrong shape. '
+        + `Every single question must be ${format.replace('_', ' ')} and nothing else. `
+        + (format === 'multiple_choice'
+          ? 'That means each question carries exactly four distinct options in "options", and '
+            + '"answer" is character-for-character one of those four. A question with '
+            + '"options": null is not a multiple choice question and will be thrown away.'
+          : format === 'true_false'
+            ? 'That means "options" is exactly ["True","False"] and "answer" is exactly "True" or "False".'
+            : format === 'fill_blank'
+              ? 'That means the sentence contains five underscores (_____) where the missing term goes.'
+              : 'That means each question contrasts two named things and the answer states the difference.'),
+      );
+
+      const retried = enforceFormat(second.questions ?? [], format) as GeneratedQuestion[];
+      if (retried.length > kept.length) {
+        kept = retried;
+        rationale = second.rationale;
+      }
+    }
+
+    // Nothing of the right shape survived. Throwing hands the student the
+    // deterministic set instead of a screen of the wrong kind of question.
+    if (kept.length === 0) throw new Error('AI_WRONG_FORMAT');
+
     return {
-      ...result,
-      questions: result.questions.slice(0, count).map(normalise),
+      rationale,
+      questions: kept.slice(0, count).map(normalise),
       resolvedDifficulty: difficulty === 'adaptive' ? resolved : mode === 'exam_mode' ? 'mixed' : difficulty,
     };
   },

@@ -442,6 +442,8 @@ export const en = {
   },
   study: {
     title: 'Study with AI', subtitle: 'Practice questions built from your own courses.',
+    setupTitle: 'Set up this practice',
+    setupSub: 'Style, length, difficulty and what to cover. Everything here can be changed next time.',
     mode: 'Practice mode', quick5: 'Quick 5', standard10: 'Standard 10',
     deep20: 'Deep practice 20', examMode: 'Exam mode',
     quick5Sub: '5 questions', standard10Sub: '10 questions', deep20Sub: '20 questions',
@@ -1599,6 +1601,8 @@ export const ar: Dictionary = {
   },
   study: {
     title: 'المذاكرة مع الذكاء الاصطناعي', subtitle: 'أسئلة تدريبية مبنية على مقرراتك أنت.',
+    setupTitle: 'إعداد هذا التدريب',
+    setupSub: 'النمط والطول والصعوبة وما تريد تغطيته. كل شيء هنا يمكن تغييره في المرة القادمة.',
     mode: 'نمط التدريب', quick5: 'سريع ٥', standard10: 'معتاد ١٠',
     deep20: 'تدريب معمّق ٢٠', examMode: 'نمط الاختبار',
     quick5Sub: '٥ أسئلة', standard10Sub: '١٠ أسئلة', deep20Sub: '٢٠ سؤالاً',

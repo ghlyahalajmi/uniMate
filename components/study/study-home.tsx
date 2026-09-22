@@ -7,7 +7,6 @@ import { AiUnavailable, EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import type { PracticeFormat } from '@/lib/study/modes';
-import { PracticeFormatPicker } from './practice-format-picker';
 import { StudyView, type StudyHistoryEntry } from './study-view';
 import { ChapterReviewPanel, type ChapterOption } from './chapter-review-panel';
 import { StudyPlansPanel, type PlanCourse, type SavedPlan } from './study-plans-panel';
@@ -50,16 +49,6 @@ export function StudyHome({
   const [mode, setMode] = useState<Mode>('practice');
   const [chapterId, setChapterId] = useState<string | null>(null);
 
-  /*
-   * The style of question, asked before anything else.
-   *
-   * Null means "not chosen yet", which is the state pressing Practice puts a
-   * student in. A style arriving from the course page — "practise this one as
-   * multiple choice" — is a choice already made, so that skips the step.
-   */
-  const [format, setFormat] = useState<PracticeFormat | null>(
-    initialFormat === 'mixed' ? null : initialFormat,
-  );
 
   const course = courses.find((c) => c.id === courseId) ?? courses[0];
   const planCourses: PlanCourse[] = courses.map((c) => ({ id: c.id, code: c.code, name: c.name }));
@@ -131,9 +120,7 @@ export function StudyHome({
               key={m.key}
               type="button"
               aria-pressed={mode === m.key}
-              // Choosing Practice starts the style question again: it is the
-              // first thing a student should be asked, every time.
-              onClick={() => { if (m.key === 'practice') setFormat(null); setMode(m.key); }}
+              onClick={() => setMode(m.key)}
               className={cx(
                 'text-start p-3.5 rounded-[var(--radius-md)] border transition-colors',
                 mode === m.key
@@ -159,39 +146,21 @@ export function StudyHome({
           courseId={course.id}
           chapters={course.chapters}
           aiEnabled={aiEnabled}
-          onPractise={(id) => { setChapterId(id); setFormat(null); setMode('practice'); }}
+          onPractise={(id) => { setChapterId(id); setMode('practice'); }}
         />
       ) : null}
 
-      {mode === 'practice' && course && format === null ? (
-        <PracticeFormatPicker onChoose={setFormat} />
-      ) : null}
-
-      {mode === 'practice' && course && format !== null ? (
-        <>
-          <div className="flex justify-end mb-3">
-            <button
-              type="button"
-              onClick={() => setFormat(null)}
-              className="text-sm font-medium underline underline-offset-2 text-[var(--text-secondary)]"
-            >
-              {t.studyAi.changeFormat}
-            </button>
-          </div>
-          <StudyView
-            // Remounts on a style change, so the setup below opens on the
-            // style just chosen rather than holding the previous one.
-            key={format}
-            aiEnabled={aiEnabled}
-            courses={planCourses}
-            chapters={course.chapters}
-            initialCourseId={course.id}
-            initialFormat={format}
-            initialChapterId={chapterId}
-            history={history}
-            embedded
-          />
-        </>
+      {mode === 'practice' && course ? (
+        <StudyView
+          aiEnabled={aiEnabled}
+          courses={planCourses}
+          chapters={course.chapters}
+          initialCourseId={course.id}
+          initialFormat={initialFormat}
+          initialChapterId={chapterId}
+          history={history}
+          embedded
+        />
       ) : null}
 
       {mode === 'plan' ? (

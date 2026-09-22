@@ -32,6 +32,7 @@
     "lib/study/plan-types.ts",
     "lib/study/plan-builder.ts",
     "lib/study/outline.ts",
+    "lib/study/enforce-format.ts",
     "lib/study/__tests__/**/*.ts",
     "lib/ai/__tests__/**/*.ts",
     "types/**/*.ts"
