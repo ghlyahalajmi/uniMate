@@ -120,6 +120,44 @@ export async function clearAiKeyFor(userId: string): Promise<AdminState> {
   return { ok: true };
 }
 
+/**
+ * Change the signed-in administrator's own password.
+ *
+ * Supabase checks the session, not the old password, so the old one is
+ * verified here by signing in with it first. Without that, anyone who got hold
+ * of an unlocked browser could lock the real administrator out of their own
+ * deployment in two clicks.
+ */
+export async function adminChangePassword(
+  _prev: AdminState, formData: FormData,
+): Promise<AdminState> {
+  const current = String(formData.get('currentPassword') ?? '');
+  const next = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('confirmPassword') ?? '');
+
+  if (!(await isAdmin())) return { error: 'notAdmin' };
+  if (next.length < 10) return { error: 'shortPassword' };
+  if (next !== confirm) return { error: 'mismatch' };
+  if (next === current) return { error: 'same' };
+  if (await isPasswordPwned(next)) return { error: 'pwned' };
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const email = auth.user?.email;
+  if (!email) return { error: 'notAdmin' };
+
+  const { error: wrongCurrent } = await supabase.auth.signInWithPassword({
+    email, password: current,
+  });
+  if (wrongCurrent) return { error: 'wrongCurrent' };
+
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) return { error: 'failed' };
+
+  revalidatePath('/admin');
+  return { ok: true };
+}
+
 export async function adminSignOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();

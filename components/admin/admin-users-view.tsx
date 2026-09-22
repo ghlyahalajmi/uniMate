@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { setSuspended, clearAiKeyFor, adminSignOut } from '@/lib/admin/actions';
 import type { AdminUserRow } from '@/lib/admin/queries';
+import { AdminPasswordForm } from './admin-password-form';
 
 /**
  * The accounts screen.
@@ -56,14 +57,17 @@ export function AdminUsersView({
             Signed in as <span className="font-medium">{username}</span>
           </p>
         </div>
-        <form action={adminSignOut}>
-          <button
-            type="submit"
-            className="h-9 px-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-sm hover:bg-[var(--bg-inset)]"
-          >
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-2">
+          <AdminPasswordForm />
+          <form action={adminSignOut}>
+            <button
+              type="submit"
+              className="h-9 px-3 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] text-sm hover:bg-[var(--bg-inset)]"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
