@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n/provider';
 import { Badge, Button, Card, CardHeader, cx } from '@/components/ui/primitives';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
+import { RunButton } from './run-button';
 import type { AiRunStatus } from '@/types/database';
 
 export interface RunRow {
@@ -28,11 +29,11 @@ export interface RunRow {
  * screen show real runs rather than a description of what should happen.
  */
 const WORKFLOWS = [
-  { letter: 'A', key: 'workflow_a_schedule_scan', endpoint: null },
-  { letter: 'B', key: 'workflow_b_syllabus_processing', endpoint: null },
-  { letter: 'C', key: 'workflow_c_grade_analysis', endpoint: 'grade-analysis' },
-  { letter: 'D', key: 'workflow_d_upcoming_exam', endpoint: 'reminders' },
-  { letter: 'E', key: 'workflow_e_study_questions', endpoint: null },
+  { letter: 'A', key: 'workflow_a_schedule_scan', endpoint: null, startable: null },
+  { letter: 'B', key: 'workflow_b_syllabus_processing', endpoint: null, startable: null },
+  { letter: 'C', key: 'workflow_c_grade_analysis', endpoint: 'grade-analysis', startable: 'grade-analysis' },
+  { letter: 'D', key: 'workflow_d_upcoming_exam', endpoint: 'reminders', startable: 'reminders' },
+  { letter: 'E', key: 'workflow_e_study_questions', endpoint: null, startable: null },
 ] as const;
 
 export function AutomationView({
@@ -133,6 +134,12 @@ export function AutomationView({
                             <span className="text-xs text-[var(--text-muted)]">{t.automation.neverRun}</span>
                           )}
                         </div>
+
+                        {/* Two of the five need nothing else to start, so they
+                            start here: press, watch, read the outcome. The
+                            other three begin with a file or a grade, which is
+                            where they already begin. */}
+                        {w.startable ? <RunButton workflow={w.startable} /> : null}
                       </div>
                     </div>
                   </div>
