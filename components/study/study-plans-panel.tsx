@@ -94,7 +94,8 @@ export function StudyPlansPanel({
       const data = await res.json();
       if (!data.ok) {
         setError(
-          data.error === 'no_courses' ? t.studyAi.planEmpty
+          data.error === 'rate_limited' ? tf(t.ai.rateLimited, { n: data.detail ?? '1' })
+          : data.error === 'no_courses' ? t.studyAi.planEmpty
           : data.error === 'plan_empty' ? t.studyAi.planEmpty
           : t.errors.generic,
         );

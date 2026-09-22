@@ -55,7 +55,9 @@ export DATABASE_URL='postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/
 psql "$DATABASE_URL" -f supabase/seed/seed.sql
 ```
 
-Sign in afterwards as `sara.alajmi@demo.unimate.app` / `UniMateDemo2026!`.
+Sign in afterwards with the **Try the demo** button on the sign-in page,
+which uses the seeded account without anyone having to type or publish its
+password.
 
 Skip this if you want an empty project — the app handles a fresh account
 properly and shows a welcome panel rather than an empty dashboard.

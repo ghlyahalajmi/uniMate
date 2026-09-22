@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
+import { checkRunRate } from '@/lib/ai/rate-limit';
 import { runAgent } from '@/lib/ai/run';
 import { flashcardWriter, type FlashcardInput } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
@@ -23,6 +24,11 @@ const MODES = new Set<PracticeMode>(['quick_5', 'standard_10', 'deep_20', 'exam_
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
+
+  // A ceiling on how fast one student can spend a model quota. See
+  // lib/ai/rate-limit.ts for why twenty in ten minutes.
+  const rate = await checkRunRate(auth.ctx);
+  if (rate.exceeded) return apiError('rate_limited', 429, String(rate.retryInMinutes));
 
   const body = await readJson<{
     course_id?: string; mode?: string; material_id?: string; topic?: string;

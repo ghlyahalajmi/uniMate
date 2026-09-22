@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
+import { checkRunRate } from '@/lib/ai/rate-limit';
 import { askSyllabus } from '@/lib/ai/agents';
 import { syllabusAskSchema } from '@/lib/validation/schemas';
 import { runAgent, type AgentDefinition } from '@/lib/ai/run';
@@ -35,6 +36,11 @@ const syllabusQuestionAgent: AgentDefinition<AskInput, AskOutput> = {
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
+
+  // A ceiling on how fast one student can spend a model quota. See
+  // lib/ai/rate-limit.ts for why twenty in ten minutes.
+  const rate = await checkRunRate(auth.ctx);
+  if (rate.exceeded) return apiError('rate_limited', 429, String(rate.retryInMinutes));
 
   const body = await readJson<unknown>(request, 32 * 1024);
   const parsed = syllabusAskSchema.safeParse(body);

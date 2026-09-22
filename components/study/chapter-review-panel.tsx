@@ -66,7 +66,8 @@ export function ChapterReviewPanel({
       const data = await res.json();
       if (!data.ok) {
         setError(
-          data.error === 'not_readable' ? t.studyAi.onlyReadable
+          data.error === 'rate_limited' ? tf(t.ai.rateLimited, { n: data.detail ?? '1' })
+          : data.error === 'not_readable' ? t.studyAi.onlyReadable
           : t.errors.generic,
         );
         setPhase('error');

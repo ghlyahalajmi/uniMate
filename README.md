@@ -12,11 +12,23 @@ It is built on Next.js 15, Supabase (PostgreSQL, Auth, Storage, row level
 security) and the Anthropic API, in English and Arabic with full RTL.
 
 **Live:** https://unimate-pied.vercel.app
-**Demo sign-in:** `dana.hamad@demo.unimate.app` / `UniMateDemo2026!`
+**Demo sign-in:** press **Try the demo** on the sign-in page. No credentials
+to copy, and none printed here — a password in a README is a password in
+everybody's search results.
 
-The deployment runs against a Supabase project seeded with the demo data
-below. AI features are off there until an `ANTHROPIC_API_KEY` is added — the
-rest of the app works without one.
+Every AI feature works on the live deployment without a key: the agents fall
+back to a deterministic path that answers from the student's own records.
+Adding `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` upgrades the answers; it
+does not switch the features on, because they are never off.
+
+## The team
+
+| Who | What they owned |
+| --- | --- |
+| **Ghalyah M. Alajmi** | Database schema, row level security and the admin side; the AI agent layer and deployment |
+| **Asmaa Alhajri** | Courses: the course screens, adding a course from its syllabus, and who teaches it |
+| **Anwar Al Sarraf** | Grades, GPA and the analytics screens |
+| **Fatemah Shamsah** | Tasks, the calendar and reminders |
 
 ---
 
@@ -30,7 +42,8 @@ rest of the app works without one.
 - [Progress, motivation and coaching](#progress-motivation-and-coaching)
 - [The AI agents](#the-ai-agents)
 - [Workflows and automation](#workflows-and-automation)
-- [Security](#security)
+- [Security](#security) · [`docs/SECURITY.md`](docs/SECURITY.md)
+- [Agent guardrails](docs/GUARDRAILS.md)
 - [Testing](#testing)
 - [Demo account](#demo-account)
 - [Project structure](#project-structure)
@@ -540,12 +553,12 @@ There is a full manual checklist in [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Demo account
 
-If you ran the seed:
+Press **Try the demo** on the sign-in page and you are in. The credentials
+are held server-side and are not written down here: a shared login printed in
+a public repository is a credential anyone can find by searching, which is the
+one thing this project claims not to have.
 
-- **Email** `dana.hamad@demo.unimate.app`
-- **Password** `UniMateDemo2026!`
-
-This account is already seeded on the live deployment above.
+The account is already seeded on the live deployment above.
 
 Dana Hamad, Computer Engineering at Kuwait University, year 3. Eight
 completed courses, five active, 22 assessments, two syllabi, seven logged AI

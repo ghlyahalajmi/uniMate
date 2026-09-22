@@ -117,7 +117,7 @@ export function StudyView({
         });
         const data = await res.json();
         if (!data.ok) {
-          setError(t.study.genError);
+          setError(data.error === 'rate_limited' ? tf(t.ai.rateLimited, { n: data.detail ?? '1' }) : t.study.genError);
           setPhase('error');
           return;
         }
@@ -144,7 +144,7 @@ export function StudyView({
       const data = await res.json();
 
       if (!data.ok || !data.questions?.length) {
-        setError(t.study.genError);
+        setError(data.error === 'rate_limited' ? tf(t.ai.rateLimited, { n: data.detail ?? '1' }) : t.study.genError);
         setPhase('error');
         return;
       }

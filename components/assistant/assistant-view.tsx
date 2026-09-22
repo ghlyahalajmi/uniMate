@@ -14,7 +14,7 @@ export function AssistantView({
 }: {
   sampleCourseCode: string;
 }) {
-  const { t } = useI18n();
+  const { t, tf } = useI18n();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -49,7 +49,12 @@ export function AssistantView({
       const data = await res.json();
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: data.ok ? data.answer : t.assistant.error },
+        {
+          role: 'assistant',
+          content: data.ok ? data.answer
+            : data.error === 'rate_limited' ? tf(t.ai.rateLimited, { n: data.detail ?? '1' })
+            : t.assistant.error,
+        },
       ]);
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: t.errors.network }]);

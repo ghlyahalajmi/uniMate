@@ -94,12 +94,24 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   redirect('/onboarding');
 }
 
+/**
+ * The demonstration account, opened with one press.
+ *
+ * The credentials are read from the environment rather than written here.
+ * They belong to a shared, deliberately public login — but a password typed
+ * into a source file is a password in every clone, every fork and every
+ * search of the repository, and "there are no credentials in this repository"
+ * has to be true of the demo one too or it is not a claim worth making.
+ *
+ * With nothing configured the button says so rather than failing silently.
+ */
 export async function signInDemoAction(): Promise<AuthState> {
+  const email = process.env.DEMO_EMAIL;
+  const password = process.env.DEMO_PASSWORD;
+  if (!email || !password) return { message: 'errDemoUnavailable' };
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: 'dana.hamad@demo.unimate.app',
-    password: 'UniMateDemo2026!',
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     return {
       message: 'errDemoUnavailable',

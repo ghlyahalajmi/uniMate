@@ -228,6 +228,16 @@ export function SettingsView({
 
       <Card className="mt-5">
         <CardHeader title={t.settings.dataSection} subtitle={t.settings.exportSub} />
+
+        {/* Said plainly, above the button that acts on it. A privacy notice
+            nobody finds is a privacy notice nobody has been given. */}
+        <div className="rounded-[var(--radius-md)] bg-[var(--bg-inset)] p-3.5 mb-4">
+          <p className="text-[0.8125rem] font-semibold mb-1">{t.settings.privacyTitle}</p>
+          <p className="text-[0.8125rem] text-[var(--text-secondary)] leading-relaxed">
+            {t.settings.privacyLine}
+          </p>
+        </div>
+
         <Button variant="secondary" onClick={exportAll} loading={exporting} loadingLabel={t.records.exporting}>
           <Icon.download size={17} />
           {t.settings.exportData}

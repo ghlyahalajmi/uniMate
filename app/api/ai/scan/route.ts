@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError } from '@/lib/api/helpers';
+import { checkRunRate } from '@/lib/ai/rate-limit';
 import { confirmScannedCourses } from '@/lib/workflows';
 import { runAgent } from '@/lib/ai/run';
 import { setupScanner } from '@/lib/ai/agents';
@@ -22,6 +23,11 @@ type AllowedType = (typeof ALLOWED)[number];
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
+
+  // A ceiling on how fast one student can spend a model quota. See
+  // lib/ai/rate-limit.ts for why twenty in ten minutes.
+  const rate = await checkRunRate(auth.ctx);
+  if (rate.exceeded) return apiError('rate_limited', 429, String(rate.retryInMinutes));
 
   let form: FormData;
   try {

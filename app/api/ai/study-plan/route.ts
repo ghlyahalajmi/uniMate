@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
+import { checkRunRate } from '@/lib/ai/rate-limit';
 import { runAgent } from '@/lib/ai/run';
 import { studyPlanner, type PlannedCourse, type PlannedSession } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
@@ -24,6 +25,11 @@ const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
+
+  // A ceiling on how fast one student can spend a model quota. See
+  // lib/ai/rate-limit.ts for why twenty in ten minutes.
+  const rate = await checkRunRate(auth.ctx);
+  if (rate.exceeded) return apiError('rate_limited', 429, String(rate.retryInMinutes));
 
   const body = await readJson<{
     courseIds?: string[]; horizonDays?: number; todayIso?: string;

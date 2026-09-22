@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withUser, apiError, readJson } from '@/lib/api/helpers';
+import { checkRunRate } from '@/lib/ai/rate-limit';
 import { runAgent } from '@/lib/ai/run';
 import { chapterReview, type ReviewDocument } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
@@ -20,6 +21,11 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth.ok) return auth.response;
+
+  // A ceiling on how fast one student can spend a model quota. See
+  // lib/ai/rate-limit.ts for why twenty in ten minutes.
+  const rate = await checkRunRate(auth.ctx);
+  if (rate.exceeded) return apiError('rate_limited', 429, String(rate.retryInMinutes));
 
   const body = await readJson<{ materialId?: string }>(request, 16 * 1024);
   if (!body?.materialId) return apiError('invalid_request', 400);
