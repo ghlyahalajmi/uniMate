@@ -56,6 +56,8 @@ export function ReminderWatch() {
    *
    * No audio file: an asset would be another request and another thing to 404,
    * and this needs to be a second long and unmistakable rather than pretty.
+   * It is loud on purpose — a reminder nobody hears from the next room is a
+   * card nobody was looking at.
    *
    * Two things this gets wrong if written the obvious way, and both were wrong
    * here. A browser starts an audio context *suspended* until the page has
@@ -74,17 +76,44 @@ export function ReminderWatch() {
       if (ctx.state !== 'running') return;
 
       const now = ctx.currentTime;
-      [880, 1174.66].forEach((hz, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = hz;
-        gain.gain.setValueAtTime(0.0001, now + i * 0.18);
-        gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.18 + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.18 + 0.5);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now + i * 0.18);
-        osc.stop(now + i * 0.18 + 0.55);
+
+      /*
+       * A limiter across the whole chime.
+       *
+       * Loud is not one number turned up — three notes and their harmonics
+       * stacking at full gain is what makes a sound distort rather than carry.
+       * Everything goes through this first, so the notes can be driven hard
+       * and the peak still lands where it was aimed.
+       */
+      const out = ctx.createDynamicsCompressor();
+      out.threshold.value = -8;
+      out.ratio.value = 12;
+      out.attack.value = 0.003;
+      out.connect(ctx.destination);
+
+      // Three notes rising, rather than two: a longer shape carries across a
+      // room and through a laptop speaker better than a louder short one.
+      [880, 1174.66, 1567.98].forEach((hz, i) => {
+        const at = now + i * 0.16;
+
+        // The note, and a quieter octave above it. The harmonic is what makes
+        // a sine read as bright at the far end of a room — a bare sine at the
+        // same level sounds softer than it measures.
+        ([
+          { type: 'sine' as OscillatorType, hz, peak: 0.55 },
+          { type: 'triangle' as OscillatorType, hz: hz * 2, peak: 0.16 },
+        ]).forEach(({ type, hz: freq, peak }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, at);
+          gain.gain.exponentialRampToValueAtTime(peak, at + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.62);
+          osc.connect(gain).connect(out);
+          osc.start(at);
+          osc.stop(at + 0.66);
+        });
       });
     } catch {
       // Audio is the flourish; the card is the message.
