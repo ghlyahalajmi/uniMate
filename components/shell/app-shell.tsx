@@ -414,18 +414,6 @@ function NavLink({
 function ProfileButton({ user }: { user: ShellProps['user'] }) {
   const { t } = useI18n();
 
-  const inner =
-    user.avatarKind === 'photo' && user.avatarUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={user.avatarUrl} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
-    ) : user.avatarKind === 'character' ? (
-      <AvatarArt design={user.avatarDesign} size={32} />
-    ) : (
-      <span className="grid place-items-center w-8 h-8 rounded-full text-xs font-semibold bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]">
-        {initialsFrom(user.name, user.email)}
-      </span>
-    );
-
   return (
     <Link
       href="/settings"
@@ -441,34 +429,66 @@ function ProfileButton({ user }: { user: ShellProps['user'] }) {
           'group-hover:scale-110 group-active:scale-95 group-hover:ring-2',
         )}
       >
-        {inner}
+        <AvatarFace user={user} size={32} />
       </span>
     </Link>
   );
 }
 
+/**
+ * The account's face, drawn from whatever the student chose: an uploaded
+ * photo, the character they built, or their initials.
+ *
+ * One component, because the picture at the top of the page and the picture in
+ * the menu are the same account — a menu still showing initials after a photo
+ * was set reads as a different person.
+ */
+function AvatarFace({ user, size }: { user: ShellProps['user']; size: number }) {
+  const px = { width: size, height: size };
+
+  if (user.avatarKind === 'photo' && user.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={user.avatarUrl} alt="" width={size} height={size} style={px} className="rounded-full object-cover" />
+    );
+  }
+
+  if (user.avatarKind === 'character') return <AvatarArt design={user.avatarDesign} size={size} />;
+
+  return (
+    <span
+      style={px}
+      className="grid place-items-center rounded-full text-xs font-semibold bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
+    >
+      {initialsFrom(user.name, user.email)}
+    </span>
+  );
+}
+
 function UserChip({ user }: { user: ShellProps['user'] }) {
   const { t } = useI18n();
-  const initials = (user.name ?? user.email)
-    .split(/[\s@.]+/).filter(Boolean).slice(0, 2)
-    .map((p) => p[0]?.toUpperCase()).join('');
 
   return (
     <div className="flex items-center gap-2.5 px-2 py-2 mt-1">
-      <span
-        aria-hidden="true"
-        className="w-8 h-8 shrink-0 rounded-full grid place-items-center text-xs font-semibold bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)]"
+      {/* The picture and the name are one target, and it goes where the
+          picture is changed. Sign-out stays a sibling: a form inside a link
+          is not a thing, and it should not be the easy thing to hit anyway. */}
+      <Link
+        href="/settings"
+        className="flex items-center gap-2.5 min-w-0 flex-1 rounded-[var(--radius-sm)] p-1 -m-1 hover:bg-[var(--bg-inset)]"
       >
-        {initials || '·'}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[0.8125rem] font-medium truncate">{user.name ?? user.email}</span>
-        {user.isDemo ? (
-          <span className="block text-xs text-[var(--warning)]">{t.common.demoData}</span>
-        ) : (
-          <span className="block text-xs text-[var(--text-muted)] truncate">{user.email}</span>
-        )}
-      </span>
+        <span aria-hidden="true" className="shrink-0 grid place-items-center rounded-full overflow-hidden">
+          <AvatarFace user={user} size={32} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.8125rem] font-medium truncate">{user.name ?? user.email}</span>
+          {user.isDemo ? (
+            <span className="block text-xs text-[var(--warning)]">{t.common.demoData}</span>
+          ) : (
+            <span className="block text-xs text-[var(--text-muted)] truncate">{user.email}</span>
+          )}
+        </span>
+      </Link>
       <form action="/auth/sign-out" method="post">
         <button
           type="submit"
