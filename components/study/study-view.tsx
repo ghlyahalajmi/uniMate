@@ -10,6 +10,7 @@ import { TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
+import { formatLabel, formatHint, formatIcon } from './practice-format-picker';
 import {
   MODE_SIZES, PRACTICE_FORMATS, isDeckFormat,
   type PracticeFormat, type PracticeMode, type RequestedDifficulty,
@@ -366,7 +367,7 @@ export function StudyView({
                         : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
                     )}
                   >
-                    {formatIcon(f)}
+                    {formatIcon(f, 14)}
                     {formatLabel(t, f)}
                   </button>
                 );
@@ -1078,34 +1079,6 @@ function HistoryLine({ row }: { row: HistoryRow }) {
       </Badge>
     </div>
   );
-}
-
-function formatLabel(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
-  switch (f) {
-    case 'mixed': return t.practice.mixed;
-    case 'multiple_choice': return t.practice.mcq;
-    case 'true_false': return t.practice.trueFalse;
-    case 'fill_blank': return t.studyAi.formatFillBlank;
-    case 'compare': return t.studyAi.formatCompare;
-    case 'flashcards': return t.studyAi.formatFlashcards;
-  }
-}
-
-function formatHint(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat): string {
-  switch (f) {
-    case 'mixed': return t.practice.mixedSub;
-    case 'multiple_choice': return t.practice.mcqSub;
-    case 'true_false': return t.practice.trueFalseSub;
-    case 'fill_blank': return t.studyAi.modePracticeSub;
-    case 'compare': return t.studyAi.modePracticeSub;
-    case 'flashcards': return t.studyAi.formatFlashcardsSub;
-  }
-}
-
-function formatIcon(f: PracticeFormat) {
-  if (f === 'mixed') return <Icon.sparkle size={14} />;
-  if (f === 'multiple_choice') return <Icon.options size={14} />;
-  return <Icon.trueFalse size={14} />;
 }
 
 function modeLabel(t: ReturnType<typeof useI18n>['t'], m: PracticeMode): string {

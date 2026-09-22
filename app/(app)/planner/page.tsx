@@ -1,7 +1,7 @@
 import { getCourses, getSchedules } from '@/lib/data/queries';
 import { PlannerView } from '@/components/planner/planner-view';
 
-export const metadata = { title: 'Planner' };
+export const metadata = { title: 'Schedule builder' };
 export const dynamic = 'force-dynamic';
 
 export default async function PlannerPage() {
