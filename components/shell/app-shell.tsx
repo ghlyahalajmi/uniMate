@@ -66,6 +66,10 @@ export function AppShell({ children, user }: ShellProps) {
         className={cx(
           'sticky top-0 z-30 glass border-b border-[var(--border-subtle)]',
           'flex items-center gap-2 px-3 sm:px-4 h-14',
+          // Installed on a phone the page runs under the status bar, so the
+          // header grows by exactly the strip the clock sits in. Zero in a
+          // browser tab and on every desktop, where the inset is zero.
+          'pt-[env(safe-area-inset-top)] h-[calc(3.5rem+env(safe-area-inset-top))]',
         )}
       >
         <button

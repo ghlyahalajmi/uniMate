@@ -41,11 +41,33 @@ export const metadata: Metadata = {
       'Organise your courses, understand your grades, plan your semester, and study with an AI that adapts to you.',
     type: 'website',
   },
+  manifest: '/manifest.webmanifest',
+  /*
+   * iOS ignores the manifest almost entirely: it takes the name from here, the
+   * icon from apple-icon.png, and only opens standalone when `capable` says
+   * so. `default` for the status bar keeps the clock and battery legible
+   * against a light header, and dark mode repaints it from the theme colour.
+   */
+  appleWebApp: {
+    capable: true,
+    title: 'UniMate',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Installed on a phone, the page owns the whole screen including the strip
+  // behind the notch and the home indicator; the shell already pads for both.
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f7f8fa' },
     { media: '(prefers-color-scheme: dark)', color: '#0a0e1a' },
