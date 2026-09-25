@@ -5,6 +5,7 @@ import { workflowGenerateQuestions } from '@/lib/workflows';
 import { studyRequestSchema } from '@/lib/validation/schemas';
 import { createClient } from '@/lib/supabase/server';
 import { isReadableMaterial } from '@/lib/materials/limits';
+import { documentFrom } from '@/lib/materials/document';
 import type { StudyInput } from '@/lib/ai/agents';
 
 type StudyDocument = NonNullable<StudyInput['document']>;
@@ -54,16 +55,9 @@ export async function POST(request: Request) {
       if (!file.error && file.data) {
         const buffer = Buffer.from(await file.data.arrayBuffer());
         chapterTitle = m.title;
-        document =
-          m.file_type === 'application/pdf'
-            ? { kind: 'pdf', data: buffer.toString('base64') }
-            : m.file_type.startsWith('text/')
-              ? { kind: 'text', text: buffer.toString('utf8') }
-              : {
-                  kind: 'image',
-                  mediaType: m.file_type as 'image/png' | 'image/jpeg' | 'image/webp',
-                  data: buffer.toString('base64'),
-                };
+        // A PDF keeps its bytes for the model and carries its text for the
+        // path that has no model. See lib/materials/document.ts.
+        document = documentFrom(m.file_type, buffer);
       }
     }
   }

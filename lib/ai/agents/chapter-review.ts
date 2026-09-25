@@ -5,9 +5,14 @@ import { systemFor } from '../prompts';
 import { reviewFromDocument } from '../fallbacks/study';
 
 /** A chapter file, already fetched and encoded by the caller. */
+/**
+ * A PDF carries its extracted text alongside its bytes: the model reads the
+ * file, and the paths with no model read the words. See
+ * lib/materials/document.ts.
+ */
 export type ReviewDocument =
   | { kind: 'image'; mediaType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
-  | { kind: 'pdf'; data: string }
+  | { kind: 'pdf'; data: string; text?: string }
   | { kind: 'text'; text: string };
 
 export interface ChapterReviewInput {

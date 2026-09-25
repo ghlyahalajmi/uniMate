@@ -30,7 +30,7 @@ export interface StudyInput {
    */
   document?:
     | { kind: 'image'; mediaType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
-    | { kind: 'pdf'; data: string }
+    | { kind: 'pdf'; data: string; text?: string }
     | { kind: 'text'; text: string };
   /** What the student calls that chapter. */
   chapterTitle?: string;

@@ -6,6 +6,7 @@ import { flashcardWriter, type FlashcardInput } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { MODE_SIZES, type PracticeMode } from '@/lib/study/modes';
+import { documentFrom } from '@/lib/materials/document';
 
 export const maxDuration = 300;
 
@@ -70,16 +71,7 @@ export async function POST(request: Request) {
       if (!file.error && file.data) {
         const buffer = Buffer.from(await file.data.arrayBuffer());
         chapterTitle = m.title;
-        document =
-          m.file_type === 'application/pdf'
-            ? { kind: 'pdf', data: buffer.toString('base64') }
-            : m.file_type.startsWith('text/')
-              ? { kind: 'text', text: buffer.toString('utf8') }
-              : {
-                  kind: 'image',
-                  mediaType: m.file_type as 'image/png' | 'image/jpeg' | 'image/webp',
-                  data: buffer.toString('base64'),
-                };
+        document = documentFrom(m.file_type, buffer);
       }
     }
   }

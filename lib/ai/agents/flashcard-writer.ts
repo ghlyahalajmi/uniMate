@@ -119,7 +119,7 @@ export const flashcardWriter: AgentDefinition<FlashcardInput, FlashcardOutput> =
    * card whose back was guessed is worse than no card: it is reviewed for
    * weeks before anyone notices it is wrong.
    */
-  fallback: (input) => cardsFromDocument(input),
+  fallback: (input, ctx) => cardsFromDocument(input, ctx),
 
   summariseInput: (i) => `${i.count} flashcards for ${i.courseCode}`,
   summariseOutput: (o) => `${o.cards.length} cards written`,

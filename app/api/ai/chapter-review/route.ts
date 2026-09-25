@@ -5,6 +5,7 @@ import { runAgent } from '@/lib/ai/run';
 import { chapterReview, type ReviewDocument } from '@/lib/ai/agents';
 import { loadStudentContext, weakTopics } from '@/lib/ai/context';
 import { isReadableMaterial } from '@/lib/materials/limits';
+import { documentFrom } from '@/lib/materials/document';
 
 /** Reading a chapter properly is a long call; the default limit cuts it off. */
 export const maxDuration = 300;
@@ -61,16 +62,9 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.data.arrayBuffer());
 
-  const document: ReviewDocument =
-    m.file_type === 'application/pdf'
-      ? { kind: 'pdf', data: buffer.toString('base64') }
-      : m.file_type.startsWith('text/')
-        ? { kind: 'text', text: buffer.toString('utf8') }
-        : {
-            kind: 'image',
-            mediaType: m.file_type as 'image/png' | 'image/jpeg' | 'image/webp',
-            data: buffer.toString('base64'),
-          };
+  // A PDF keeps its bytes for the model and carries its text for the path
+  // that has no model. See lib/materials/document.ts.
+  const document: ReviewDocument = documentFrom(m.file_type, buffer);
 
   // What this student keeps getting wrong, so the review slows down there.
   // A failure to work it out must not cost them the review itself.

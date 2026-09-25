@@ -6,6 +6,7 @@ import type { FlashcardInput, FlashcardOutput } from '../agents/flashcard-writer
 import { MODE_SIZES } from '@/lib/study/modes';
 import { outlineFromText, cardsFromText } from '@/lib/study/outline';
 import { questionsFromText } from '@/lib/study/questions-from-text';
+import { readableText } from '@/lib/materials/document';
 
 /**
  * What Study with AI can still do when there is no model.
@@ -55,9 +56,10 @@ export async function questionsFromRecords(
    * the button gets pressed. A chapter's own definitions make real questions
    * of every shape, so they come first and the archive fills whatever is left.
    */
-  const fromChapter = input.document?.kind === 'text'
+  const chapterText = readableText(input.document);
+  const fromChapter = chapterText
     ? questionsFromText(
-        input.document.text,
+        chapterText,
         count,
         input.chapterTitle ?? input.topic ?? 'Revision',
         input.format ?? 'mixed',
@@ -101,10 +103,33 @@ export async function questionsFromRecords(
   const wrong = new Set(attempts.filter((a) => !a.is_correct).map((a) => a.question_id));
   const seen = new Set(attempts.map((a) => a.question_id));
 
+  /*
+   * Only questions of the shape that was asked for.
+   *
+   * This is what made the picker look broken: the archive is mostly
+   * `conceptual`, so asking for true or false returned ten conceptual
+   * questions with a true-or-false label on the request. A set that is not
+   * the shape you chose is worse than a short set, so the wrong shapes are
+   * dropped rather than relabelled.
+   *
+   * `conceptual` counts as a short answer because that is what it is — a
+   * question you answer in your own words — and it is the one relabelling
+   * that is true rather than convenient.
+   */
+  const wanted = (input.format ?? 'mixed') as string;
+  const matchesFormat = (q: StoredQuestion): boolean => {
+    if (wanted === 'mixed') return true;
+    const type = q.question_type ?? 'short_answer';
+    if (wanted === 'short_answer') return type === 'short_answer' || type === 'conceptual';
+    return type === wanted;
+  };
+
+  const eligible = pool.filter(matchesFormat);
+
   const ranked = [
-    ...pool.filter((q) => wrong.has(q.id)),
-    ...pool.filter((q) => !seen.has(q.id)),
-    ...pool.filter((q) => seen.has(q.id) && !wrong.has(q.id)),
+    ...eligible.filter((q) => wrong.has(q.id)),
+    ...eligible.filter((q) => !seen.has(q.id)),
+    ...eligible.filter((q) => seen.has(q.id) && !wrong.has(q.id)),
   ];
 
   const questions: GeneratedQuestion[] = [...fromChapter];
@@ -126,8 +151,15 @@ export async function questionsFromRecords(
     questions.push(q);
   }
 
-  // Still short? The student's own cards are questions with answers already.
-  const deck = (cards.data ?? []) as Array<{ front: string; back: string; topic: string | null }>;
+  /*
+   * Still short? The student's own cards are questions with answers already —
+   * but only where a written answer is what was asked for. A flashcard cannot
+   * become a multiple choice without inventing three wrong answers.
+   */
+  const cardsFit = wanted === 'mixed' || wanted === 'short_answer';
+  const deck = cardsFit
+    ? ((cards.data ?? []) as Array<{ front: string; back: string; topic: string | null }>)
+    : [];
   for (const card of deck) {
     if (questions.length >= count) break;
     if (questions.some((q) => q.question_text === card.front)) continue;
@@ -156,9 +188,10 @@ export async function questionsFromRecords(
 
 /** A revision note assembled from the chapter's own text. Null for a file this cannot read. */
 export function reviewFromDocument(input: ChapterReviewInput): ChapterReviewOutput | null {
-  if (input.document.kind !== 'text') return null;
+  const text = readableText(input.document);
+  if (!text) return null;
 
-  const outline = outlineFromText(input.document.text, input.chapterTitle);
+  const outline = outlineFromText(text, input.chapterTitle);
   if (outline.sections.length === 0 && outline.keyTerms.length === 0) return null;
 
   return {
@@ -177,16 +210,60 @@ export function reviewFromDocument(input: ChapterReviewInput): ChapterReviewOutp
 }
 
 /** Cards from the chapter's own definitions. Null when there are none to take. */
-export function cardsFromDocument(input: FlashcardInput): FlashcardOutput | null {
-  if (!input.document || input.document.kind !== 'text') return null;
+export async function cardsFromDocument(
+  input: FlashcardInput, ctx: AgentRunContext,
+): Promise<FlashcardOutput | null> {
+  const text = readableText(input.document);
 
-  const cards = cardsFromText(
-    input.document.text, input.count, input.topic ?? input.chapterTitle ?? input.courseCode,
-  );
+  if (text) {
+    const cards = cardsFromText(
+      text, input.count, input.topic ?? input.chapterTitle ?? input.courseCode,
+    );
+    if (cards.length > 0) {
+      return {
+        cards,
+        rationale: `Written without AI from the definitions in "${input.chapterTitle ?? input.courseCode}" — every back is the chapter's own wording.`,
+      };
+    }
+  }
+
+  /*
+   * No chapter, or a chapter that is a photograph: the student's own answered
+   * questions are already cards. A question with its answer is a front with a
+   * back, and it is theirs — which is the whole rule this file runs on.
+   *
+   * Until now this agent had no offline path at all, so pressing Flashcards
+   * without a key failed outright rather than falling back like everything
+   * else.
+   */
+  const { data } = await ctx.supabase
+    .from('questions')
+    .select('question_text, answer, topic')
+    .eq('user_id', ctx.userId)
+    .eq('course_id', input.courseId)
+    .order('created_at', { ascending: false })
+    .limit(input.count * 3);
+
+  const rows = (data ?? []) as Array<{ question_text: string; answer: string; topic: string | null }>;
+
+  const seen = new Set<string>();
+  const cards: Array<{ front: string; back: string; topic: string }> = [];
+  for (const row of rows) {
+    if (cards.length >= input.count) break;
+    const front = row.question_text.trim();
+    const back = row.answer.trim();
+    // A card whose back is a letter is a card that teaches the letter.
+    if (!front || back.length < 2) continue;
+    const key = front.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cards.push({ front, back, topic: row.topic ?? input.courseCode });
+  }
+
   if (cards.length === 0) return null;
 
   return {
     cards,
-    rationale: `Written without AI from the definitions in "${input.chapterTitle ?? input.courseCode}" — every back is the chapter's own wording.`,
+    rationale: `Written without AI from ${cards.length} question(s) you have already been asked in ${input.courseCode}, each one turned back into a card.`,
   };
 }
