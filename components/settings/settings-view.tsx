@@ -233,6 +233,11 @@ export function SettingsView({
         </div>
       </form>
 
+      {/* Its own card, and high up. Buried inside another section nobody
+          found it, which for a setting whose whole job is to reach you is the
+          wrong kind of quiet. */}
+      <PushToggle publicKey={pushPublicKey} />
+
       <Card className="mt-5">
         <CardHeader title={t.settings.dataSection} subtitle={t.settings.exportSub} />
 
@@ -249,10 +254,6 @@ export function SettingsView({
           <Icon.download size={17} />
           {t.settings.exportData}
         </Button>
-
-        {/* Sits with the reminder settings rather than in a section of its
-            own: it is the same feature, arriving somewhere else. */}
-        <PushToggle publicKey={pushPublicKey} />
       </Card>
 
       {/*

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/i18n/provider';
-import { Button } from '@/components/ui/primitives';
+import { Button, Card, CardHeader } from '@/components/ui/primitives';
 import { Icon } from '@/components/shell/icons';
 import { useToast } from '@/components/ui/toast';
 
@@ -121,38 +121,38 @@ export function PushToggle({ publicKey }: { publicKey: string | null }) {
     }
   }
 
-  if (state === 'checking') return null;
-
   return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-4 mt-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">{t.settings.pushTitle}</p>
-          <p className="text-[0.8125rem] text-[var(--text-secondary)] leading-relaxed mt-1">
-            {state === 'unsupported' ? t.settings.pushUnsupported
-              : state === 'blocked' ? t.settings.pushBlocked
-              : state === 'on' ? t.settings.pushOnBody
-              : t.settings.pushOffBody}
-          </p>
-        </div>
+    <Card className="mt-5">
+      <CardHeader
+        title={t.settings.pushTitle}
+        action={
+          state === 'on' ? (
+            <Button variant="secondary" size="sm" onClick={() => void disable()}>
+              {t.settings.pushDisable}
+            </Button>
+          ) : state === 'off' || state === 'working' ? (
+            <Button size="sm" onClick={() => void enable()} loading={state === 'working'}>
+              <Icon.bell size={15} />
+              {t.settings.pushEnable}
+            </Button>
+          ) : undefined
+        }
+      />
 
-        {state === 'on' ? (
-          <Button variant="secondary" size="sm" onClick={() => void disable()}>
-            {t.settings.pushDisable}
-          </Button>
-        ) : state === 'off' || state === 'working' ? (
-          <Button size="sm" onClick={() => void enable()} loading={state === 'working'}>
-            <Icon.bell size={15} />
-            {t.settings.pushEnable}
-          </Button>
-        ) : null}
-      </div>
+      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+        {state === 'checking' ? t.settings.pushOffBody
+          : state === 'unsupported' ? t.settings.pushUnsupported
+          : state === 'blocked' ? t.settings.pushBlocked
+          : state === 'on' ? t.settings.pushOnBody
+          : t.settings.pushOffBody}
+      </p>
 
-      {state === 'off' || state === 'on' ? (
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed mt-2.5">
-          {t.settings.pushIphone}
-        </p>
-      ) : null}
-    </div>
+      {/* Said before it is needed rather than after it has failed: on iPhone
+          the button cannot work from a browser tab, and a person who presses
+          it there deserves to know that before nothing happens. */}
+      <p className="text-xs text-[var(--text-muted)] leading-relaxed mt-2.5">
+        {t.settings.pushIphone}
+      </p>
+    </Card>
   );
 }
