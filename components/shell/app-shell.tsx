@@ -15,9 +15,17 @@ import { LanguageSwitcher, ThemeToggle, SkipLink } from './controls';
 import { GlobalSearch } from './global-search';
 import { AssistantLauncher } from '@/components/assistant/assistant-launcher';
 import { ReminderWatch } from '@/components/reminders/reminder-watch';
+import { StreakChip } from '@/components/momentum/streak-chip';
+import type { StreakSummary } from '@/lib/momentum/queries';
 
 interface ShellProps {
   children: React.ReactNode;
+  /**
+   * The streak, for the bar every page wears. Null when the student turned
+   * Momentum off, or when reading it failed — a header must not be the reason
+   * a page does not render.
+   */
+  streak: StreakSummary | null;
   user: {
     name: string | null;
     email: string;
@@ -29,7 +37,7 @@ interface ShellProps {
   };
 }
 
-export function AppShell({ children, user }: ShellProps) {
+export function AppShell({ children, user, streak }: ShellProps) {
   const { t } = useI18n();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -96,10 +104,24 @@ export function AppShell({ children, user }: ShellProps) {
           href="/dashboard"
           className="inline-flex items-center min-h-[40px] rounded-[var(--radius-sm)]"
         >
-          <UniMateLogo size={26} name={t.brand.name} />
+          {/*
+            The mark alone on the narrowest phones.
+            ----------------------------------------------------------------
+            A 320px header now carries the streak as well, and the wordmark is
+            the one thing in it that repeats what is already obvious — the
+            student knows which app they opened. Everything else here is a
+            control. The name comes back at 360px, which is every phone made
+            in the last decade.
+          */}
+          <UniMateLogo
+            size={26}
+            name={t.brand.name}
+            className="[&_.wordmark]:hidden min-[360px]:[&_.wordmark]:inline"
+          />
         </Link>
 
         <div className="ms-auto flex items-center gap-1">
+          {streak ? <StreakChip streak={streak} /> : null}
           <LanguageSwitcher compact />
           <ThemeToggle compact />
           <ProfileButton user={user} />

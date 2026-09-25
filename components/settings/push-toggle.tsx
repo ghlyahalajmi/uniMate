@@ -19,6 +19,24 @@ type State = 'checking' | 'unsupported' | 'blocked' | 'off' | 'on' | 'working';
  * Safari refuses push to a plain tab — so that is said here rather than left
  * for the student to discover by the notification never arriving.
  */
+/** Save (or re-save) a subscription, with the clock the device keeps. */
+async function remember(sub: PushSubscription): Promise<Response> {
+  const json = sub.toJSON();
+  return fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      endpoint: sub.endpoint,
+      p256dh: json.keys?.p256dh ?? null,
+      auth: json.keys?.auth ?? null,
+      userAgent: navigator.userAgent,
+      // Which clock this device keeps, so the server only wakes it when
+      // something is due *here* rather than when its day began in UTC.
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  });
+}
+
 export function PushToggle({ publicKey }: { publicKey: string | null }) {
   const { t } = useI18n();
   const toast = useToast();
@@ -50,6 +68,17 @@ export function PushToggle({ publicKey }: { publicKey: string | null }) {
         const reg = await navigator.serviceWorker.getRegistration('/sw.js');
         const sub = reg ? await reg.pushManager.getSubscription() : null;
         if (!cancelled) setState(sub ? 'on' : 'off');
+
+        /*
+         * Tell the server this device's clock again.
+         *
+         * A phone that subscribed before the scheduler knew about timezones
+         * has none stored, and would go on being woken on UTC days until its
+         * owner happened to switch the toggle off and on. The upsert is by
+         * endpoint, so re-sending an unchanged subscription changes nothing
+         * except the one thing that was missing.
+         */
+        if (sub && !cancelled) void remember(sub);
       } catch {
         if (!cancelled) setState('off');
       }
@@ -77,18 +106,7 @@ export function PushToggle({ publicKey }: { publicKey: string | null }) {
         applicationServerKey: publicKey,
       });
 
-      const json = sub.toJSON();
-      const res = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: sub.endpoint,
-          p256dh: json.keys?.p256dh ?? null,
-          auth: json.keys?.auth ?? null,
-          userAgent: navigator.userAgent,
-        }),
-      });
-
+      const res = await remember(sub);
       if (!res.ok) throw new Error('save failed');
       setState('on');
       toast.success(t.settings.pushOnToast);

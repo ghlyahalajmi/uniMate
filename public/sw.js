@@ -46,22 +46,22 @@ async function showDue() {
   }
 
   /*
-   * The server's window is generous — it wakes a device for anything due today
-   * — because it does not know the phone's timezone. The phone does. If
-   * nothing has actually arrived yet, say so quietly rather than inventing a
-   * reminder: a browser will not let a push event end with no notification at
-   * all, and its own "this site was updated in the background" notice is worse
-   * than an honest one.
+   * Nothing to say, so nothing is said.
+   *
+   * This used to put up a quiet "nothing is due yet" notice, because the
+   * server woke a device for anything due *today* — it did not know the
+   * phone's timezone, so a reminder set for 19:00 produced a wake every
+   * minute from midnight. Sixteen hours of "nothing is due yet" is not a
+   * reminder service; it is a reason to turn notifications off.
+   *
+   * The scheduler now keeps each device's own clock and only wakes it when
+   * something has genuinely arrived there, so an empty answer is rare — a
+   * reminder marked read on another device between the wake and this fetch,
+   * or a session that has expired. Rare enough to stay silent about: a
+   * handful of pushes that show nothing is well inside what a browser allows
+   * before it starts speaking for the site.
    */
-  if (due.length === 0) {
-    return self.registration.showNotification('UniMate', {
-      body: 'Checked your reminders — nothing is due yet.',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: 'unimate-quiet',
-      silent: true,
-    });
-  }
+  if (due.length === 0) return;
 
   await Promise.all(
     due.slice(0, 3).map((r) =>

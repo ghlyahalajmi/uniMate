@@ -50,6 +50,38 @@ export async function getMomentum(weeks = 16): Promise<MomentumSnapshot> {
   };
 }
 
+/** What the header wears on every page: the run, and whether today is safe. */
+export interface StreakSummary {
+  current: number;
+  atRisk: boolean;
+  activeToday: boolean;
+}
+
+/**
+ * The streak on its own, for the bar at the top of every page.
+ *
+ * Deliberately the same two things the full snapshot uses — the rows in
+ * `activity_days`, and `computeStreak` over them — rather than a count of its
+ * own. A second way of counting is a second answer, and a student who sees
+ * one number on Home and another on Momentum stops believing either.
+ */
+export async function getStreakSummary(): Promise<StreakSummary> {
+  const supabase = await createClient();
+  const userId = await requireUserId();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data } = await supabase
+    .from('activity_days')
+    .select('day, xp')
+    .eq('user_id', userId)
+    .order('day', { ascending: false })
+    .limit(400);
+
+  // Only `day` and `xp` decide a streak; the rest of the row is not read.
+  const streak = computeStreak((data ?? []) as ActivityDay[], today);
+  return { current: streak.current, atRisk: streak.atRisk, activeToday: streak.activeToday };
+}
+
 /** The figures behind the shareable semester recap. */
 export interface WrappedData {
   studentName: string | null;
