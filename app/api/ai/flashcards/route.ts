@@ -6,7 +6,7 @@ import { flashcardWriter, type FlashcardInput } from '@/lib/ai/agents';
 import { loadStudentContext } from '@/lib/ai/context';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { MODE_SIZES, type PracticeMode } from '@/lib/study/modes';
-import { documentFrom } from '@/lib/materials/document';
+import { documentFrom, courseText } from '@/lib/materials/document';
 
 export const maxDuration = 300;
 
@@ -73,6 +73,15 @@ export async function POST(request: Request) {
         chapterTitle = m.title;
         document = documentFrom(m.file_type, buffer);
       }
+    }
+  }
+
+  // No single chapter means every chapter, as it does for practice.
+  if (!document) {
+    const whole = await courseText(supabase, userId, c.id);
+    if (whole) {
+      document = { kind: 'text', text: whole.text };
+      chapterTitle = whole.title;
     }
   }
 

@@ -5,7 +5,7 @@ import { workflowGenerateQuestions } from '@/lib/workflows';
 import { studyRequestSchema } from '@/lib/validation/schemas';
 import { createClient } from '@/lib/supabase/server';
 import { isReadableMaterial } from '@/lib/materials/limits';
-import { documentFrom } from '@/lib/materials/document';
+import { documentFrom, courseText } from '@/lib/materials/document';
 import type { StudyInput } from '@/lib/ai/agents';
 
 type StudyDocument = NonNullable<StudyInput['document']>;
@@ -59,6 +59,22 @@ export async function POST(request: Request) {
         // path that has no model. See lib/materials/document.ts.
         document = documentFrom(m.file_type, buffer);
       }
+    }
+  }
+
+  /*
+   * No single chapter: every chapter.
+   *
+   * "Mixed" in the chapter picker has to mean all of them. It used to mean
+   * none — no material id went up, no file came down, and the builder was
+   * handed nothing to read, so three of the five styles came back empty while
+   * short answer quietly fell through to the archive and looked fine.
+   */
+  if (!document) {
+    const whole = await courseText(auth.ctx.supabase, auth.ctx.userId, parsed.data.course_id);
+    if (whole) {
+      document = { kind: 'text', text: whole.text };
+      chapterTitle = whole.title;
     }
   }
 
