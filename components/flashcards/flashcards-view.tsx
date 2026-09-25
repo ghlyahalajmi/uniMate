@@ -44,6 +44,62 @@ export interface CardRow {
   reviews: number;
 }
 
+/**
+ * A card's colour, decided by its topic.
+ *
+ * Not at random, and not by position in the deck: the same topic keeps the
+ * same colour from one card to the next and from one session to the next, so
+ * the colour carries meaning — three blue cards in a row are three cards
+ * about the same thing. A card with no topic falls to its course code, and a
+ * card with neither gets the plain surface.
+ *
+ * The palette is the one the Notes screen already uses, which is a set of
+ * light-and-dark pairs that have been checked for contrast. Inventing six
+ * more colours here would mean checking them again and having two palettes
+ * that almost match.
+ */
+const CARD_TINTS = ['yellow', 'mint', 'sky', 'rose', 'lilac', 'kraft'] as const;
+
+function tintFor(card: CardRow): string {
+  const key = (card.topic ?? card.courseCode ?? '').trim().toLowerCase();
+  if (!key) return 'default';
+
+  // A small stable hash, so the answer never depends on render order.
+  let sum = 0;
+  for (let i = 0; i < key.length; i++) sum = (sum * 31 + key.charCodeAt(i)) % 100_000;
+  return CARD_TINTS[sum % CARD_TINTS.length];
+}
+
+/**
+ * One side of the card.
+ *
+ * Both sides occupy the same grid cell, so the taller decides the height and
+ * the card does not resize as it turns. The back is pre-rotated in CSS.
+ */
+function CardFace({
+  tint, area, side, children,
+}: {
+  tint: string;
+  area: string;
+  side: 'front' | 'back';
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cx(
+        'paper flip-face min-h-[15rem] p-6 rounded-[var(--radius-lg)]',
+        'border border-[var(--border-subtle)] shadow-sm',
+        'flex flex-col justify-center text-center',
+        side === 'back' && 'flip-face--back',
+      )}
+      data-tint={tint}
+      style={{ gridArea: area }}
+    >
+      {children}
+    </div>
+  );
+}
+
 type Mode = 'deck' | 'review' | 'done';
 
 export function FlashcardsView({
@@ -203,20 +259,46 @@ export function FlashcardsView({
             </ol>
           </Card>
 
-          <Card className="min-h-[14rem] flex flex-col justify-center text-center">
-            <div className="flex flex-wrap justify-center gap-1.5 mb-4">
-              {current.courseCode ? <Badge tone="accent">{current.courseCode}</Badge> : null}
-              {current.topic ? <Badge>{current.topic}</Badge> : null}
-            </div>
+          {/*
+            The card, and it turns over.
 
-            <p className="font-display text-xl leading-snug text-balance-title">{current.front}</p>
+            Pressing it anywhere flips it, because that is what a card does
+            and because the whole target is easier to hit than a button — on
+            a phone this is the gesture the screen is for. The button is still
+            below for anyone navigating by keyboard or reading the page out.
+          */}
+          <div className="flip deck-shadow relative z-0 rounded-[var(--radius-lg)]">
+            <button
+              type="button"
+              onClick={() => setRevealed((was) => !was)}
+              aria-label={revealed ? t.flashcards.showQuestion : t.flashcards.showAnswer}
+              className="w-full text-start cursor-pointer"
+            >
+              <div
+                className="flip-inner grid rounded-[var(--radius-lg)]"
+                data-face={revealed ? 'back' : 'front'}
+                style={{ gridTemplateAreas: '"card"' }}
+              >
+                <CardFace tint={tintFor(current)} area="card" side="front">
+                  <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                    {current.courseCode ? <Badge tone="accent">{current.courseCode}</Badge> : null}
+                    {current.topic ? <Badge>{current.topic}</Badge> : null}
+                  </div>
+                  <p className="font-display text-xl leading-snug text-balance-title">
+                    {current.front}
+                  </p>
+                  <p className="text-xs opacity-60 mt-5">{t.flashcards.tapToFlip}</p>
+                </CardFace>
 
-            {revealed ? (
-              <div className="mt-5 pt-5 border-t border-[var(--border-subtle)] animate-pop">
-                <p className="text-base leading-relaxed whitespace-pre-line">{current.back}</p>
+                <CardFace tint={tintFor(current)} area="card" side="back">
+                  <p className="text-xs uppercase tracking-[0.14em] opacity-60 mb-3">
+                    {t.flashcards.answerLabel}
+                  </p>
+                  <p className="text-base leading-relaxed whitespace-pre-line">{current.back}</p>
+                </CardFace>
               </div>
-            ) : null}
-          </Card>
+            </button>
+          </div>
 
           {revealed ? (
             <div className="grid grid-cols-2 gap-2">

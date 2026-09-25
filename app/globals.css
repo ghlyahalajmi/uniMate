@@ -533,6 +533,79 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
   border-radius: var(--radius-sm);
 }
 
+/* Flashcards ---------------------------------------------------------------
+   A card that turns over, rather than an answer that appears underneath it.
+
+   The whole point of a flashcard is the moment before you turn it: you commit
+   to an answer, then find out. A panel sliding open below the question lets
+   the eye reach the answer without ever committing, which is the one thing
+   the format is for.
+
+   Both faces are laid on top of each other and the container is rotated, so
+   the back is genuinely the other side of the same object. `backface-
+   visibility` hides whichever face is pointing away; the height is the taller
+   of the two, because a card that resized mid-turn would jump.
+
+   Colour comes from the note palette already in this file, keyed off the
+   card's topic — so a deck looks like a deck and one topic keeps its colour
+   from card to card. Every pair in that palette is a tested light-and-dark
+   set, which is why it is reused rather than re-chosen here. */
+.flip {
+  perspective: 1400px;
+}
+
+.flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.flip-inner[data-face="back"] {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The back sits in the same grid cell as the front, pre-turned, so the two
+   never fight over the layout and the taller one sets the height. */
+.flip-face--back {
+  transform: rotateY(180deg);
+}
+
+/* In a right-to-left interface the card still turns the same way: the motion
+   is physical, not textual, and a card that flipped the other way in Arabic
+   would read as a different object. */
+[dir="rtl"] .flip-inner[data-face="back"] { transform: rotateY(180deg); }
+
+/* The deck behind the card: two slivers, purely decorative, so a single card
+   on screen still reads as one of many.
+
+   On the wrapper rather than on the turning element: inside a preserve-3d
+   context these would rotate with the card, and the pile a card is drawn
+   from does not turn over when the card does. */
+.deck-shadow::before,
+.deck-shadow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  z-index: -1;
+}
+
+.deck-shadow::before { transform: translateY(6px) scale(0.985); opacity: 0.7; }
+.deck-shadow::after  { transform: translateY(12px) scale(0.97); opacity: 0.45; }
+
+/* Someone who asked for less motion gets the answer without the somersault:
+   the turn becomes instant, and the card simply shows its other face. */
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
