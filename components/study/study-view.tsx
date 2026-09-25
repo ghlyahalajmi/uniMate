@@ -665,12 +665,18 @@ export function StudyView({
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 {tf(t.study.question, { n: index + 1, total: questions.length })}
               </p>
-              <div className="flex flex-wrap justify-end gap-1.5">
-                {current.topic ? <Badge>{current.topic}</Badge> : null}
-                <Badge tone={current.difficulty === 'hard' ? 'warning' : 'neutral'}>
-                  {t.study[current.difficulty]}
-                </Badge>
-              </div>
+              {/* The difficulty, and nothing else.
+
+                  The topic used to sit here too, and when a set is built from
+                  an uploaded chapter the topic is that chapter's file name —
+                  "Chapter_3_Electromagnetic_Theory,_Photon_and_Lights_Instruct
+                  orSlides" across the top of every question. The student
+                  chose the chapter a moment ago; they know what they are
+                  revising. It is still on each row of the review at the end,
+                  where comparing topics is the point. */}
+              <Badge tone={current.difficulty === 'hard' ? 'warning' : 'neutral'}>
+                {t.study[current.difficulty]}
+              </Badge>
             </div>
 
             <p className="font-display text-lg leading-snug text-balance-title">{current.question_text}</p>
