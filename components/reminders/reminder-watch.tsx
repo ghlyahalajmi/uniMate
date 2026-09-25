@@ -204,61 +204,61 @@ export function ReminderWatch() {
         const late = d.kind === 'task';
 
         return (
-        <div
-          key={d.id}
-          className={cx(
-            'pointer-events-auto w-full max-w-[420px] flex items-start gap-3 p-3.5',
-            'rounded-[var(--radius-md)] bg-[var(--bg-surface)]',
-            late ? 'border border-[var(--danger-border)]' : 'border border-[var(--warning-border)]',
-            'shadow-[var(--shadow-float)] animate-mark-node',
-          )}
-        >
-          <span
-            aria-hidden="true"
+          <div
+            key={d.id}
             className={cx(
-              'shrink-0 w-9 h-9 grid place-items-center rounded-full',
-              late
-                ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
-                : 'bg-[var(--warning-soft)] text-[var(--warning)]',
+              'pointer-events-auto w-full max-w-[420px] flex items-start gap-3 p-3.5',
+              'rounded-[var(--radius-md)] bg-[var(--bg-surface)]',
+              late ? 'border border-[var(--danger-border)]' : 'border border-[var(--warning-border)]',
+              'shadow-[var(--shadow-float)] animate-mark-node',
             )}
           >
-            {late ? <Icon.alert size={18} /> : <Icon.bell size={18} />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className={cx(
-              'text-[0.6875rem] font-semibold uppercase tracking-wide',
-              late ? 'text-[var(--danger)]' : 'text-[var(--warning)]',
-            )}>
-              {late ? t.tasks.overdueAlert : t.calendar.reminderDueNow}
-            </p>
-            <p className="text-sm font-medium mt-0.5 break-words">{d.title}</p>
-            {d.at ? (
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                {formatClock(d.at, locale === 'ar')}
+            <span
+              aria-hidden="true"
+              className={cx(
+                'shrink-0 w-9 h-9 grid place-items-center rounded-full',
+                late
+                  ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                  : 'bg-[var(--warning-soft)] text-[var(--warning)]',
+              )}
+            >
+              {late ? <Icon.alert size={18} /> : <Icon.bell size={18} />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={cx(
+                'text-[0.6875rem] font-semibold uppercase tracking-wide',
+                late ? 'text-[var(--danger)]' : 'text-[var(--warning)]',
+              )}>
+                {late ? t.tasks.overdueAlert : t.calendar.reminderDueNow}
               </p>
-            ) : null}
-            {d.body ? (
-              <p className="text-xs text-[var(--text-secondary)] mt-1 break-words">{d.body}</p>
-            ) : null}
-            {late ? (
-              <Link
-                href="/tasks"
-                onClick={() => setDue((prev) => prev.filter((x) => x.id !== d.id))}
-                className="inline-block text-xs font-medium mt-1.5 text-[var(--danger)] underline underline-offset-2"
-              >
-                {t.tasks.overdueOpen}
-              </Link>
-            ) : null}
+              <p className="text-sm font-medium mt-0.5 break-words">{d.title}</p>
+              {d.at ? (
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  {formatClock(d.at, locale === 'ar')}
+                </p>
+              ) : null}
+              {d.body ? (
+                <p className="text-xs text-[var(--text-secondary)] mt-1 break-words">{d.body}</p>
+              ) : null}
+              {late ? (
+                <Link
+                  href="/tasks"
+                  onClick={() => setDue((prev) => prev.filter((x) => x.id !== d.id))}
+                  className="inline-block text-xs font-medium mt-1.5 text-[var(--danger)] underline underline-offset-2"
+                >
+                  {t.tasks.overdueOpen}
+                </Link>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDue((prev) => prev.filter((x) => x.id !== d.id))}
+              aria-label={t.common.close}
+              className="shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--bg-inset)]"
+            >
+              <Icon.close size={15} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDue((prev) => prev.filter((x) => x.id !== d.id))}
-            aria-label={t.common.close}
-            className="shrink-0 w-7 h-7 grid place-items-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:bg-[var(--bg-inset)]"
-          >
-            <Icon.close size={15} />
-          </button>
-        </div>
         );
       })}
     </div>
