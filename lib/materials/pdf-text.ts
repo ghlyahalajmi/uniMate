@@ -27,30 +27,61 @@ const MAX_TEXT = 400_000;
  * strings out of one decoded content stream, in the order they are drawn.
  */
 function textFromContentStream(content: string): string {
-  let out = '';
-
   /*
-   * `(text) Tj`, `[(a) -2 (b)] TJ`, and the quote operators. The pieces are
-   * gathered operator by operator rather than by one greedy regex, because a
-   * bracket inside a string is a bracket, not the end of an array.
+   * A line break is a move down the page, not a move at all.
+   *
+   * This is the whole difficulty. PowerPoint writes every styled run as its
+   * own positioned piece — "The", then "electric field" in bold, then "is
+   * defined through…" — so a single sentence arrives as four separate draws.
+   * Breaking the line at each one shattered every sentence in the deck into
+   * fragments too short to be worth asking about, which is why a 64,000
+   * character chapter yielded no questions at all.
+   *
+   * So the vertical position is tracked instead. `Td` and `TD` carry their own
+   * displacement, `Tm` sets the whole text matrix, and `T*` is always a new
+   * line. A move that changes y starts a line; a move that only changes x is
+   * the next run of the same one, and gets a space.
    */
-  const operator = /(\((?:\\.|[^\\()])*\)|\[[\s\S]*?\]|<[0-9A-Fa-f\s]*>)\s*(TJ|Tj|'|")/g;
-  const positioning = /(T\*|Td|TD|ET)/g;
-
-  // Walk the stream once, keeping the order of text and line breaks.
   const marks: Array<{ at: number; text: string }> = [];
 
+  const TEXT = /(\((?:\\.|[^\\()])*\)|\[[\s\S]*?\]|<[0-9A-Fa-f\s]*>)\s*(TJ|Tj|'|")/g;
+  const MOVE = /(-?[\d.]+)\s+(-?[\d.]+)\s+(Td|TD)\b/g;
+  const MATRIX = /(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+Tm\b/g;
+  // `\b` after an asterisk never matches — it is not a word character — so
+  // the two operators are anchored separately.
+  const NEWLINE = /T\*|\bET\b/g;
+
   let m: RegExpExecArray | null;
-  while ((m = operator.exec(content)) !== null) {
+
+  while ((m = TEXT.exec(content)) !== null) {
     marks.push({ at: m.index, text: readOperand(m[1]) });
   }
-  while ((m = positioning.exec(content)) !== null) {
+  while ((m = MOVE.exec(content)) !== null) {
+    // A vertical displacement of zero is the same line, further along it.
+    marks.push({ at: m.index, text: Math.abs(Number(m[2])) > 0.01 ? '\n' : ' ' });
+  }
+  while ((m = NEWLINE.exec(content)) !== null) {
     marks.push({ at: m.index, text: '\n' });
   }
-  marks.sort((a, b) => a.at - b.at);
 
-  for (const mark of marks) out += mark.text;
-  return out;
+  /*
+   * `Tm` is absolute rather than relative, so it only means a new line when
+   * the y it sets differs from the y in force. A deck that sets the matrix
+   * for every run — which is most of them — would otherwise break every run
+   * onto its own line all over again.
+   */
+  const matrices: Array<{ at: number; y: number }> = [];
+  while ((m = MATRIX.exec(content)) !== null) {
+    matrices.push({ at: m.index, y: Number(m[6]) });
+  }
+  for (let i = 0; i < matrices.length; i++) {
+    const previous = matrices[i - 1];
+    const moved = !previous || Math.abs(matrices[i].y - previous.y) > 1;
+    marks.push({ at: matrices[i].at, text: moved ? '\n' : ' ' });
+  }
+
+  marks.sort((a, b) => a.at - b.at);
+  return marks.map((mark) => mark.text).join('');
 }
 
 /** One operand: a literal string, a hex string, or an array of both. */
@@ -129,6 +160,13 @@ function inflate(bytes: Buffer): Buffer | null {
  */
 function tidy(raw: string): string {
   return raw
+    /*
+     * Equations set in a symbol font arrive as control bytes and private-use
+     * characters — the glyph index, not the character. They are not words in
+     * any language and cannot be turned back into one without the font, so
+     * they go rather than sitting in the middle of a sentence as mojibake.
+     */
+    .replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\ue000-\uf8ff]+/g, ' ')
     .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+/g, ' ')
     .replace(/ *\n */g, '\n')

@@ -57,19 +57,59 @@ const STOP = new Set([
   'their', 'them', 'there', 'we', 'you', 'not', 'any', 'all', 'one', 'two', 'very',
 ]);
 
-/** Splits a chapter into sentences, keeping bullets as sentences of their own. */
-export function sentencesIn(text: string): string[] {
-  const out: string[] = [];
+/**
+ * Debris from an equation set in a symbol font: a line that is mostly
+ * punctuation and stray capitals once the glyphs have been stripped. It is
+ * not a sentence in any language and joining it to a real one ruins both.
+ */
+function isDebris(line: string): boolean {
+  if (line.length > 60) return false;
+  const letters = line.replace(/[^\p{L}]/gu, '').length;
+  const words = line.split(/\s+/).filter((w) => w.length > 2).length;
+  return letters < line.length * 0.5 || words < 2;
+}
 
-  for (const line of text.split(/\r?\n/)) {
-    const cleaned = line
+/**
+ * Splits a chapter into sentences, keeping bullets as sentences of their own.
+ *
+ * Lines are rejoined first. A PDF has no paragraphs — it has draws at
+ * positions — so a sentence that wrapped on the slide arrives as two lines,
+ * and a phrase the lecturer made bold arrives as a line of its own. Both are
+ * put back: a line that does not finish a sentence, followed by one that does
+ * not start one, is one line.
+ */
+export function sentencesIn(text: string): string[] {
+  const lines: string[] = [];
+
+  for (const raw of text.split(/\r?\n/)) {
+    const cleaned = raw
+      // Wingdings bullets arrive as ordinary characters: ¾ Ø § v are all
+      // 'a bullet' in one font or another.
+      .replace(/^[\s\-*•·▪◦¾Ø§▶►◆❖]+(?=\s|[A-Z\u0600-\u06FF])/, '')
       .replace(/^[\s\-*•·▪◦]+/, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (!cleaned) continue;
+    if (!cleaned || isDebris(cleaned)) continue;
+    lines.push(cleaned);
+  }
 
-    // A bullet often has no full stop; a paragraph has several sentences.
-    for (const piece of cleaned.split(/(?<=[.!?])\s+(?=[A-Z؀-ۿ])/)) {
+  // Put wrapped lines back together.
+  const joined: string[] = [];
+  for (const line of lines) {
+    const previous = joined[joined.length - 1];
+    const continues =
+      previous !== undefined
+      && !/[.!?:;]$/.test(previous)
+      && /^[a-z\u0600-\u06FF(]/.test(line)
+      && previous.split(/\s+/).length + line.split(/\s+/).length <= 40;
+
+    if (continues) joined[joined.length - 1] = `${previous} ${line}`;
+    else joined.push(line);
+  }
+
+  const out: string[] = [];
+  for (const line of joined) {
+    for (const piece of line.split(/(?<=[.!?])\s+(?=[A-Z\u0600-\u06FF])/)) {
       const sentence = piece.trim().replace(/\s*[.;,]+$/, '');
       if (sentence) out.push(sentence);
     }

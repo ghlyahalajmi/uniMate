@@ -37,7 +37,12 @@ group('finding sentences');
   const sentences = sentencesIn(SLIDES);
   check('bullets become sentences', sentences.some((s) => s.startsWith('Light travels')));
   check('the bullet marker is gone', !sentences.some((s) => s.startsWith('•')));
-  check('a heading is still a line', sentences.includes('Summary'));
+  // A one-word line is not a sentence. It used to be kept and then rejected
+  // later; dropping it here means it cannot be joined onto a real sentence
+  // and ruin it.
+  check('a lone heading is not a sentence', !sentences.includes('Summary'));
+  check('a wrapped sentence is put back together',
+    sentences.some((x) => x.split(' ').length >= 8), sentences.slice(0, 4).join(' | '));
 }
 
 group('finding facts in ordinary prose');
