@@ -9,9 +9,9 @@ import { TextInput } from '@/components/ui/form';
 import { useToast, Modal } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { formatLabel, formatHint, formatIcon } from './practice-format-picker';
+import { formatLabel } from './practice-format-picker';
 import {
-  MODE_SIZES, PRACTICE_FORMATS, isDeckFormat,
+  MODE_SIZES,
   type PracticeFormat, type PracticeMode, type RequestedDifficulty,
 } from '@/lib/study/modes';
 import { XP_RULES } from '@/lib/momentum/engine';
@@ -38,13 +38,12 @@ const DIFFICULTIES: RequestedDifficulty[] = ['easy', 'medium', 'hard', 'adaptive
 const HEAT: Record<RequestedDifficulty, number> = { easy: 1, medium: 2, hard: 3, adaptive: 0 };
 
 export function StudyView({
-  courses, initialCourseId, initialFormat, history,
+  courses, initialCourseId, history,
   chapters = [], initialChapterId = null, embedded = false,
 }: {
   courses: Array<{ id: string; code: string; name: string }>;
   initialCourseId: string;
   /** The style the course page asked for, or 'mixed' when nobody chose. */
-  initialFormat: PracticeFormat;
   history: HistoryRow[];
   /** Chapters of the chosen course, so a set can be set on one of them. */
   chapters?: Array<{ id: string; title: string; readable: boolean }>;
@@ -60,7 +59,16 @@ export function StudyView({
   const [phase, setPhase] = useState<Phase>('setup');
   const [courseId, setCourseId] = useState(initialCourseId);
   const [mode, setMode] = useState<PracticeMode>('standard_10');
-  const [format, setFormat] = useState<PracticeFormat>(initialFormat);
+  /*
+   * Practice is always mixed now, and flashcards are their own button.
+   *
+   * The style picker offered six choices and honoured none of them without a
+   * model: every route through it produced the same set. A control that does
+   * nothing is worse than no control, so the choice is gone and the set is
+   * what mixed always promised — a different shape per question, built from
+   * the chapter itself.
+   */
+  const format: PracticeFormat = 'mixed';
   // The choices live behind the button that uses them, and open on the press.
   const [setupOpen, setSetupOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
@@ -94,7 +102,7 @@ export function StudyView({
     return () => clearInterval(id);
   }, [phase]);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (deck = false) => {
     if (!courseId) return;
     setPhase('generating');
     setError(null);
@@ -103,7 +111,7 @@ export function StudyView({
     // route and the student lands on the deck rather than on question one.
     // Sending them through the question generator would quietly hand back
     // ordinary questions under a label that promised cards.
-    if (isDeckFormat(format)) {
+    if (deck) {
       try {
         const res = await fetch('/api/ai/flashcards', {
           method: 'POST',
@@ -343,34 +351,6 @@ export function StudyView({
           ) : null}
 
           <Card>
-            <CardHeader title={t.practice.format} />
-            <div role="radiogroup" aria-label={t.practice.format} className="flex flex-wrap gap-2">
-              {PRACTICE_FORMATS.map((f) => {
-                const selected = f === format;
-                return (
-                  <button
-                    key={f}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => setFormat(f)}
-                    className={cx(
-                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
-                      selected
-                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
-                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
-                    )}
-                  >
-                    {formatIcon(f, 14)}
-                    {formatLabel(t, f)}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-[var(--text-muted)] mt-3">{formatHint(t, format)}</p>
-          </Card>
-
-          <Card>
             <CardHeader title={t.study.mode} />
             <div role="radiogroup" aria-label={t.study.mode} className="grid grid-cols-2 gap-2">
               {MODES.map((m) => {
@@ -470,11 +450,22 @@ export function StudyView({
             description={t.study.setupSub}
             size="lg"
             footer={
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-2 flex-wrap">
                 <Button variant="secondary" onClick={() => setSetupOpen(false)}>
                   {t.common.cancel}
                 </Button>
-                <Button onClick={() => { setSetupOpen(false); start(); }} disabled={!courseId}>
+                {/* A deck is a different destination, not a question shape, so
+                    it is a different button rather than a sixth chip in a row
+                    of question styles. */}
+                <Button
+                  variant="secondary"
+                  onClick={() => { setSetupOpen(false); void start(true); }}
+                  disabled={!courseId}
+                >
+                  <Icon.flashcards size={16} />
+                  {t.study.buildDeck}
+                </Button>
+                <Button onClick={() => { setSetupOpen(false); void start(); }} disabled={!courseId}>
                   <Icon.sparkle size={16} />
                   {t.study.start}
                 </Button>
@@ -537,34 +528,6 @@ export function StudyView({
               </div>
             </Card>
           ) : null}
-
-          <Card>
-            <CardHeader title={t.practice.format} />
-            <div role="radiogroup" aria-label={t.practice.format} className="flex flex-wrap gap-2">
-              {PRACTICE_FORMATS.map((f) => {
-                const selected = f === format;
-                return (
-                  <button
-                    key={f}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => setFormat(f)}
-                    className={cx(
-                      'inline-flex items-center gap-2 px-3 min-h-[38px] rounded-full border text-sm transition-colors',
-                      selected
-                        ? 'border-[var(--accent)] bg-[var(--bg-accent-soft)] text-[var(--accent-soft-text)] font-medium'
-                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]',
-                    )}
-                  >
-                    {formatIcon(f, 14)}
-                    {formatLabel(t, f)}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-[var(--text-muted)] mt-3">{formatHint(t, format)}</p>
-          </Card>
 
           <Card>
             <CardHeader title={t.study.mode} />

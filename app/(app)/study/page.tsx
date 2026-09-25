@@ -1,7 +1,6 @@
 import {
   getCourses, getStudySessions, getCourseMaterials, getStudyPlans,
 } from '@/lib/data/queries';
-import { toPracticeFormat } from '@/lib/study/modes';
 import { isReadableMaterial } from '@/lib/materials/limits';
 import { StudyHome } from '@/components/study/study-home';
 
@@ -11,9 +10,9 @@ export const dynamic = 'force-dynamic';
 export default async function StudyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course?: string; format?: string }>;
+  searchParams: Promise<{ course?: string }>;
 }) {
-  const { course, format } = await searchParams;
+  const { course } = await searchParams;
 
   const [courses, sessions, materials, plans] = await Promise.all([
     getCourses(),
@@ -60,7 +59,6 @@ export default async function StudyPage({
         })),
       }))}
       initialCourseId={course ?? active[0]?.id ?? ''}
-      initialFormat={toPracticeFormat(format)}
       history={sessions
         .filter((s) => s.completed_at)
         .map((s) => ({

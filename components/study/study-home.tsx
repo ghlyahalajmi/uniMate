@@ -6,7 +6,6 @@ import { Card, CardHeader, cx } from '@/components/ui/primitives';
 import { EmptyState } from '@/components/ui/states';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import type { PracticeFormat } from '@/lib/study/modes';
 import { StudyView, type StudyHistoryEntry } from './study-view';
 import { ChapterReviewPanel, type ChapterOption } from './chapter-review-panel';
 import { StudyPlansPanel, type PlanCourse, type SavedPlan } from './study-plans-panel';
@@ -34,12 +33,11 @@ export interface StudyCourse {
  * deciding what gets the week.
  */
 export function StudyHome({
-  courses, plans, initialCourseId, initialFormat, history,
+  courses, plans, initialCourseId, history,
 }: {
   courses: StudyCourse[];
   plans: SavedPlan[];
   initialCourseId: string;
-  initialFormat: PracticeFormat;
   history: StudyHistoryEntry[];
 }) {
   const { t } = useI18n();
@@ -143,7 +141,6 @@ export function StudyHome({
           courses={planCourses}
           chapters={course.chapters}
           initialCourseId={course.id}
-          initialFormat={initialFormat}
           initialChapterId={chapterId}
           history={history}
           embedded

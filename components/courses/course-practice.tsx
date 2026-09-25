@@ -34,21 +34,19 @@ export function CoursePractice({
         : tf(t.practice.deckCards, { n: formatNumber(deck.total), due: formatNumber(deck.due) }),
       due: deck.due,
     },
+    /*
+     * One tile, not two. These used to be "multiple choice" and "true or
+     * false", each carrying the style in the link — and the style was not
+     * honoured at the other end, so both opened the same set. A practice set
+     * mixes the shapes now, which is what the two tiles had promised between
+     * them anyway.
+     */
     {
-      key: 'mcq',
-      href: `/study?course=${courseId}&format=multiple_choice`,
+      key: 'questions',
+      href: `/study?course=${courseId}`,
       icon: <Icon.options size={20} />,
-      title: t.practice.mcq,
-      body: t.practice.mcqSub,
-      note: null,
-      due: 0,
-    },
-    {
-      key: 'true_false',
-      href: `/study?course=${courseId}&format=true_false`,
-      icon: <Icon.trueFalse size={20} />,
-      title: t.practice.trueFalse,
-      body: t.practice.trueFalseSub,
+      title: t.practice.questions,
+      body: t.practice.questionsSub,
       note: null,
       due: 0,
     },

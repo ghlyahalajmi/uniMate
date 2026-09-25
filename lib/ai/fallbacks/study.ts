@@ -5,6 +5,7 @@ import type { ChapterReviewInput, ChapterReviewOutput } from '../agents/chapter-
 import type { FlashcardInput, FlashcardOutput } from '../agents/flashcard-writer';
 import { MODE_SIZES } from '@/lib/study/modes';
 import { outlineFromText, cardsFromText } from '@/lib/study/outline';
+import { questionsFromText } from '@/lib/study/questions-from-text';
 
 /**
  * What Study with AI can still do when there is no model.
@@ -45,6 +46,33 @@ export async function questionsFromRecords(
 ): Promise<StudyOutput | null> {
   const count = MODE_SIZES[input.mode];
 
+  /*
+   * The chapter first, when there is one that can be read.
+   *
+   * This used to start with questions the student had already been asked,
+   * which is the right answer on a course they have practised before and the
+   * wrong one on a chapter they uploaded a minute ago — which is exactly when
+   * the button gets pressed. A chapter's own definitions make real questions
+   * of every shape, so they come first and the archive fills whatever is left.
+   */
+  const fromChapter = input.document?.kind === 'text'
+    ? questionsFromText(
+        input.document.text,
+        count,
+        input.chapterTitle ?? input.topic ?? 'Revision',
+        input.format ?? 'mixed',
+      )
+    : [];
+
+  if (fromChapter.length >= count) {
+    return {
+      questions: fromChapter.slice(0, count),
+      rationale:
+        `Built without AI, from the chapter itself: ${fromChapter.length} question(s), each one a definition the file already contained, rearranged. Nothing here was written for you.`,
+      resolvedDifficulty: 'mixed',
+    };
+  }
+
   const [asked, attempted, cards] = await Promise.all([
     ctx.supabase
       .from('questions')
@@ -79,7 +107,9 @@ export async function questionsFromRecords(
     ...pool.filter((q) => seen.has(q.id) && !wrong.has(q.id)),
   ];
 
-  const questions: GeneratedQuestion[] = ranked.slice(0, count).map((q) => ({
+  const questions: GeneratedQuestion[] = [...fromChapter];
+
+  for (const q of ranked.slice(0, Math.max(0, count - questions.length)).map((q) => ({
     topic: q.topic ?? 'Revision',
     difficulty: (q.difficulty as GeneratedQuestion['difficulty']) ?? 'medium',
     question_type: (q.question_type as GeneratedQuestion['question_type']) ?? 'short_answer',
@@ -90,7 +120,11 @@ export async function questionsFromRecords(
     next_action: wrong.has(q.id)
       ? 'You missed this one before. Read the explanation, then come back to it tomorrow.'
       : 'Check the explanation against your notes.',
-  }));
+  }))) {
+    if (questions.length >= count) break;
+    if (questions.some((existing) => existing.question_text === q.question_text)) continue;
+    questions.push(q);
+  }
 
   // Still short? The student's own cards are questions with answers already.
   const deck = (cards.data ?? []) as Array<{ front: string; back: string; topic: string | null }>;
@@ -113,8 +147,9 @@ export async function questionsFromRecords(
 
   return {
     questions,
-    rationale:
-      `Built without AI, from your own records: ${questions.length} question(s) taken from sets you have already been given in this course and from your flashcards, with the ones you got wrong first.`,
+    rationale: fromChapter.length > 0
+      ? `Built without AI: ${fromChapter.length} from the chapter's own definitions, the rest from sets you have already been given in this course and from your flashcards.`
+      : `Built without AI, from your own records: ${questions.length} question(s) taken from sets you have already been given in this course and from your flashcards, with the ones you got wrong first.`,
     resolvedDifficulty: 'mixed',
   };
 }
