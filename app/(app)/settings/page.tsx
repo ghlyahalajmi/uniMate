@@ -46,6 +46,8 @@ export default async function SettingsPage() {
         language: profile?.preferred_language ?? locale,
         isDemo: Boolean(profile?.is_demo),
       }}
+      // Public by design — it is handed to every browser that subscribes.
+      pushPublicKey={process.env.VAPID_PUBLIC_KEY ?? null}
       ai={{
         configured: aiOn,
         // The model id only; the key itself never reaches the client.

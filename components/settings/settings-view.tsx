@@ -10,13 +10,14 @@ import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
 import { saveProfile, type ActionState } from '@/lib/data/actions';
 import { AiKeyForm } from '@/components/settings/ai-key-form';
+import { PushToggle } from '@/components/settings/push-toggle';
 import { actionMessage } from '@/lib/i18n/action-messages';
 import type { AppLanguage } from '@/types/database';
 
 const EMPTY: ActionState = {};
 
 export function SettingsView({
-  profile, ai,
+  profile, ai, pushPublicKey,
 }: {
   profile: {
     fullName: string; university: string; major: string; academicYear: string;
@@ -32,6 +33,12 @@ export function SettingsView({
     /** Whether the deployment itself has a key, so their own is optional. */
     deploymentKey: boolean;
   };
+  /**
+   * The VAPID public half, which a browser needs to subscribe. Null when the
+   * deployment has no keys, and the toggle then says it cannot be switched on
+   * rather than offering a button that would fail.
+   */
+  pushPublicKey: string | null;
 }) {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
@@ -242,6 +249,10 @@ export function SettingsView({
           <Icon.download size={17} />
           {t.settings.exportData}
         </Button>
+
+        {/* Sits with the reminder settings rather than in a section of its
+            own: it is the same feature, arriving somewhere else. */}
+        <PushToggle publicKey={pushPublicKey} />
       </Card>
 
       {/*
