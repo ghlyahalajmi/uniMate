@@ -146,6 +146,26 @@ export function ReminderWatch() {
     };
   }, []);
 
+  /*
+   * Ask the browser to re-check the service worker whenever the app opens.
+   *
+   * A worker already installed on a phone keeps running the code it was
+   * installed with, and a browser only looks for a new one when it feels like
+   * it. That is how a student ends up with a version of the notification
+   * logic we stopped shipping — the fix is deployed and their phone has never
+   * heard of it. This costs one conditional request and takes the new worker
+   * on the next open rather than the next day.
+   */
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    void navigator.serviceWorker
+      .getRegistration('/sw.js')
+      .then((reg) => reg?.update())
+      .catch(() => {
+        // Nothing registered, or the browser refused. Neither is worth a word.
+      });
+  }, []);
+
   const check = useCallback(async () => {
     try {
       const now = new Date();
