@@ -52,16 +52,28 @@ group('nothing is invented');
 
   check('a set is produced', qs.length > 0, `got ${qs.length}`);
 
+  /*
+   * The invariant is the chapter, not the definition list: since ordinary
+   * sentences became a source too, an answer can be a word from a bullet as
+   * well as the meaning beside a colon. What must never happen is an answer
+   * that is in neither.
+   */
+  const body = CHAPTER.toLowerCase();
+  const fromChapter = (value: string) =>
+    meanings.has(value) || terms.has(value) || body.includes(value.toLowerCase());
+
   const answersAreFromTheChapter = qs.every((q) =>
     q.question_type === 'true_false'
       ? q.answer === 'True' || q.answer === 'False'
-      : meanings.has(q.answer) || terms.has(q.answer),
+      : fromChapter(q.answer),
   );
-  check('every answer came out of the chapter', answersAreFromTheChapter);
+  check('every answer came out of the chapter', answersAreFromTheChapter,
+    JSON.stringify(qs.filter((q) => q.question_type !== 'true_false' && !fromChapter(q.answer))
+      .map((q) => q.answer)));
 
   const optionsAreFromTheChapter = qs
     .filter((q) => q.question_type === 'multiple_choice')
-    .every((q) => (q.options ?? []).every((o) => meanings.has(o)));
+    .every((q) => (q.options ?? []).every(fromChapter));
   check('every option came out of the chapter', optionsAreFromTheChapter);
 }
 
@@ -137,8 +149,13 @@ group('a chapter with nothing in it');
 group('it stops where it is asked to');
 {
   check('a count of two gives two', questionsFromText(CHAPTER, 2, 'T', 'mixed').length === 2);
-  check('a count past the chapter gives the chapter',
-    questionsFromText(CHAPTER, 50, 'T', 'mixed').length === 5);
+  // Five definitions plus whatever ordinary sentences the chapter also holds,
+  // and never more than the chapter has in it.
+  const everything = questionsFromText(CHAPTER, 50, 'T', 'mixed');
+  check('a count past the chapter gives the chapter and stops',
+    everything.length >= 5 && everything.length < 50, `got ${everything.length}`);
+  check('nothing repeats in the whole chapter',
+    new Set(everything.map((q) => q.question_text)).size === everything.length);
 }
 
 console.log(`\n${passed} checks passed${failed > 0 ? `, ${failed} FAILED` : ''}`);

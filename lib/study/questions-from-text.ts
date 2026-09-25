@@ -20,6 +20,7 @@
  */
 
 import type { QuestionType } from '@/types/database';
+import { factsIn, blanked, type Fact } from './facts-from-text';
 
 export interface TextQuestion {
   topic: string;
@@ -202,6 +203,131 @@ function trimEnd(value: string): string {
  * Returns fewer than asked, or none at all, rather than padding: a chapter
  * with two definitions in it has two questions in it.
  */
+/*
+ * The same four shapes, built from an ordinary sentence rather than a
+ * definition.
+ *
+ * A lecturer's slide says "The electric field is strongest closest to the
+ * charge", not "Electric field: ...". Both carry a fact; only one has a colon
+ * in it. These take the sentence, cut out the part worth remembering, and ask
+ * about it — so a chapter with no definitions in it is still a chapter with
+ * questions in it.
+ */
+
+function factMultipleChoice(facts: Fact[], i: number, topic: string): TextQuestion | null {
+  const fact = facts[i];
+
+  /*
+   * Three other keys from the same chapter: wrong, but wrong in the way a
+   * student's own confusion is wrong, which is what makes an option work.
+   *
+   * Same kind first. A speed beside two adjectives and a noun is answerable
+   * without reading the question — the odd one out is the only one shaped
+   * like an answer. Three other speeds and the physics has to be known.
+   */
+  const wrong: string[] = [];
+  const consider = (predicate: (f: Fact) => boolean) => {
+    for (let step = 1; wrong.length < 3 && step < facts.length; step++) {
+      const other = facts[(i + step) % facts.length];
+      if (!predicate(other)) continue;
+      if (other.key.toLowerCase() === fact.key.toLowerCase()) continue;
+      if (wrong.some((w) => w.toLowerCase() === other.key.toLowerCase())) continue;
+      wrong.push(other.key);
+    }
+  };
+
+  consider((f) => f.kind === fact.kind);
+  // Not enough of the same kind in this chapter: anything is better than a
+  // two-option "multiple" choice.
+  consider(() => true);
+
+  if (wrong.length < 2) return null;
+
+  const options = [...wrong];
+  options.splice(placeAt(options.length + 1, i), 0, fact.key);
+
+  return {
+    topic,
+    difficulty: 'medium',
+    question_type: 'multiple_choice',
+    question_text: `What fills the blank? ${blanked(fact)}`,
+    options,
+    answer: fact.key,
+    explanation: `The chapter's sentence reads: ${fact.sentence}.`,
+    next_action: 'If another option looked right, read the sentence it came from too.',
+  };
+}
+
+/** Another key of the same kind, so a false statement is still plausible. */
+function sameKindKey(facts: Fact[], i: number): string | null {
+  const fact = facts[i];
+  for (let step = 1; step < facts.length; step++) {
+    const other = facts[(i + step) % facts.length];
+    if (other.kind !== fact.kind) continue;
+    if (other.key.toLowerCase() === fact.key.toLowerCase()) continue;
+    return other.key;
+  }
+  return null;
+}
+
+function factTrueFalse(facts: Fact[], i: number, topic: string): TextQuestion {
+  const fact = facts[i];
+
+  /*
+   * Every third statement is shown with another fact's key swapped in, so the
+   * answer is not always true and the set cannot be passed by pressing True.
+   *
+   * The substitute has to be the same kind of thing. Put a wavelength where a
+   * speed was and the student has to know the physics to catch it; put a verb
+   * there and they catch it by grammar, which tests nothing at all.
+   */
+  const lie = i % 3 === 2 && facts.length > 1;
+  const swapped = lie ? sameKindKey(facts, i) : null;
+  const shown = swapped ? blanked(fact, swapped) : fact.sentence;
+  const actuallyLying = shown !== fact.sentence;
+
+  return {
+    topic,
+    difficulty: 'easy',
+    question_type: 'true_false',
+    question_text: `True or false: ${shown}.`,
+    options: ['True', 'False'],
+    answer: actuallyLying ? 'False' : 'True',
+    explanation: actuallyLying
+      ? `One word was changed. The chapter says: ${fact.sentence}.`
+      : 'Those are the chapter\'s own words.',
+    next_action: actuallyLying ? 'Find the word that was wrong.' : 'Move on.',
+  };
+}
+
+function factFillBlank(facts: Fact[], i: number, topic: string): TextQuestion {
+  const fact = facts[i];
+  return {
+    topic,
+    difficulty: 'medium',
+    question_type: 'fill_blank',
+    question_text: blanked(fact),
+    options: null,
+    answer: fact.key,
+    explanation: `From the chapter: ${fact.sentence}.`,
+    next_action: 'Read the whole sentence back with the word in place.',
+  };
+}
+
+function factShortAnswer(facts: Fact[], i: number, topic: string): TextQuestion {
+  const fact = facts[i];
+  return {
+    topic,
+    difficulty: 'medium',
+    question_type: 'short_answer',
+    question_text: `In a word or a short phrase, what belongs in the gap? ${blanked(fact)}`,
+    options: null,
+    answer: fact.key,
+    explanation: `From the chapter: ${fact.sentence}.`,
+    next_action: 'If the idea was there but not the word, that is a vocabulary gap.',
+  };
+}
+
 type Style = 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
 
 /** What `mixed` cycles through, so two neighbours are never the same shape. */
@@ -214,9 +340,16 @@ export function questionsFromText(
   text: string, count: number, topic: string, format: string,
 ): TextQuestion[] {
   const defs = definitionsIn(text);
-  if (defs.length === 0) return [];
-
   const out: TextQuestion[] = [];
+
+  /*
+   * Definitions first, when the chapter has them: "Term: meaning" makes the
+   * cleanest question of every shape. Then ordinary sentences, which is what
+   * a lecturer's slides are actually made of — and without which multiple
+   * choice, true or false and fill-in-the-blank had nothing to work from on
+   * most real files, while short answer quietly fell through to the archive
+   * and looked like it worked.
+   */
 
   for (let i = 0; i < defs.length && out.length < count; i++) {
     /*
@@ -237,6 +370,27 @@ export function questionsFromText(
     // A multiple choice with too few distractors comes back null; a chapter
     // that short gets a true/false in its place rather than a gap.
     out.push(made ?? trueFalse(defs, i, topic));
+  }
+
+  if (out.length >= count) return out.slice(0, count);
+
+  const facts = factsIn(text);
+  const asked = new Set(out.map((q) => q.question_text));
+
+  for (let i = 0; i < facts.length && out.length < count; i++) {
+    const rotated = ROTATION[out.length % ROTATION.length];
+    const style = FIXED.includes(format as Style) ? (format as Style) : rotated;
+
+    const made =
+      style === 'multiple_choice' ? factMultipleChoice(facts, i, topic)
+      : style === 'true_false' ? factTrueFalse(facts, i, topic)
+      : style === 'short_answer' ? factShortAnswer(facts, i, topic)
+      : factFillBlank(facts, i, topic);
+
+    const question = made ?? factFillBlank(facts, i, topic);
+    if (asked.has(question.question_text)) continue;
+    asked.add(question.question_text);
+    out.push(question);
   }
 
   return out;

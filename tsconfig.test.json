@@ -33,6 +33,7 @@
     "lib/study/plan-builder.ts",
     "lib/study/outline.ts",
     "lib/study/enforce-format.ts",
+    "lib/study/facts-from-text.ts",
     "lib/study/questions-from-text.ts",
     "lib/materials/pdf-text.ts",
     "lib/materials/__tests__/**/*.ts",
