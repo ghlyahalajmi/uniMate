@@ -27,12 +27,20 @@ export type PracticeFormat =
   | 'mixed'
   | 'multiple_choice'
   | 'true_false'
+  | 'short_answer'
   | 'fill_blank'
-  | 'compare'
   | 'flashcards';
 
+/**
+ * Every one of these produces what its name says, with or without a model.
+ *
+ * "Compare two things" used to be here and is not any more: comparing needs
+ * two things the chapter actually set against each other, and without a model
+ * there is nothing honest to build it from. A chip that quietly hands back a
+ * different kind of question is the bug this list exists to avoid.
+ */
 export const PRACTICE_FORMATS: PracticeFormat[] = [
-  'mixed', 'multiple_choice', 'true_false', 'fill_blank', 'compare', 'flashcards',
+  'mixed', 'multiple_choice', 'true_false', 'short_answer', 'fill_blank', 'flashcards',
 ];
 
 /**

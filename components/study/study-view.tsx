@@ -9,9 +9,9 @@ import { TextInput } from '@/components/ui/form';
 import { useToast, Modal } from '@/components/ui/toast';
 import { Icon } from '@/components/shell/icons';
 import { PageHeader } from '@/components/shell/page-header';
-import { formatLabel } from './practice-format-picker';
+import { formatLabel, PracticeFormatPicker } from './practice-format-picker';
 import {
-  MODE_SIZES,
+  MODE_SIZES, isDeckFormat,
   type PracticeFormat, type PracticeMode, type RequestedDifficulty,
 } from '@/lib/study/modes';
 import { XP_RULES } from '@/lib/momentum/engine';
@@ -60,15 +60,13 @@ export function StudyView({
   const [courseId, setCourseId] = useState(initialCourseId);
   const [mode, setMode] = useState<PracticeMode>('standard_10');
   /*
-   * Practice is always mixed now, and flashcards are their own button.
-   *
-   * The style picker offered six choices and honoured none of them without a
-   * model: every route through it produced the same set. A control that does
-   * nothing is worse than no control, so the choice is gone and the set is
-   * what mixed always promised — a different shape per question, built from
-   * the chapter itself.
+   * The style is chosen at the moment of starting, not kept as a setting
+   * three cards up the page. Pressing Start practising asks the one question
+   * that changes what the next twenty minutes feel like, and the answer runs
+   * it — so the choice cannot be set, forgotten and silently disobeyed, which
+   * is what the old row of chips did.
    */
-  const format: PracticeFormat = 'mixed';
+  const [format, setFormat] = useState<PracticeFormat>('mixed');
   // The choices live behind the button that uses them, and open on the press.
   const [setupOpen, setSetupOpen] = useState(false);
   const [difficulty, setDifficulty] = useState<RequestedDifficulty>('adaptive');
@@ -102,8 +100,9 @@ export function StudyView({
     return () => clearInterval(id);
   }, [phase]);
 
-  const start = useCallback(async (deck = false) => {
+  const start = useCallback(async (chosen: PracticeFormat = 'mixed') => {
     if (!courseId) return;
+    setFormat(chosen);
     setPhase('generating');
     setError(null);
 
@@ -111,7 +110,7 @@ export function StudyView({
     // route and the student lands on the deck rather than on question one.
     // Sending them through the question generator would quietly hand back
     // ordinary questions under a label that promised cards.
-    if (deck) {
+    if (isDeckFormat(chosen)) {
       try {
         const res = await fetch('/api/ai/flashcards', {
           method: 'POST',
@@ -144,7 +143,7 @@ export function StudyView({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          course_id: courseId, mode, difficulty, format,
+          course_id: courseId, mode, difficulty, format: chosen,
           topic: topic.trim() || undefined,
           material_id: chapterId ?? undefined,
         }),
@@ -172,7 +171,7 @@ export function StudyView({
       setError(t.errors.network);
       setPhase('error');
     }
-  }, [courseId, mode, difficulty, format, topic, chapterId, t, tf, formatNumber, router, toast]);
+  }, [courseId, mode, difficulty, topic, chapterId, t, tf, formatNumber, router, toast]);
 
   const check = useCallback(() => {
     if (!current || !sessionId || checked || !given.trim()) return;
@@ -454,25 +453,20 @@ export function StudyView({
                 <Button variant="secondary" onClick={() => setSetupOpen(false)}>
                   {t.common.cancel}
                 </Button>
-                {/* A deck is a different destination, not a question shape, so
-                    it is a different button rather than a sixth chip in a row
-                    of question styles. */}
-                <Button
-                  variant="secondary"
-                  onClick={() => { setSetupOpen(false); void start(true); }}
-                  disabled={!courseId}
-                >
-                  <Icon.flashcards size={16} />
-                  {t.study.buildDeck}
-                </Button>
-                <Button onClick={() => { setSetupOpen(false); void start(); }} disabled={!courseId}>
-                  <Icon.sparkle size={16} />
-                  {t.study.start}
-                </Button>
+                {/* No Start button: the style cards below are the start. One
+                    press chooses how you want to be asked and runs it, rather
+                    than choosing a setting and then pressing something else. */}
               </div>
             }
           >
             <div className="space-y-4">
+              {/* First in the modal, because it is the choice that decides
+                  what the session is. Everything under it narrows the set;
+                  this picks its shape, and picking it starts. */}
+              <PracticeFormatPicker
+                onChoose={(f) => { setSetupOpen(false); void start(f); }}
+              />
+
           {embedded ? null : (
             <Card>
               <CardHeader title={t.common.course} />

@@ -111,9 +111,9 @@ check('mixed keeps everything untouched', () => {
   assert.deepEqual(enforceFormat(input, 'mixed'), input);
 });
 
-check('compare types the question and clears the options', () => {
-  const [out] = enforceFormat([q({ options: ['x', 'y'] })], 'compare');
-  assert.equal(out.question_type, 'compare');
+check('short answer types the question and clears the options', () => {
+  const [out] = enforceFormat([q({ options: ['x', 'y'] })], 'short_answer');
+  assert.equal(out.question_type, 'short_answer');
   assert.equal(out.options, null);
 });
 

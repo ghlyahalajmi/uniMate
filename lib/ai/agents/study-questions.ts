@@ -272,12 +272,11 @@ const FORMAT_LINES: Record<PracticeFormat, string> = {
     + 'term that carries the meaning — the condition, the unit, the operator — never an article or '
     + 'a connective, because a sentence that reads the same either way tests nothing. Put "options" '
     + 'at null.',
-  compare:
-    'Every question must ask the student to distinguish two things this course treats as a pair — '
-    + 'two methods, two conditions, two cases — and "answer" must name the difference that matters '
-    + 'rather than list features of each in turn. Choose pairs that are genuinely confusable; two '
-    + 'unrelated topics make a question nobody gets wrong for the right reason. Put "options" at '
-    + 'null.',
+  short_answer:
+    'Every question must be answerable in a word or a short phrase the student writes themselves, '
+    + 'and "answer" must be that phrase in the form the course uses. Ask for the name of a thing, '
+    + 'a condition, a unit or a definition — never for an explanation, because a paragraph cannot '
+    + 'be marked right or wrong. Put "options" at null.',
   // Never reaches the generator: a deck is built by its own path, not asked for
   // as a question set. Present so the map stays exhaustive over the union.
   flashcards:

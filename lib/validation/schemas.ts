@@ -135,7 +135,7 @@ export const studyRequestSchema = z.object({
   mode: z.enum(['quick_5','standard_10','deep_20','exam_mode']).default('standard_10'),
   difficulty: z.enum(['easy','medium','hard','adaptive']).default('adaptive'),
   format: z.enum([
-    'mixed','multiple_choice','true_false','fill_blank','compare','flashcards',
+    'mixed','multiple_choice','true_false','short_answer','fill_blank','flashcards',
   ]).default('mixed'),
   topic: z.string().trim().max(200).optional(),
   /** Practise one uploaded chapter rather than the course at large. */

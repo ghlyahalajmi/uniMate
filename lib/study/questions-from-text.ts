@@ -160,6 +160,30 @@ function fillBlank(all: Definition[], i: number, topic: string): TextQuestion {
   };
 }
 
+function shortAnswer(all: Definition[], i: number, topic: string): TextQuestion {
+  const { term, meaning } = all[i];
+
+  return {
+    topic,
+    difficulty: 'medium',
+    question_type: 'short_answer',
+    question_text: `In one word or phrase: what does the chapter call ${lowerFirst(trimEnd(meaning))}?`,
+    options: null,
+    answer: term,
+    explanation: `The chapter's own name for it is ${term}.`,
+    next_action: 'If you knew the idea but not the word, that is a vocabulary gap, not a concept gap.',
+  };
+}
+
+/** "The region around a charge" reads wrong after "what does the chapter call". */
+function lowerFirst(value: string): string {
+  if (!value) return value;
+  // Only when the rest of the word is lower case: "Maxwell" must stay "Maxwell".
+  const [first, ...rest] = value;
+  const second = rest[0] ?? '';
+  return second && second === second.toLowerCase() ? first.toLowerCase() + rest.join('') : value;
+}
+
 function escape(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -178,10 +202,10 @@ function trimEnd(value: string): string {
  * Returns fewer than asked, or none at all, rather than padding: a chapter
  * with two definitions in it has two questions in it.
  */
-type Style = 'multiple_choice' | 'true_false' | 'fill_blank';
+type Style = 'multiple_choice' | 'true_false' | 'short_answer' | 'fill_blank';
 
 /** What `mixed` cycles through, so two neighbours are never the same shape. */
-const ROTATION: readonly Style[] = ['multiple_choice', 'true_false', 'fill_blank'];
+const ROTATION: readonly Style[] = ['multiple_choice', 'true_false', 'short_answer', 'fill_blank'];
 
 /** The formats this can pin every question to. */
 const FIXED: readonly Style[] = ROTATION;
@@ -207,6 +231,7 @@ export function questionsFromText(
     const made =
       style === 'multiple_choice' ? multipleChoice(defs, i, topic)
       : style === 'true_false' ? trueFalse(defs, i, topic)
+      : style === 'short_answer' ? shortAnswer(defs, i, topic)
       : fillBlank(defs, i, topic);
 
     // A multiple choice with too few distractors comes back null; a chapter

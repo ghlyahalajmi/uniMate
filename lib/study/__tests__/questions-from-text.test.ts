@@ -69,11 +69,22 @@ group('mixed means a different style per question');
 {
   const qs = questionsFromText(CHAPTER, 5, 'Electromagnetics', 'mixed');
   const kinds = qs.map((q) => q.question_type);
-  check('more than one style appears', new Set(kinds).size > 1, kinds.join(', '));
+  check('every style appears in a set of five', new Set(kinds).size === 4, kinds.join(', '));
 
   let neighboursDiffer = true;
   for (let i = 1; i < kinds.length; i++) if (kinds[i] === kinds[i - 1]) neighboursDiffer = false;
   check('no two questions in a row are the same shape', neighboursDiffer, kinds.join(', '));
+}
+
+group('short answer');
+{
+  const sa = questionsFromText(CHAPTER, 5, 'T', 'short_answer');
+  check('short answer gives short answer', sa.every((q) => q.question_type === 'short_answer'));
+  check('there is nothing to pick from', sa.every((q) => q.options === null));
+  const terms = new Set(definitionsIn(CHAPTER).map((d) => d.term));
+  check('the answer is a term from the chapter', sa.every((q) => terms.has(q.answer)));
+  check('the question does not contain its own answer',
+    sa.every((q) => !q.question_text.toLowerCase().includes(q.answer.toLowerCase())));
 }
 
 group('a chosen style is the style you get');

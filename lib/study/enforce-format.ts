@@ -125,7 +125,7 @@ export function enforceFormat(
       format === 'multiple_choice' ? asMultipleChoice(q)
         : format === 'true_false' ? asTrueFalse(q)
           : format === 'fill_blank' ? asFillBlank(q)
-            : format === 'compare' ? { ...q, question_type: 'compare', options: null }
+            : format === 'short_answer' ? { ...q, question_type: 'short_answer', options: null }
               : q;
 
     if (shaped) out.push(shaped);

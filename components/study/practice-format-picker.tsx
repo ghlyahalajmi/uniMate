@@ -20,7 +20,7 @@ export function formatLabel(t: ReturnType<typeof useI18n>['t'], f: PracticeForma
     case 'multiple_choice': return t.practice.mcq;
     case 'true_false': return t.practice.trueFalse;
     case 'fill_blank': return t.studyAi.formatFillBlank;
-    case 'compare': return t.studyAi.formatCompare;
+    case 'short_answer': return t.studyAi.formatShortAnswer;
     case 'flashcards': return t.studyAi.formatFlashcards;
   }
 }
@@ -31,7 +31,7 @@ export function formatHint(t: ReturnType<typeof useI18n>['t'], f: PracticeFormat
     case 'multiple_choice': return t.practice.mcqSub;
     case 'true_false': return t.practice.trueFalseSub;
     case 'fill_blank': return t.studyAi.formatFillBlankSub;
-    case 'compare': return t.studyAi.formatCompareSub;
+    case 'short_answer': return t.studyAi.formatShortAnswerSub;
     case 'flashcards': return t.studyAi.formatFlashcardsSub;
   }
 }
@@ -42,8 +42,8 @@ export function formatIcon(f: PracticeFormat, size = 18) {
     case 'mixed': return <Icon.sparkle size={size} />;
     case 'multiple_choice': return <Icon.options size={size} />;
     case 'true_false': return <Icon.trueFalse size={size} />;
-    case 'fill_blank': return <Icon.notes size={size} />;
-    case 'compare': return <Icon.analytics size={size} />;
+    case 'fill_blank': return <Icon.edit size={size} />;
+    case 'short_answer': return <Icon.notes size={size} />;
     case 'flashcards': return <Icon.flashcards size={size} />;
   }
 }
