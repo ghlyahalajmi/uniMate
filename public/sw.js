@@ -2,7 +2,8 @@
  * The part of UniMate that runs when UniMate is not open.
  *
  * It exists for one job: a push arrives with no content, this asks the app
- * what is due, and shows it. Everything else a service worker is usually for —
+ * what is due — a reminder that has arrived, or a task whose day has gone
+ * without it being finished — and shows it. Everything else a service worker is usually for —
  * caching pages, working offline — is deliberately absent. A cached academic
  * record is a stale academic record, and a grade that is one version behind is
  * worse than a grade you had to wait a second for.
@@ -64,15 +65,21 @@ async function showDue() {
 
   await Promise.all(
     due.slice(0, 3).map((r) =>
-      self.registration.showNotification(r.title || 'UniMate reminder', {
+      self.registration.showNotification(r.title || 'UniMate', {
         body: r.body || 'Your reminder is due.',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        // One notification per reminder, and re-waking never stacks duplicates.
-        tag: `reminder-${r.id}`,
+        // One notification per item, and re-waking never stacks duplicates.
+        tag: `unimate-${r.id}`,
         renotify: true,
         requireInteraction: false,
-        data: { url: '/calendar', ids: due.map((x) => x.id) },
+        /*
+         * Where tapping it should land. A missed task is only useful if the
+         * tap goes to the task list; a reminder belongs on the calendar. The
+         * words themselves were written by the server, in the student's own
+         * language — a service worker has no dictionary.
+         */
+        data: { url: r.kind === 'task' ? '/tasks' : '/calendar' },
       }),
     ),
   );

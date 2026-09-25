@@ -1,18 +1,22 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/provider';
 import { Icon } from '@/components/shell/icons';
 import { cx } from '@/components/ui/primitives';
 import { formatClock } from '@/lib/time/when';
 
 /**
- * The reminder that arrives while the app is open.
+ * The reminder — and the missed deadline — that arrives while the app is open.
  *
- * A reminder nobody is told about is a row in a table. This asks the server
- * once a minute whether anything is due — by the browser's own clock, because
- * 7pm means 7pm where the student is — and when something is, it plays a short
- * chime and puts a card on the screen until it is dismissed.
+ * A reminder nobody is told about is a row in a table, and so is an overdue
+ * task: "Overdue" was a red word on a list, and the student who missed the
+ * deadline is exactly the student not looking at that list. This asks the
+ * server once a minute whether anything is due or late — by the browser's own
+ * clock, because 7pm means 7pm where the student is, and a task due today is
+ * not late until today is over — and when something is, it plays a short chime
+ * and puts a card on the screen until it is dismissed.
  *
  * Announced reminders are marked on the server, so the same one does not greet
  * them again on every page they open for the rest of the day. That is the
@@ -21,6 +25,8 @@ import { formatClock } from '@/lib/time/when';
 
 interface Due {
   id: string;
+  /** A reminder that has arrived, or a task whose day has gone. */
+  kind?: 'reminder' | 'task';
   title: string;
   body: string | null;
   at: string | null;
@@ -188,24 +194,42 @@ export function ReminderWatch() {
       aria-live="polite"
       className="fixed z-[60] bottom-24 lg:bottom-6 inset-x-0 px-4 flex flex-col items-center gap-2 pointer-events-none"
     >
-      {due.map((d) => (
+      {due.map((d) => {
+        /*
+         * A missed deadline is not the same message as a reminder, and it
+         * should not look like one. Red rather than amber, "you missed this"
+         * rather than the time it was set for, and a way straight to the list
+         * — the point of telling somebody is that they can act on it.
+         */
+        const late = d.kind === 'task';
+
+        return (
         <div
           key={d.id}
           className={cx(
             'pointer-events-auto w-full max-w-[420px] flex items-start gap-3 p-3.5',
-            'rounded-[var(--radius-md)] border border-[var(--warning-border)] bg-[var(--bg-surface)]',
+            'rounded-[var(--radius-md)] bg-[var(--bg-surface)]',
+            late ? 'border border-[var(--danger-border)]' : 'border border-[var(--warning-border)]',
             'shadow-[var(--shadow-float)] animate-mark-node',
           )}
         >
           <span
             aria-hidden="true"
-            className="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-[var(--warning-soft)] text-[var(--warning)]"
+            className={cx(
+              'shrink-0 w-9 h-9 grid place-items-center rounded-full',
+              late
+                ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                : 'bg-[var(--warning-soft)] text-[var(--warning)]',
+            )}
           >
-            <Icon.bell size={18} />
+            {late ? <Icon.alert size={18} /> : <Icon.bell size={18} />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-[var(--warning)]">
-              {t.calendar.reminderDueNow}
+            <p className={cx(
+              'text-[0.6875rem] font-semibold uppercase tracking-wide',
+              late ? 'text-[var(--danger)]' : 'text-[var(--warning)]',
+            )}>
+              {late ? t.tasks.overdueAlert : t.calendar.reminderDueNow}
             </p>
             <p className="text-sm font-medium mt-0.5 break-words">{d.title}</p>
             {d.at ? (
@@ -215,6 +239,15 @@ export function ReminderWatch() {
             ) : null}
             {d.body ? (
               <p className="text-xs text-[var(--text-secondary)] mt-1 break-words">{d.body}</p>
+            ) : null}
+            {late ? (
+              <Link
+                href="/tasks"
+                onClick={() => setDue((prev) => prev.filter((x) => x.id !== d.id))}
+                className="inline-block text-xs font-medium mt-1.5 text-[var(--danger)] underline underline-offset-2"
+              >
+                {t.tasks.overdueOpen}
+              </Link>
             ) : null}
           </div>
           <button
@@ -226,7 +259,8 @@ export function ReminderWatch() {
             <Icon.close size={15} />
           </button>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

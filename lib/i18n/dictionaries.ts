@@ -577,6 +577,9 @@ export const en = {
     deleteConfirm: 'Delete this task?', deleteBody: 'This cannot be undone.',
     saveError: 'We could not save the task. Please check the title and try again.',
     groupOverdue: 'Overdue', groupToday: 'Today', groupWeek: 'This week', groupLater: 'Later', groupNoDate: 'No date',
+    overdueAlert: 'You missed this one',
+    overdueBody: 'It was due on {date}. Finish it when you can.',
+    overdueOpen: 'Open my tasks',
   },
   notes: {
     design: 'Design',
@@ -1780,6 +1783,9 @@ export const ar: Dictionary = {
     deleteConfirm: 'حذف هذه المهمة؟', deleteBody: 'لا يمكن التراجع.',
     saveError: 'تعذّر حفظ المهمة. تحقق من العنوان وحاول مجدداً.',
     groupOverdue: 'متأخرة', groupToday: 'اليوم', groupWeek: 'هذا الأسبوع', groupLater: 'لاحقاً', groupNoDate: 'بلا تاريخ',
+    overdueAlert: 'هذه فاتتك',
+    overdueBody: 'كان موعدها {date}. أنجزها متى ما تمكنت.',
+    overdueOpen: 'افتح مهامي',
   },
   notes: {
     design: 'التصميم',
