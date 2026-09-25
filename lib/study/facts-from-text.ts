@@ -97,8 +97,19 @@ export function sentencesIn(text: string): string[] {
   const joined: string[] = [];
   for (const line of lines) {
     const previous = joined[joined.length - 1];
+    /*
+     * A numbered heading never continues into the sentence beneath it.
+     *
+     * "3.1 Basic Laws of Electromagnetic Theory" followed by a bullet that
+     * begins with a lower-case word looks exactly like a wrapped line, and
+     * joining them produced a question asking what fills the gap in "3.1
+     * Basic Laws of ______ electric field is defined through…".
+     */
+    const heading = previous !== undefined && /^\d+(\.\d+)*\s/.test(previous);
+
     const continues =
       previous !== undefined
+      && !heading
       && !/[.!?:;]$/.test(previous)
       && /^[a-z\u0600-\u06FF(]/.test(line)
       && previous.split(/\s+/).length + line.split(/\s+/).length <= 40;
