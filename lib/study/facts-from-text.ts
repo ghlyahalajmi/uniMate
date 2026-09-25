@@ -169,10 +169,20 @@ export function factsIn(text: string): Fact[] {
     if (/[?]$/.test(sentence)) continue;
     if (!LINKING.test(sentence)) continue;
 
-    // A line that is mostly symbols is a formula, and blanking part of one
-    // asks the student to recall punctuation.
+    // A line that is mostly symbols is a formula — or wreckage — and blanking
+    // part of one asks the student to recall punctuation.
     const letters = sentence.replace(/[^\p{L}]/gu, '').length;
-    if (letters < sentence.length * 0.55) continue;
+    if (letters < sentence.length * 0.6) continue;
+
+    /*
+     * A decoding artefact rather than a sentence.
+     *
+     * The test is not "unusual characters" — λ and μ and ° are ordinary in
+     * physics, and Arabic is ordinary here. It is *runs* of accented Latin
+     * letters, which is what a font table looks like when it is read as text
+     * and never what anybody types.
+     */
+    if (/[\u00c0-\u024f]{2,}/u.test(sentence)) continue;
 
     const key = keyOf(sentence);
     if (!key || key.key.length < 3) continue;

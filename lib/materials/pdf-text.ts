@@ -140,6 +140,26 @@ function decodeHex(value: string): string {
   return out;
 }
 
+/**
+ * Whether a run of characters is writing or wreckage.
+ *
+ * Decoding a font's internal table with a text decoder yields plenty of
+ * characters, all of them nonsense. Real writing is mostly letters, digits,
+ * spaces and punctuation; binary read as Latin-1 is mostly the high range.
+ */
+function looksLikeText(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return false;
+
+  /*
+   * A ratio rather than a length: a slide with two words on it is a real
+   * slide, and a font table read as text is thousands of characters. What
+   * separates them is what proportion of it could have been typed.
+   */
+  const ordinary = trimmed.replace(/[^\p{L}\p{N}\s.,;:!?()\[\]'"/%°+\-=×÷<>^_*|@#&$~{}]/gu, '').length;
+  return ordinary >= trimmed.length * 0.75;
+}
+
 /** Never throws: a stream that will not inflate is a stream we skip. */
 function inflate(bytes: Buffer): Buffer | null {
   try {
@@ -203,11 +223,23 @@ export function pdfText(bytes: Buffer): string {
     const decoded = inflate(slice) ?? slice;
     const content = decoded.toString('latin1');
 
-    // Only content streams hold text operators; fonts and images do not, and
-    // running the regex over a megabyte of image data would be wasted work.
+    /*
+     * Only a content stream holds text, and it has to look like one.
+     *
+     * A font file or a compressed image is a megabyte of bytes, and in a
+     * megabyte of bytes the two characters "Tj" turn up by accident. Reading
+     * one as a page produced pages of mojibake — and the question builder,
+     * given mojibake, dutifully built questions out of it. So a stream has to
+     * open a text object and close it, not merely contain the letters.
+     */
+    if (!/\bBT\b/.test(content) || !/\bET\b/.test(content)) continue;
     if (!/(TJ|Tj|T\*|Td)\s/.test(content)) continue;
 
-    out += textFromContentStream(content);
+    const drawn = textFromContentStream(content);
+    // And what comes out has to read as language rather than as bytes.
+    if (!looksLikeText(drawn)) continue;
+
+    out += drawn;
     out += '\n';
   }
 

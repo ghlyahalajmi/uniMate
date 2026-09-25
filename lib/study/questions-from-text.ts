@@ -38,6 +38,15 @@ export interface Definition {
   meaning: string;
 }
 
+/** Mostly letters, digits, spaces and punctuation — not a run of bytes. */
+function readsAsLanguage(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length < 3) return false;
+  const ordinary = trimmed.replace(/[^\p{L}\p{N}\s.,;:!?()'"/%°+\-]/gu, '').length;
+  const letters = trimmed.replace(/[^\p{L}]/gu, '').length;
+  return ordinary >= trimmed.length * 0.85 && letters >= trimmed.length * 0.5;
+}
+
 /** "Term — meaning", "Term: meaning", "Term is defined as ..." */
 export function definitionsIn(text: string): Definition[] {
   const out: Definition[] = [];
@@ -65,6 +74,16 @@ export function definitionsIn(text: string): Definition[] {
      */
     if (/^(chapter|section|unit|lecture|part|appendix|figure|table|الفصل|الوحدة|الباب)\b/i.test(term)) continue;
     if (/^\d+(\.\d+)*$/.test(term)) continue;
+
+    /*
+     * Both halves have to read as language.
+     *
+     * A colon turns up in binary noise as often as in a definition, and a
+     * "term" of punctuation and high-range bytes made questions that were not
+     * about anything. Whatever survives the extractor still has to look like
+     * writing before it becomes a question.
+     */
+    if (!readsAsLanguage(term) || !readsAsLanguage(meaning)) continue;
 
     const key = term.toLowerCase();
     if (seen.has(key)) continue;
